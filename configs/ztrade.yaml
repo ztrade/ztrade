@@ -1,0 +1,9 @@
+exchanges:
+  bitmex:
+    type: bitmex
+    key: key
+    secret: secret
+proxy: socks5://127.0.0.1:1080
+db:
+  type: mysql
+  uri: root:123456@tcp(localhost:3306)/exchange

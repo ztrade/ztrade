@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backtest Report</title>
+    <meta name="author" content="https://coolplay.website"/>
+    <meta name="description"  content="ZTrade Backtest Report"/>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+    <script language="javascript" src="report.js"></script>
+</head>
+<body>
+    <div class="container">
+      <h1 class="text-center">ZTrade backtest report</h1>
+      <div class="container">
+      <div class="form-group row">
+            <label for="totalAction" class="col-sm-6 col-form-label text-right">Total Actions:</label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="totalAction" value="{{.totalAction}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="winRate" class="col-sm-6 col-form-label text-right">Win Rate:</label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="winRate" value="{{.winRate}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="profit" class="col-sm-6 col-form-label text-right">Profit:</label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="profit" value="{{.profit}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="maxDrawdown" class="col-sm-6 col-form-label text-right">Max drawdown percent: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.maxDrawdown}}%">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="maxDrawdownValue" class="col-sm-6 col-form-label text-right">Max drawdown value: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.maxDrawdownValue}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="maxLose" class="col-sm-6 col-form-label text-right">Max lose percent per round: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.maxLose}}%">
+              </div>
+      </div>
+      </div>
+    <canvas id="profitChat" width="400" height="100"></canvas>
+    <canvas id="totalProfitChat" width="400" height="100"></canvas>
+
+    <h3 class="text-center">Trade detail</h3>
+<table class="table">
+    <thead class="thead-dark">
+          <tr>
+            <th scope="col">Time</th>
+            <th scope="col">Action</th>
+            <th scope="col">Price</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Total</th>
+            <th scope="col">Profit</th>
+          </tr>
+    </thead>
+    <tbody>
+          {{range .actions}}
+          <tr>
+            <td>{{.Time}}</td>
+            <td>{{.Action}}</td>
+            <td>{{.Price}}</td>
+          <td>{{.Amount}}</td>
+          <td>{{.Total}}</td>
+          <td>{{.Profit}}</td>
+          </tr>
+          {{end}}
+      </table>
+    </div>
+  <script>
+  var actions = {{.actions}};
+    drawProfit("profitChat", actions);
+    drawTotalProfit("totalProfitChat", actions);
+  </script>
+</body>
+</html>
