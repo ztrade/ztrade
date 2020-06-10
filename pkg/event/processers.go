@@ -21,7 +21,7 @@ func NewProcessers() *Processers {
 	l := log.WithField("component", "pubsub")
 	logger := watermill.NewStdLoggerWithOut(l.Writer(), true, true)
 	pubSub := gochannel.NewGoChannel(
-		gochannel.Config{OutputChannelBuffer: 1024},
+		gochannel.Config{OutputChannelBuffer: 1024, BlockPublishUntilSubscriberAck: true},
 		logger,
 	)
 	p.bus = NewBus(pubSub, pubSub)

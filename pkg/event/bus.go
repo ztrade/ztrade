@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"time"
 	"ztrade/pkg/define"
 
 	. "github.com/ThreeDotsLabs/watermill/message"
@@ -69,6 +70,7 @@ func (b *Bus) Send(e *Event) (err error) {
 }
 
 func (b *Bus) WaitEmpty() {
+	time.Sleep(time.Millisecond)
 }
 
 func (b *Bus) Close() {
