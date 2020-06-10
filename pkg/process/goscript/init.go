@@ -37,6 +37,10 @@ func init() {
 			"min":         reflect.ValueOf(min),
 			"max":         reflect.ValueOf(max),
 			"formatFloat": reflect.ValueOf(formatFloat),
+			"FloatAdd":    reflect.ValueOf(common.FloatAdd),
+			"FloatSub":    reflect.ValueOf(common.FloatSub),
+			"FloatMul":    reflect.ValueOf(common.FloatMul),
+			"FloatDiv":    reflect.ValueOf(common.FloatDiv),
 		},
 	}
 }

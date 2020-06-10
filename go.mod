@@ -37,7 +37,7 @@ require (
 	go.mongodb.org/mongo-driver v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37 // indirect
 	golang.org/x/net v0.0.0-20200528225125-3c3fba18258b // indirect
-	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
+	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
 	golang.org/x/tools v0.0.0-20200529172331-a64b76657301 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	xorm.io/builder v0.3.7 // indirect
