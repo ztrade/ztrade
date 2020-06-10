@@ -12,10 +12,11 @@ import (
 )
 
 type Engine struct {
-	proc    *BaseProcesser
-	pos     float64
-	balance float64
-	merges  []*KlinePlugin
+	proc     *BaseProcesser
+	pos      float64
+	posPrice float64
+	balance  float64
+	merges   []*KlinePlugin
 }
 
 func NewEngine(proc *BaseProcesser) (e *Engine) {
@@ -55,12 +56,13 @@ func (e *Engine) AddIndicator(name string, params ...int) (ind indicator.CommonI
 	}
 	return
 }
-func (e *Engine) updatePosition(pos float64) {
+func (e *Engine) updatePosition(pos, price float64) {
 	e.pos = pos
+	e.posPrice = price
 }
 
-func (e *Engine) Position() float64 {
-	return e.pos
+func (e *Engine) Position() (float64, float64) {
+	return e.pos, e.posPrice
 }
 
 func (e *Engine) Log(v ...interface{}) {

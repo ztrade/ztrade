@@ -60,8 +60,8 @@ func (r *Runner) OnCandle(candle Candle) (err error) {
 	return r.info.OnCandle(candle)
 }
 
-func (r *Runner) OnPosition(pos float64) (err error) {
-	return r.info.OnPosition(pos)
+func (r *Runner) OnPosition(pos, price float64) (err error) {
+	return r.info.OnPosition(pos, price)
 }
 
 func (r *Runner) OnTrade(trade Trade) (err error) {

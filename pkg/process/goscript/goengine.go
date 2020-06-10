@@ -177,9 +177,9 @@ func (s *GoEngine) onPosition(pos coinex.Position) {
 	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.engine.updatePosition(pos.Hold)
+	s.engine.updatePosition(pos.Hold, pos.Price)
 	for _, vm := range s.vms {
-		vm.OnPosition(pos.Hold)
+		vm.OnPosition(pos.Hold, pos.Price)
 	}
 }
 

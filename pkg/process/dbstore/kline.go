@@ -1,7 +1,6 @@
 package dbstore
 
 import (
-	"fmt"
 	. "ztrade/pkg/define"
 	. "ztrade/pkg/event"
 
@@ -53,7 +52,6 @@ func (tbl *KlineTbl) GetSlice(data interface{}) (rets []interface{}) {
 }
 
 func (tbl *KlineTbl) emitCandles(param CandleParam) {
-	fmt.Println("emitCandles")
 	candles, err := tbl.DataChan(param.Start, param.End, param.BinSize)
 	if err != nil {
 		log.Error("KlineTbl tbl get candles failed:", err.Error())
@@ -85,14 +83,12 @@ func (tbl *KlineTbl) onEventCandle(e Event) (err error) {
 
 func (tbl *KlineTbl) onEventCandleParam(e Event) (err error) {
 	var cParam CandleParam
-	d := e.GetData()
-	fmt.Println(d)
+	// d := e.GetData()
 	err = mapstructure.Decode(e.GetData(), &cParam)
 	if err != nil {
 		log.Error("KlineTbl OnEventCandleParam error:", err.Error())
 		return
 	}
-	fmt.Println("OnEventCandleParam", e.GetName())
 	if e.GetName() == "load_candle" {
 		go tbl.emitCandles(cParam)
 	}

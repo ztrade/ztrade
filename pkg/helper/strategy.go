@@ -35,8 +35,8 @@ func (s *DemoStrategy) OnCandle(candle Candle) {
 }
 
 // OnPosition call when position is updated
-func (s *DemoStrategy) OnPosition(pos float64) {
-	fmt.Println("position:", pos)
+func (s *DemoStrategy) OnPosition(pos, price float64) {
+	fmt.Println("position:", pos, price)
 	return
 }
 

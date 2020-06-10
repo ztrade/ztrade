@@ -35,8 +35,8 @@ func (e *Engine) AddIndicator(name string, params ...int) (ind indicator.CommonI
 	return
 }
 
-func (e *Engine) Position() float64 {
-	return 0
+func (e *Engine) Position() (pos, price float64) {
+	return
 }
 
 func (e *Engine) Balance() float64 {

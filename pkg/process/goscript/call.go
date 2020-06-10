@@ -105,12 +105,12 @@ func (ci *CallInfo) OnCandle(candle Candle) (err error) {
 	return
 }
 
-func (ci *CallInfo) OnPosition(pos float64) (err error) {
+func (ci *CallInfo) OnPosition(pos, price float64) (err error) {
 	if !ci.onPosition.IsValid() {
 		err = fmt.Errorf("%w onPosition", ErrNoMethod)
 		return
 	}
-	ci.onPosition.Call([]reflect.Value{ci.instance, reflect.ValueOf(pos)})
+	ci.onPosition.Call([]reflect.Value{ci.instance, reflect.ValueOf(pos), reflect.ValueOf(price)})
 	return
 }
 
