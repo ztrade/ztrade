@@ -3,6 +3,7 @@ package vex
 import (
 	"container/list"
 	"fmt"
+	"sync"
 	"time"
 	"ztrade/pkg/common"
 	. "ztrade/pkg/define"
@@ -23,6 +24,9 @@ type VExchange struct {
 	position float64
 	symbol   string
 	balance  *common.VBalance
+	// order index in same candle
+	orderIndex int
+	orderMutex sync.Mutex
 }
 
 func NewVExchange(symbol string) *VExchange {
@@ -51,6 +55,8 @@ func (ex *VExchange) processCandle(candle Candle) {
 	if ex.orders.Len() == 0 {
 		return
 	}
+	ex.orderMutex.Lock()
+	defer ex.orderMutex.Unlock()
 	var posChange bool
 	var deleteElems []*list.Element
 	virtualTime := candle.Time()
@@ -91,7 +97,6 @@ func (ex *VExchange) processCandle(candle Candle) {
 				log.Errorf("vexchange balance AddTrade error:%s %f %f", err.Error(), v.Price, v.Amount)
 				continue
 			}
-
 			ex.trades = append(ex.trades, tr)
 			tradeEvent := ex.CreateEvent("trade", EventTrade, tr)
 			trades = append(trades, tradeEvent)
@@ -112,6 +117,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 		}
 	}
 	if posChange {
+
 		ex.position = ex.balance.Pos()
 		ex.Send(ex.symbol, EventCurPosition, map[string]interface{}{"Hold": ex.position, "Symbol": ex.symbol})
 		ex.Send(ex.symbol, EventPosition, map[string]interface{}{"Hold": ex.position, "Symbol": ex.symbol})
@@ -133,24 +139,30 @@ func (ex *VExchange) onEventCandle(e Event) (err error) {
 	}
 
 	ex.candle = &candle
+	ex.orderIndex = 0
 	ex.processCandle(candle)
 	return
 }
 
 func (ex *VExchange) onEventOrder(e Event) (err error) {
+	ex.orderMutex.Lock()
+	defer ex.orderMutex.Unlock()
 	var act TradeAction
 	err = mapstructure.Decode(e.GetData(), &act)
 	if err != nil {
 		return
 	}
 	if ex.candle != nil {
-		act.Time = ex.candle.Time()
+		act.Time = ex.candle.Time().Add(time.Second * time.Duration(ex.orderIndex))
 	}
+	ex.orderIndex++
 	ex.orders.PushBack(act)
 	return
 }
 
 func (ex *VExchange) onEventOrderCancelAll(e Event) (err error) {
+	ex.orderMutex.Lock()
+	defer ex.orderMutex.Unlock()
 	ex.orders = list.New()
 	return
 }
