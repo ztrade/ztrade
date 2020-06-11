@@ -98,7 +98,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 				continue
 			}
 			ex.trades = append(ex.trades, tr)
-			tradeEvent := ex.CreateEvent("trade", EventTrade, tr)
+			tradeEvent := ex.CreateEvent("trade", EventTradeHistory, tr)
 			trades = append(trades, tradeEvent)
 
 			posChange = true
