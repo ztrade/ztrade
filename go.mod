@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.57.0 // indirect
-	github.com/SuperGod/coinex v1.0.5
+	github.com/SuperGod/coinex v1.0.7
 	github.com/SuperGod/indicator v1.0.0
 	github.com/SuperGod/trademodel v1.0.4
 	github.com/SuperGod/wxwork v0.0.2
