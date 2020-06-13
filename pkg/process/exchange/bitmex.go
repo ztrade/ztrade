@@ -76,7 +76,7 @@ func NewBitmexTrade(cfg *viper.Viper, cltName string) (b *BitmexTrade, err error
 
 func (b *BitmexTrade) Init(bus *Bus) (err error) {
 	b.BaseProcesser.Init(bus)
-	bus.Subscribe(EventCandle, b.onEventCandleParam)
+	bus.Subscribe(EventCandleParam, b.onEventCandleParam)
 	bus.Subscribe(EventOrder, b.onEventOrder)
 	bus.Subscribe(EventOrderCancelAll, b.onEventOrderCancelAll)
 	bus.Subscribe(EventWatch, b.onEventWatch)
