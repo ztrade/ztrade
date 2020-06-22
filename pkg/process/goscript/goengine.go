@@ -12,7 +12,6 @@ import (
 	"github.com/SuperGod/coinex"
 	"github.com/SuperGod/indicator"
 	. "github.com/SuperGod/trademodel"
-	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -218,62 +217,62 @@ func (s *GoEngine) onDepth(depth Depth) {
 }
 
 func (s *GoEngine) onEventCandle(e Event) (err error) {
-	ret := Candle{}
-	err = mapstructure.Decode(e.GetData(), &ret)
-	if err != nil {
+	ret, ok := e.GetData().(*Candle)
+	if !ok {
+		log.Errorf("onEventCandle type error: %##v", e.GetData())
 		return
 	}
 	cn := ParseCandleName(e.GetName())
 	if cn.Name == "recent" {
 		ret.ID = -1
 	}
-	s.onCandle(cn.Name, cn.BinSize, ret)
+	s.onCandle(cn.Name, cn.BinSize, *ret)
 	return
 }
 
 func (s *GoEngine) onEventTrade(e Event) (err error) {
-	var tr Trade
-	err = mapstructure.Decode(e.GetData(), &tr)
-	if err != nil {
+	tr, ok := e.GetData().(*Trade)
+	if !ok {
+		log.Errorf("onEventTrade type error: %##v", e.GetData())
 		return
 	}
-	s.onTrades([]Trade{tr})
+	s.onTrades([]Trade{*tr})
 	return
 }
 
 func (s *GoEngine) onEventPosition(e Event) (err error) {
-	var pos coinex.Position
-	err = mapstructure.Decode(e.GetData(), &pos)
-	if err != nil {
+	pos, ok := e.GetData().(*coinex.Position)
+	if !ok {
+		log.Errorf("onEventPosition type error: %##v", e.GetData())
 		return
 	}
-	s.onPosition(pos)
+	s.onPosition(*pos)
 	return
 }
 func (s *GoEngine) onEventTradeHistory(e Event) (err error) {
-	var th Trade
-	err = mapstructure.Decode(e.GetData(), &th)
-	if err != nil {
+	th, ok := e.GetData().(*Trade)
+	if !ok {
+		log.Errorf("onEventTradeHistory type error: %##v", e.GetData())
 		return
 	}
-	s.onTradeHistory(th)
+	s.onTradeHistory(*th)
 	return
 }
 
 func (s *GoEngine) onEventDepth(e Event) (err error) {
-	var depth Depth
-	err = mapstructure.Decode(e.GetData(), &depth)
-	if err != nil {
+	depth, ok := e.GetData().(*Depth)
+	if !ok {
+		log.Errorf("onEventDepth type error: %##v", e.GetData())
 		return
 	}
-	s.onDepth(depth)
+	s.onDepth(*depth)
 	return
 }
 
 func (s *GoEngine) onEventBalance(e Event) (err error) {
-	var balance BalanceInfo
-	err = mapstructure.Decode(e.GetData(), &balance)
-	if err != nil {
+	balance, ok := e.GetData().(*BalanceInfo)
+	if !ok {
+		log.Errorf("onEventBalance type error: %##v", e.GetData())
 		return
 	}
 	s.onBalance(balance.Balance)

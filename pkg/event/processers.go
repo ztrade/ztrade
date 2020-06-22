@@ -19,7 +19,7 @@ type Processers struct {
 func NewProcessers() *Processers {
 	p := new(Processers)
 	l := log.WithField("component", "pubsub")
-	logger := watermill.NewStdLoggerWithOut(l.Writer(), true, true)
+	logger := watermill.NewStdLoggerWithOut(l.Writer(), false, false)
 	pubSub := gochannel.NewGoChannel(
 		gochannel.Config{OutputChannelBuffer: 1024, BlockPublishUntilSubscriberAck: true},
 		logger,

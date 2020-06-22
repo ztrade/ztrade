@@ -125,6 +125,7 @@ func (b *BitmexTrade) checkPos() {
 				pos, err := b.bm.Positions()
 				if err != nil {
 					log.Error("bitmextrade checkPos get position failed:", err.Error())
+					continue
 				}
 				for _, v := range pos {
 					if v.Info.Symbol == b.symbol {

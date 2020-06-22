@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/SuperGod/coinex"
 	. "github.com/SuperGod/trademodel"
 )
 
@@ -14,12 +15,14 @@ const (
 	EventCandle         = "candle"
 	EventOrder          = "order"
 	EventOrderCancelAll = "order_cancel_all"
-	EventTrade          = "trade"
-	EventPosition       = "position"
-	EventCurPosition    = "cur_position" // position of current script
-	EventRiskLimit      = "risk_limit"
-	EventDepth          = "depth"
-	EventTradeHistory   = "trade_history"
+	// own trades
+	EventTrade       = "trade"
+	EventPosition    = "position"
+	EventCurPosition = "cur_position" // position of current script
+	EventRiskLimit   = "risk_limit"
+	EventDepth       = "depth"
+	// all trades in the markets
+	EventTradeHistory = "trade_history"
 
 	EventBalance     = "balance"
 	EventBalanceInit = "balance_init"
@@ -35,8 +38,8 @@ var (
 		EventCandle:      reflect.TypeOf(Candle{}),
 		EventOrder:       reflect.TypeOf(TradeAction{}),
 		// EventOrderCancelAll     = "order_cancel_all"
-		EventTrade: reflect.TypeOf(Trade{}),
-		// EventPosition           = "position"
+		EventTrade:    reflect.TypeOf(Trade{}),
+		EventPosition: reflect.TypeOf(coinex.Position{}),
 		// EventCurPosition        = "cur_position" // position of current script
 		// EventRiskLimit          = "risk_limit"
 		EventDepth:        reflect.TypeOf(Depth{}),
