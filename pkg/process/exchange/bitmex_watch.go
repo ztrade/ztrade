@@ -4,7 +4,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
-	. "ztrade/pkg/define"
+
+	. "github.com/ztrade/ztrade/pkg/define"
 
 	"github.com/SuperGod/coinex/bitmex"
 	"github.com/SuperGod/coinex/bitmex/models"

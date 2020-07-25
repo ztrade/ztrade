@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	// . "ztrade/pkg/define"
-	"ztrade/pkg/process/dbstore"
-	"ztrade/pkg/process/exchange"
+	// . "github.com/ztrade/ztrade/pkg/define"
+	"github.com/ztrade/ztrade/pkg/process/dbstore"
+	"github.com/ztrade/ztrade/pkg/process/exchange"
 
 	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"

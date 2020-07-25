@@ -23,7 +23,7 @@ type VBalance struct {
 
 func NewVBalance() *VBalance {
 	b := new(VBalance)
-	b.total = decimal.NewFromFloat(1000)
+	b.total = decimal.NewFromFloat(100000)
 	b.fee = decimal.NewFromFloat(0.00075)
 	return b
 }

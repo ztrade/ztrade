@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sync"
 
-	. "ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/define"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"

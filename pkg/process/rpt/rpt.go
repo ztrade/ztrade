@@ -2,9 +2,10 @@ package rpt
 
 import (
 	"sort"
-	. "ztrade/pkg/define"
-	. "ztrade/pkg/event"
-	"ztrade/pkg/report"
+
+	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/event"
+	"github.com/ztrade/ztrade/pkg/report"
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/mitchellh/mapstructure"

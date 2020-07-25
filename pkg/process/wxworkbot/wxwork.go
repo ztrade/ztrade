@@ -3,8 +3,9 @@ package wxworkbot
 import (
 	"bytes"
 	"text/template"
-	. "ztrade/pkg/define"
-	. "ztrade/pkg/event"
+
+	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/event"
 
 	"github.com/SuperGod/coinex"
 	. "github.com/SuperGod/trademodel"

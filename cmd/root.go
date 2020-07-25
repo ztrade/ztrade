@@ -26,8 +26,9 @@ import (
 
 	"net/http"
 	_ "net/http/pprof"
-	"ztrade/pkg/ctl"
-	"ztrade/pkg/process/dbstore"
+
+	"github.com/ztrade/ztrade/pkg/ctl"
+	"github.com/ztrade/ztrade/pkg/process/dbstore"
 
 	homedir "github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"

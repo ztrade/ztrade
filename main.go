@@ -1,6 +1,6 @@
 package main
 
-import "ztrade/cmd"
+import "github.com/ztrade/ztrade/cmd"
 
 func main() {
 	cmd.Execute()

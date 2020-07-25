@@ -3,8 +3,9 @@ package goscript
 import (
 	"fmt"
 	"time"
-	. "ztrade/pkg/define"
-	. "ztrade/pkg/event"
+
+	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/event"
 
 	"github.com/SuperGod/indicator"
 	. "github.com/SuperGod/trademodel"

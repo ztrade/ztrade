@@ -6,7 +6,8 @@ import (
 	"reflect"
 	. "reflect"
 	"strconv"
-	"ztrade/pkg/common"
+
+	"github.com/ztrade/ztrade/pkg/common"
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/cosmos72/gomacro/base/paths"

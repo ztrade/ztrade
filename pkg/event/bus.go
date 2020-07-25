@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"reflect"
 	"time"
-	"ztrade/pkg/define"
+
+	"github.com/ztrade/ztrade/pkg/define"
 
 	. "github.com/ThreeDotsLabs/watermill/message"
 	log "github.com/sirupsen/logrus"

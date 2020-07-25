@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"ztrade/pkg/common"
-	. "ztrade/pkg/define"
-	. "ztrade/pkg/event"
 
+	"github.com/ztrade/ztrade/pkg/common"
+	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/event"
+
+	"github.com/SuperGod/coinex"
 	. "github.com/SuperGod/trademodel"
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
@@ -61,6 +63,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 	var deleteElems []*list.Element
 	virtualTime := candle.Time()
 	var trades []*Event
+	var pos coinex.Position
 	for elem := ex.orders.Front(); elem != nil; elem = elem.Next() {
 		v, ok := elem.Value.(TradeAction)
 		if !ok {
@@ -102,6 +105,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 			trades = append(trades, tradeEvent)
 
 			posChange = true
+			pos.Price = tr.Price
 			deleteElems = append(deleteElems, elem)
 		} else {
 			// log.Printf("trade not work:%##v, %##v\n", candle, v)
@@ -119,8 +123,10 @@ func (ex *VExchange) processCandle(candle Candle) {
 	if posChange {
 
 		ex.position = ex.balance.Pos()
-		ex.Send(ex.symbol, EventCurPosition, map[string]interface{}{"Hold": ex.position, "Symbol": ex.symbol})
-		ex.Send(ex.symbol, EventPosition, map[string]interface{}{"Hold": ex.position, "Symbol": ex.symbol})
+		pos.Info.Symbol = ex.symbol
+		pos.Hold = ex.position
+		ex.Send(ex.symbol, EventCurPosition, pos)
+		ex.Send(ex.symbol, EventPosition, pos)
 		ex.Send(ex.symbol, EventBalance, BalanceInfo{Balance: ex.balance.Get()})
 	}
 
@@ -147,16 +153,16 @@ func (ex *VExchange) onEventCandle(e Event) (err error) {
 func (ex *VExchange) onEventOrder(e Event) (err error) {
 	ex.orderMutex.Lock()
 	defer ex.orderMutex.Unlock()
-	var act TradeAction
-	err = mapstructure.Decode(e.GetData(), &act)
-	if err != nil {
+	act := e.GetData().(*TradeAction)
+	if act == nil {
+		log.Errorf("decode tradeaction error: %##v", e.GetData())
 		return
 	}
 	if ex.candle != nil {
 		act.Time = ex.candle.Time().Add(time.Second * time.Duration(ex.orderIndex))
 	}
 	ex.orderIndex++
-	ex.orders.PushBack(act)
+	ex.orders.PushBack(*act)
 	return
 }
 

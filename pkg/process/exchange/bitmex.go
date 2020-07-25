@@ -5,9 +5,10 @@ import (
 	"reflect"
 	"sync/atomic"
 	"time"
-	"ztrade/pkg/common"
-	. "ztrade/pkg/define"
-	. "ztrade/pkg/event"
+
+	"github.com/ztrade/ztrade/pkg/common"
+	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/event"
 
 	"github.com/SuperGod/coinex"
 	"github.com/SuperGod/coinex/bitmex"

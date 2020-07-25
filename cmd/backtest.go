@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"ztrade/pkg/ctl"
+
+	"github.com/ztrade/ztrade/pkg/ctl"
 
 	log "github.com/sirupsen/logrus"
 
-	"ztrade/pkg/common"
-	"ztrade/pkg/process/rpt"
+	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/ztrade/pkg/process/rpt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

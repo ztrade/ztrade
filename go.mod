@@ -1,6 +1,6 @@
-module ztrade
+module github.com/ztrade/ztrade
 
-go 1.12
+go 1.14
 
 require (
 	cloud.google.com/go v0.57.0 // indirect

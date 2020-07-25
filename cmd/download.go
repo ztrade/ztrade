@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"ztrade/pkg/ctl"
+	"github.com/ztrade/ztrade/pkg/ctl"
 
 	log "github.com/sirupsen/logrus"
 

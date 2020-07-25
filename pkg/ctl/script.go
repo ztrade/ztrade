@@ -2,8 +2,9 @@ package ctl
 
 import (
 	"path"
-	"ztrade/pkg/event"
-	"ztrade/pkg/process/goscript"
+
+	"github.com/ztrade/ztrade/pkg/event"
+	"github.com/ztrade/ztrade/pkg/process/goscript"
 )
 
 type Scripter interface {

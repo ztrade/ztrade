@@ -21,9 +21,10 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
-	"ztrade/pkg/common"
-	"ztrade/pkg/ctl"
-	"ztrade/pkg/process/rpt"
+
+	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/ztrade/pkg/ctl"
+	"github.com/ztrade/ztrade/pkg/process/rpt"
 
 	log "github.com/sirupsen/logrus"
 

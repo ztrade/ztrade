@@ -1,8 +1,8 @@
 package ctl
 
 import (
-	. "ztrade/pkg/define"
-	. "ztrade/pkg/event"
+	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/event"
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/mitchellh/mapstructure"

@@ -2,10 +2,11 @@ package ctl
 
 import (
 	"time"
-	. "ztrade/pkg/define"
-	"ztrade/pkg/event"
-	"ztrade/pkg/process/dbstore"
-	"ztrade/pkg/process/vex"
+
+	. "github.com/ztrade/ztrade/pkg/define"
+	"github.com/ztrade/ztrade/pkg/event"
+	"github.com/ztrade/ztrade/pkg/process/dbstore"
+	"github.com/ztrade/ztrade/pkg/process/vex"
 
 	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"

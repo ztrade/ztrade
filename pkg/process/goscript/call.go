@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	. "ztrade/pkg/event"
+
+	. "github.com/ztrade/ztrade/pkg/event"
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/cosmos72/gomacro/fast"

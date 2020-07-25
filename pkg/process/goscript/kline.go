@@ -1,7 +1,7 @@
 package goscript
 
 import (
-	"ztrade/pkg/common"
+	"github.com/ztrade/ztrade/pkg/common"
 
 	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
