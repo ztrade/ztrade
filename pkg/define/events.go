@@ -45,9 +45,8 @@ var (
 		EventDepth:        reflect.TypeOf(Depth{}),
 		EventTradeHistory: reflect.TypeOf(Trade{}),
 		EventBalance:      reflect.TypeOf(Balance{}),
-		// EventBalanceInit:reflect.TypeOf()
-
-		EventWatch: reflect.TypeOf(WatchParam{}),
+		EventBalanceInit:  reflect.TypeOf(BalanceInfo{}),
+		EventWatch:        reflect.TypeOf(WatchParam{}),
 
 		EventNotify: reflect.TypeOf(NotifyEvent{}),
 	}

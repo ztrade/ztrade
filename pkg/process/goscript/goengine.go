@@ -271,7 +271,7 @@ func (s *GoEngine) onEventDepth(e Event) (err error) {
 }
 
 func (s *GoEngine) onEventBalance(e Event) (err error) {
-	balance, ok := e.GetData().(*BalanceInfo)
+	balance, ok := e.GetData().(*Balance)
 	if !ok {
 		log.Errorf("onEventBalance type error: %##v", e.GetData())
 		return

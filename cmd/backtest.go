@@ -7,11 +7,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ztrade/ztrade/pkg/common"
-	"github.com/ztrade/ztrade/pkg/process/rpt"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/ztrade/pkg/report"
 )
 
 var (
@@ -22,6 +21,7 @@ var (
 	binSize      string
 	symbol       string
 	exchangeName string
+	balanceInit  float64
 )
 
 // backtestCmd represents the backtest command
@@ -37,6 +37,8 @@ func init() {
 
 	backtestCmd.PersistentFlags().StringVar(&scriptFile, "script", "", "script file to backtest")
 	backtestCmd.PersistentFlags().StringVarP(&rptFile, "report", "o", "report.html", "output report html file path")
+	backtestCmd.PersistentFlags().Float64VarP(&balanceInit, "balance", "", 100000, "init total balance")
+
 	initTimerange(backtestCmd)
 }
 
@@ -56,13 +58,14 @@ func runBacktest(cmd *cobra.Command, args []string) {
 		log.Fatal("init db failed:", err.Error())
 	}
 
-	r := rpt.NewRPTProcesser()
+	r := report.NewReportSimple()
 	back, err := ctl.NewBacktest(db, exchangeName, symbol, startTime, endTime)
 	if err != nil {
 		log.Fatal("init backtest failed:", err.Error())
 	}
 	back.SetScript(scriptFile)
 	back.SetReporter(r)
+	back.SetBalanceInit(balanceInit)
 	err = back.Run()
 
 	if err != nil {

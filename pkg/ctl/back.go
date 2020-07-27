@@ -6,6 +6,7 @@ import (
 	. "github.com/ztrade/ztrade/pkg/define"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
+	"github.com/ztrade/ztrade/pkg/process/rpt"
 	"github.com/ztrade/ztrade/pkg/process/vex"
 
 	. "github.com/SuperGod/trademodel"
@@ -13,16 +14,17 @@ import (
 )
 
 type Backtest struct {
-	progress   int
-	exchange   string
-	symbol     string
-	start      time.Time
-	end        time.Time
-	running    bool
-	stop       chan bool
-	db         *dbstore.DBStore
-	scriptFile string
-	rpt        Reporter
+	progress    int
+	exchange    string
+	symbol      string
+	start       time.Time
+	end         time.Time
+	running     bool
+	stop        chan bool
+	db          *dbstore.DBStore
+	scriptFile  string
+	rpt         rpt.Reporter
+	balanceInit float64
 }
 
 // NewBacktest constructor of Backtest
@@ -33,13 +35,19 @@ func NewBacktest(db *dbstore.DBStore, exchange, symbol string, start time.Time, 
 	b.exchange = exchange
 	b.symbol = symbol
 	b.db = db
+	b.balanceInit = 100000
 	return
 }
+
+func (b *Backtest) SetBalanceInit(balanceInit float64) {
+	b.balanceInit = balanceInit
+}
+
 func (b *Backtest) SetScript(scriptFile string) {
 	b.scriptFile = scriptFile
 }
 
-func (b *Backtest) SetReporter(rpt Reporter) {
+func (b *Backtest) SetReporter(rpt rpt.Reporter) {
 	b.rpt = rpt
 }
 
@@ -71,7 +79,7 @@ func (b *Backtest) Run() (err error) {
 	if err != nil {
 		return
 	}
-	r := NewRpt(b.rpt)
+	r := rpt.NewRpt(b.rpt)
 	processers := event.NewProcessers()
 	processers.Add(param)
 	processers.Add(tbl)
@@ -79,6 +87,8 @@ func (b *Backtest) Run() (err error) {
 	processers.Add(engine)
 	processers.Add(r)
 	processers.Start()
+
+	param.Send("balance_init", EventBalanceInit, BalanceInfo{Balance: b.balanceInit})
 	candleParam := CandleParam{
 		Start:   b.start,
 		End:     b.end,

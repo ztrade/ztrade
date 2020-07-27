@@ -32,10 +32,10 @@ type Trade struct {
 	symbol       string
 	running      bool
 	stop         chan bool
-	rpt          Reporter
+	rpt          rpt.Reporter
 	proc         *event.Processers
 	engine       Scripter
-	r            *rpt.RPTProcesser
+	r            *rpt.Rpt
 	wg           sync.WaitGroup
 }
 
@@ -54,7 +54,7 @@ func NewTrade(exchange, symbol string) (b *Trade, err error) {
 	return
 }
 
-func (b *Trade) SetReporter(rpt Reporter) {
+func (b *Trade) SetReporter(rpt rpt.Reporter) {
 	b.rpt = rpt
 }
 
@@ -118,7 +118,7 @@ func (b *Trade) init() (err error) {
 		procs = append(procs, notify)
 	}
 	if b.rpt != nil {
-		r := NewRpt(b.rpt)
+		r := rpt.NewRpt(b.rpt)
 		procs = append(procs, r)
 	}
 

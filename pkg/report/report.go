@@ -9,15 +9,16 @@ import (
 	"log"
 	"math"
 	"os"
-
-	"github.com/ztrade/ztrade/pkg/common"
+	"sort"
 
 	. "github.com/SuperGod/trademodel"
+	"github.com/ztrade/ztrade/pkg/common"
 )
 
 type Report struct {
 	actions          []TradeAction
 	trades           []Trade
+	balanceInit      float64
 	profit           float64
 	maxLose          float64
 	winRate          float64
@@ -35,9 +36,15 @@ type tmplAct struct {
 	Profit      float64 // profit, if action is open, profit is zero
 }
 
-func NewReport(trades []Trade) *Report {
+func NewReportSimple() *Report {
+	rep := new(Report)
+	return rep
+}
+
+func NewReport(trades []Trade, balanceInit float64) *Report {
 	rep := new(Report)
 	rep.trades = trades
+	rep.balanceInit = balanceInit
 	return rep
 }
 
@@ -49,6 +56,8 @@ func (r *Report) Analyzer() (err error) {
 	var tmplData, lastTmplData *tmplAct
 	var lastMaxTotal, lastMinTotal, drawdown, drawdownValue float64
 	bal := common.NewVBalance()
+	bal.Set(r.balanceInit)
+	fmt.Println("balance init:", r.balanceInit)
 	startBalance := bal.Get()
 	for k, v := range r.trades {
 		if k == len(r.trades)-1 {
@@ -197,5 +206,30 @@ func (r *Report) GenHTML(w io.Writer) (err error) {
 	data["maxDrawdown"] = r.MaxDrawdown()
 	data["maxDrawdownValue"] = r.MaxDrawdownValue()
 	err = tmpl.Execute(w, data)
+	return
+}
+
+func (r *Report) OnBalanceInit(balance float64) (err error) {
+	r.balanceInit = balance
+	return
+}
+
+func (r *Report) OnTrade(t Trade) {
+	r.trades = append(r.trades, t)
+	return
+}
+
+func (r *Report) GenRPT(fPath string) (err error) {
+	sort.Slice(r.trades, func(i int, j int) bool {
+		return r.trades[i].Time.Unix() < r.trades[j].Time.Unix()
+	})
+	err = r.Analyzer()
+	if err != nil {
+		return
+	}
+	err = r.GenHTMLReport(fPath)
+	if err != nil {
+		return
+	}
 	return
 }

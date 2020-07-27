@@ -1,18 +1,3 @@
-/*
-Copyright © 2019 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
@@ -22,11 +7,10 @@ import (
 	"path/filepath"
 	"syscall"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/ztrade/pkg/common"
 	"github.com/ztrade/ztrade/pkg/ctl"
-	"github.com/ztrade/ztrade/pkg/process/rpt"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/ztrade/ztrade/pkg/report"
 
 	"github.com/spf13/cobra"
 )
@@ -58,7 +42,7 @@ func runTrade(cmd *cobra.Command, args []string) {
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
 	real, err := ctl.NewTrade(exchangeName, symbol)
-	r := rpt.NewRPTProcesser()
+	r := report.NewReportSimple()
 	real.SetReporter(r)
 	real.AddScript(filepath.Base(scriptFile), scriptFile, nil)
 	// real.SetScript(scriptFile)

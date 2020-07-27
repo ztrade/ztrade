@@ -1,68 +1,69 @@
 package rpt
 
 import (
-	"sort"
+	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
-	"github.com/ztrade/ztrade/pkg/report"
 
 	. "github.com/SuperGod/trademodel"
-	"github.com/mitchellh/mapstructure"
 )
 
-type RPTProcesser struct {
+// Reporter report generater
+type Reporter interface {
+	OnTrade(Trade)
+	OnBalanceInit(balance float64) (err error)
+}
+
+type Rpt struct {
 	BaseProcesser
-	trades []Trade
+	rpt Reporter
 }
 
-func NewRPTProcesser() (r *RPTProcesser) {
-	r = new(RPTProcesser)
-	r.Name = "report"
-	return
+func NewRpt(rpt Reporter) *Rpt {
+	r := new(Rpt)
+	r.rpt = rpt
+	return r
 }
 
-func (rpt *RPTProcesser) OnTrade(t Trade) {
-	rpt.trades = append(rpt.trades, t)
-	return
-}
-
-func (rpt *RPTProcesser) Init(bus *Bus) (err error) {
+func (rpt *Rpt) Init(bus *Bus) (err error) {
 	rpt.BaseProcesser.Init(bus)
-	bus.Subscribe(EventTrade, rpt.onEventTrade)
+	bus.Subscribe(EventTrade, rpt.OnEventTrade)
+	bus.Subscribe(EventBalanceInit, rpt.OnEventBalanceInit)
 	return
 }
 
-func (rpt *RPTProcesser) GenRPT(fPath string) (err error) {
-	sort.Slice(rpt.trades, func(i int, j int) bool {
-		return rpt.trades[i].Time.Unix() < rpt.trades[j].Time.Unix()
-	})
-	r := report.NewReport(rpt.trades)
-	err = r.Analyzer()
-	if err != nil {
+func (rpt *Rpt) Start() (err error) {
+	return
+}
+
+func (rpt *Rpt) Stop() (err error) {
+	return
+}
+
+func (rpt *Rpt) OnEventTrade(e Event) (err error) {
+	t := e.GetData().(*Trade)
+	if t == nil {
+		err = fmt.Errorf("rpt OnEventTrade type error:%#v", e.GetData())
+		log.Error(err.Error())
 		return
 	}
-	err = r.GenHTMLReport(fPath)
-	if err != nil {
-		return
+	if rpt.rpt != nil {
+		rpt.rpt.OnTrade(*t)
 	}
 	return
 }
 
-func (rpt *RPTProcesser) Start() (err error) {
-	return
-}
-
-func (rpt *RPTProcesser) Stop() (err error) {
-	return
-}
-
-func (rpt *RPTProcesser) onEventTrade(e Event) (err error) {
-	var cParam Trade
-	err = mapstructure.Decode(e.GetData(), &cParam)
-	if err != nil {
+func (rpt *Rpt) OnEventBalanceInit(e Event) (err error) {
+	balance := e.GetData().(*BalanceInfo)
+	if balance == nil {
+		err = fmt.Errorf("Rpt onEventBalanceInit error %w", err)
+		log.Error(err.Error())
 		return
 	}
-	rpt.trades = append(rpt.trades, cParam)
+	if rpt.rpt != nil {
+		rpt.rpt.OnBalanceInit(balance.Balance)
+	}
 	return
 }
