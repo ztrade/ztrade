@@ -73,6 +73,7 @@ func (b *Backtest) Run() (err error) {
 	param := event.NewBaseProcesser("param")
 	bSize := "1m"
 	tbl := b.db.GetKlineTbl(b.exchange, b.symbol, bSize)
+	tbl.SetLoadDataMode(true)
 	tbl.SetCloseCh(closeCh)
 	ex := vex.NewVExchange(b.symbol)
 	engine, err := NewScript(b.scriptFile, nil)

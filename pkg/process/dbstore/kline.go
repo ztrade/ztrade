@@ -13,6 +13,7 @@ import (
 type KlineTbl struct {
 	BaseProcesser
 	TimeTbl
+	loadData bool
 }
 
 func NewKlineTbl(db *DBStore, exchange, symbol, binSize string) (t *KlineTbl) {
@@ -30,10 +31,15 @@ func (tbl *KlineTbl) Sing() TimeData {
 func (tbl *KlineTbl) Slice() interface{} {
 	return &[]*Candle{}
 }
+func (tbl *KlineTbl) SetLoadDataMode(bLoad bool) {
+	tbl.loadData = bLoad
+}
 
 func (tbl *KlineTbl) Init(bus *Bus) (err error) {
 	tbl.BaseProcesser.Init(bus)
-	bus.Subscribe(EventCandle, tbl.onEventCandle)
+	if !tbl.loadData {
+		bus.Subscribe(EventCandle, tbl.onEventCandle)
+	}
 	bus.Subscribe(EventCandleParam, tbl.onEventCandleParam)
 	return
 }
