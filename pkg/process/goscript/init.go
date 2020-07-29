@@ -1,11 +1,9 @@
 package goscript
 
 import (
-	"fmt"
 	"path/filepath"
 	"reflect"
 	. "reflect"
-	"strconv"
 
 	"github.com/ztrade/ztrade/pkg/common"
 
@@ -37,7 +35,7 @@ func init() {
 		Binds: map[string]Value{
 			"min":         reflect.ValueOf(min),
 			"max":         reflect.ValueOf(max),
-			"formatFloat": reflect.ValueOf(formatFloat),
+			"formatFloat": reflect.ValueOf(common.FormatFloat),
 			"FloatAdd":    reflect.ValueOf(common.FloatAdd),
 			"FloatSub":    reflect.ValueOf(common.FloatSub),
 			"FloatMul":    reflect.ValueOf(common.FloatMul),
@@ -58,10 +56,4 @@ func max(a, b float64) float64 {
 		return a
 	}
 	return b
-}
-
-func formatFloat(n float64, precision int) float64 {
-	str := fmt.Sprintf("%df", precision)
-	n2, _ := strconv.ParseFloat(fmt.Sprintf("%."+str, n), 64)
-	return n2
 }

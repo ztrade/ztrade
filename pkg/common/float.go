@@ -1,6 +1,11 @@
 package common
 
-import "github.com/shopspring/decimal"
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/shopspring/decimal"
+)
 
 // FloatMul return a*b
 func FloatMul(a, b float64) float64 {
@@ -32,4 +37,11 @@ func FloatDiv(a, b float64) float64 {
 	bDec := decimal.NewFromFloat(b)
 	ret, _ := aDec.Div(bDec).Float64()
 	return ret
+}
+
+// FormatFloat format float with precision
+func FormatFloat(n float64, precision int) float64 {
+	str := fmt.Sprintf("%df", precision)
+	n2, _ := strconv.ParseFloat(fmt.Sprintf("%."+str, n), 64)
+	return n2
 }

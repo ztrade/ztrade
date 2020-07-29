@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"math"
 	"os"
 	"sort"
 
 	. "github.com/SuperGod/trademodel"
+	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/ztrade/pkg/common"
 )
 
@@ -49,41 +49,54 @@ func NewReport(trades []Trade, balanceInit float64) *Report {
 }
 
 func (r *Report) Analyzer() (err error) {
-	var longTotal, longAmount, longOnce float64
-	var shortTotal, shortAmount, shortOnce float64
+	nLen := len(r.trades)
+	if nLen == 0 {
+		return
+	}
+	i := nLen
+	for ; i > 0; i-- {
+		if !r.trades[i-1].Action.IsOpen() {
+			break
+		}
+	}
+	r.trades = r.trades[0:i]
+	// var longTotal,shortTotal float64
+	var longAmount, longOnce, costOnce float64
+	var shortAmount, shortOnce float64
 	var actTotal, lose float64
 	var success, total int
 	var tmplData, lastTmplData *tmplAct
 	var lastMaxTotal, lastMinTotal, drawdown, drawdownValue float64
+	var profit float64
 	bal := common.NewVBalance()
 	bal.Set(r.balanceInit)
 	fmt.Println("balance init:", r.balanceInit)
 	startBalance := bal.Get()
-	for k, v := range r.trades {
-		if k == len(r.trades)-1 {
-			if v.Action.IsOpen() {
-				break
-			}
+
+	for _, v := range r.trades {
+		profit, err = bal.AddTrade(v)
+		if err != nil {
+			log.Error("Report add trade error:", err.Error())
+			return
 		}
-		bal.AddTrade(v)
 		actTotal = common.FloatMul(v.Price, v.Amount)
 		if v.Action.IsLong() {
-			longTotal = common.FloatAdd(longTotal, actTotal)
 			longAmount = common.FloatAdd(longAmount, v.Amount)
 			longOnce = common.FloatAdd(longOnce, actTotal)
-			// log.Println("buy action", v.Time, v.Action, v.Price, v.Amount)
-			// longPrice = longTotal / longAmount
+			// 	// log.Println("buy action", v.Time, v.Action, v.Price, v.Amount)
 		} else {
-			// log.Println("sell action", v.Time, v.Action, v.Price, v.Amount)
-			shortTotal = common.FloatAdd(shortTotal, actTotal)
+			// 	// log.Println("sell action", v.Time, v.Action, v.Price, v.Amount)
 			shortAmount = common.FloatAdd(shortAmount, v.Amount)
-			shortOnce = actTotal
-			// shortPrice = shortTotal / shortAmount
+			shortOnce = common.FloatAdd(shortOnce, actTotal)
 		}
+		if v.Action.IsOpen() {
+			costOnce = common.FloatAdd(costOnce, actTotal)
+		}
+
 		r.totalAction++
 		tmplData = &tmplAct{Trade: v,
-			Total:  common.FloatSub(shortTotal, longTotal),
-			Profit: 0}
+			Total:  bal.Get(),
+			Profit: profit}
 		r.tmplDatas = append(r.tmplDatas, tmplData)
 		// log.Println("amount:", longAmount, shortAmount)
 		// one round finish
@@ -91,20 +104,24 @@ func (r *Report) Analyzer() (err error) {
 			if lastTmplData != nil {
 				tmplData.TotalProfit = lastTmplData.TotalProfit
 			}
-			tmplData.Profit = common.FloatSub(shortOnce, longOnce)
+			tmplData.Profit = profit
 			tmplData.TotalProfit = common.FloatAdd(tmplData.TotalProfit, tmplData.Profit)
-			r.profitHistory = append(r.profitHistory, shortTotal-longTotal)
+			r.profitHistory = append(r.profitHistory, profit)
 			total++
-			if longOnce <= shortOnce {
+			if profit > 0 {
 				success++
 			} else {
-				lose = common.FloatDiv((common.FloatMul(common.FloatSub(longOnce, shortOnce), 100)), longOnce)
+				if costOnce != 0 {
+					// profit / cost
+					lose = common.FloatDiv(common.FloatMul(profit, 100), costOnce)
+				}
 				if math.Abs(lose) > math.Abs(r.maxLose) {
 					r.maxLose = lose
 				}
 			}
 			shortOnce = 0
 			longOnce = 0
+			costOnce = 0
 		}
 		if tmplData.TotalProfit != 0 {
 			lastTmplData = tmplData
@@ -129,9 +146,6 @@ func (r *Report) Analyzer() (err error) {
 			}
 		}
 	}
-	if lastTmplData != nil {
-		r.profit = lastTmplData.TotalProfit
-	}
 	endBalance := bal.Get()
 	r.profit = endBalance - startBalance
 	if total > 0 {
@@ -142,29 +156,29 @@ func (r *Report) Analyzer() (err error) {
 }
 
 func (r *Report) WinRate() (rate float64) {
-	rate = r.winRate
+	rate = common.FormatFloat(r.winRate, 2)
 	return
 }
 
 func (r *Report) Profit() (profit float64) {
-	profit = r.profit
+	profit = common.FormatFloat(r.profit, 4)
 	return
 }
 
 // MaxLose max total lose
 func (r *Report) MaxLose() (lose float64) {
-	lose = r.maxLose
+	lose = common.FormatFloat(r.maxLose, 2)
 	return
 }
 
 // MaxDrawdown get max drawdown percent
 func (r *Report) MaxDrawdown() float64 {
-	return r.maxDrawdown
+	return common.FormatFloat(r.maxDrawdown, 2)
 }
 
 // MaxDrawdown get max drawdown value
 func (r *Report) MaxDrawdownValue() float64 {
-	return r.maxDrawdownValue
+	return common.FormatFloat(r.maxDrawdownValue, 4)
 }
 
 func (r *Report) GetReport() (report string) {
