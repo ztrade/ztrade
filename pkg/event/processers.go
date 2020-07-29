@@ -52,6 +52,11 @@ func (h *Processers) Start() (err error) {
 		if err != nil {
 			return
 		}
+	}
+	h.bus.Start()
+	// wait for all procs started
+	time.Sleep(time.Second * 5)
+	for _, p := range h.handlers {
 		err = p.Start()
 		if err != nil {
 			return

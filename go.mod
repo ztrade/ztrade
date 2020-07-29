@@ -20,6 +20,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-xorm/xorm v0.7.9
 	github.com/jcmturner/gokrb5/v8 v8.3.0 // indirect
+	github.com/json-iterator/go v1.1.6
 	github.com/lib/pq v1.6.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-homedir v1.1.0

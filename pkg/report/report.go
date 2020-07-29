@@ -2,7 +2,6 @@ package report
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -11,9 +10,12 @@ import (
 	"sort"
 
 	. "github.com/SuperGod/trademodel"
+	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/ztrade/pkg/common"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Report struct {
 	actions          []TradeAction
