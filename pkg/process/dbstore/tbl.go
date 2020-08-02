@@ -119,7 +119,7 @@ func (t *TimeTbl) DataChan(start, end time.Time, bSize string) (klines chan []in
 		err = fmt.Errorf("kline tbl %s binsize error: %s", t.table, bSize)
 		return
 	}
-	klines = make(chan []interface{}, 10)
+	klines = make(chan []interface{}, 10240)
 	go func() {
 		nOffset := 0
 		once := 500
