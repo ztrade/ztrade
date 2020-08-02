@@ -8,7 +8,7 @@ import (
 
 	. "github.com/ztrade/ztrade/pkg/define"
 	"github.com/ztrade/ztrade/pkg/event"
-	"github.com/ztrade/ztrade/pkg/process/exchange"
+	"github.com/ztrade/ztrade/pkg/process/exchange/bitmex"
 	"github.com/ztrade/ztrade/pkg/process/goscript"
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 	"github.com/ztrade/ztrade/pkg/process/wxworkbot"
@@ -102,7 +102,7 @@ func (b *Trade) init() (err error) {
 		err = fmt.Errorf("unsupport exchange: %s", b.exchangeType)
 		return
 	}
-	bm, err := exchange.NewBitmexTradeWithSymbol(cfg, b.exchangeName, b.symbol)
+	bm, err := bitmex.NewBitmexTradeWithSymbol(cfg, b.exchangeName, b.symbol)
 	if err != nil {
 		err = fmt.Errorf("creat bitmex trade failed:%s", err.Error())
 		return

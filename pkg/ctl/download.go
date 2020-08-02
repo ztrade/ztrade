@@ -6,7 +6,7 @@ import (
 
 	// . "github.com/ztrade/ztrade/pkg/define"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
-	"github.com/ztrade/ztrade/pkg/process/exchange"
+	"github.com/ztrade/ztrade/pkg/process/exchange/bitmex"
 
 	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
@@ -83,7 +83,7 @@ func (d *DataDownload) Run() (err error) {
 
 func (d *DataDownload) download(start, end time.Time) (err error) {
 	log.Info("begin download candle:", start, end, d.symbol, d.binSize)
-	ex, err := exchange.NewBitmexTrade(d.cfg, "bitmex")
+	ex, err := bitmex.NewBitmexTrade(d.cfg, "bitmex")
 	if err != nil {
 		return
 	}
