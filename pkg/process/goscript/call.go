@@ -31,7 +31,7 @@ type CallInfo struct {
 
 func NewCallInfo(p *fast.Interp, name string, t xreflect.Type) (ci *CallInfo, err error) {
 	ci = new(CallInfo)
-	ci.constructor = p.ValueOf("New" + name)
+	ci.constructor = p.ValueOf("New" + name).ReflectValue()
 	if !ci.constructor.IsValid() {
 		err = fmt.Errorf("%w New%s", ErrNoMethod, name)
 		return
