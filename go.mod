@@ -9,6 +9,7 @@ require (
 	github.com/SuperGod/trademodel v1.0.4
 	github.com/SuperGod/wxwork v0.0.2
 	github.com/ThreeDotsLabs/watermill v1.1.1
+	github.com/adshao/go-binance v0.0.0-20200902122540-c058cbfccbc5 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/cosmos72/gomacro v0.0.0-20200526191755-523a085dbc0d
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
