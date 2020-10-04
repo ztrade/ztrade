@@ -303,3 +303,10 @@ func (t *TimeTbl) WriteDatas(datas []interface{}) (err error) {
 	sess.Commit()
 	return
 }
+
+func (tbl *TimeTbl) Count() (n int64, err error) {
+	sess := tbl.getTable()
+	defer sess.Close()
+	n, err = sess.Count()
+	return
+}

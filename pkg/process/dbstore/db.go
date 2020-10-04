@@ -3,8 +3,10 @@ package dbstore
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sync"
 
+	"github.com/ztrade/ztrade/pkg/common"
 	. "github.com/ztrade/ztrade/pkg/define"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -13,6 +15,16 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
 )
+
+var (
+	tblRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)$`)
+)
+
+type TableInfo struct {
+	Exchange string
+	Symbol   string
+	BinSize  string
+}
 
 type DBStore struct {
 	dbType string
@@ -95,5 +107,40 @@ func (dr *DBStore) GetKlineTbl(exchange, symbol, binSize string) *KlineTbl {
 // WriteKlines write klines
 func (d *DBStore) WriteKlines(exchange, symbol, binSize string, datas []interface{}) (err error) {
 	err = d.GetKlineTbl(exchange, symbol, binSize).WriteDatas(datas)
+	return
+}
+
+func (dr *DBStore) GetTables() (tbls []string, err error) {
+	allTbls, err := dr.engine.DBMetas()
+	if err != nil {
+		return
+	}
+	for _, v := range allTbls {
+		tbls = append(tbls, v.Name)
+	}
+	return
+}
+
+func (dr *DBStore) GetKlineTables() (tbls []TableInfo, err error) {
+	tblNames, err := dr.GetTables()
+	if err != nil {
+		return
+	}
+	for _, v := range tblNames {
+
+		ret := tblRegexp.FindAllStringSubmatch(v, -1)
+		if len(ret) != 1 {
+			continue
+		}
+		if len(ret[0]) != 4 {
+			continue
+		}
+		_, err = common.GetBinSizeDuration(ret[0][3])
+		if err != nil {
+			err = nil
+			continue
+		}
+		tbls = append(tbls, TableInfo{Exchange: ret[0][1], Symbol: ret[0][2], BinSize: ret[0][3]})
+	}
 	return
 }
