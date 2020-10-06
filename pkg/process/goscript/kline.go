@@ -7,15 +7,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type CandleFn func(candle Candle)
-
 type KlinePlugin struct {
 	kl      *common.KlineMerge
-	cb      CandleFn
+	cb      common.CandleFn
 	bRecent bool
 }
 
-func NewKlinePlugin(src, dst string, fn CandleFn) (kp *KlinePlugin) {
+func NewKlinePlugin(src, dst string, fn common.CandleFn) (kp *KlinePlugin) {
 	kp = new(KlinePlugin)
 	kp.cb = fn
 	kp.kl = common.NewKlineMergeStr(src, dst)

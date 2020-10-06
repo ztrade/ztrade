@@ -78,3 +78,7 @@ func (r *Runner) OnDepth(depth Depth) (err error) {
 func (r *Runner) OnEvent(e Event) (err error) {
 	return r.info.OnEvent(e)
 }
+
+func (r *Runner) GetName() string {
+	return r.info.name
+}

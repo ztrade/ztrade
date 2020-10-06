@@ -17,6 +17,7 @@ var (
 )
 
 type CallInfo struct {
+	name           string
 	instance       reflect.Value
 	constructor    reflect.Value
 	param          reflect.Value
@@ -31,6 +32,7 @@ type CallInfo struct {
 
 func NewCallInfo(p *fast.Interp, name string, t xreflect.Type) (ci *CallInfo, err error) {
 	ci = new(CallInfo)
+	ci.name = name
 	ci.constructor = p.ValueOf("New" + name).ReflectValue()
 	if !ci.constructor.IsValid() {
 		err = fmt.Errorf("%w New%s", ErrNoMethod, name)

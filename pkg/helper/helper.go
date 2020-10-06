@@ -5,12 +5,6 @@ import (
 	. "github.com/SuperGod/trademodel"
 )
 
-type Param struct {
-	Name string
-	Type string
-	Info string
-}
-
 type CandleFn func(candle Candle)
 
 type Engine struct {
@@ -78,15 +72,6 @@ func (e *Engine) Merge(src, dst string, fn CandleFn) {
 }
 
 func (e *Engine) SetBalance(balance float64) {
-}
-
-type ParamData map[string]interface{}
-
-func (d ParamData) GetString(key, defaultValue string) string {
-	return ""
-}
-func (d ParamData) GetFloat(key string, defaultValue float64) float64 {
-	return 0
 }
 
 func min(a, b float64) float64 {

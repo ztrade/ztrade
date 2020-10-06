@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ztrade/ztrade/pkg/common"
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
 
@@ -98,7 +99,7 @@ func (e *Engine) Balance() (balance float64) {
 	return e.balance
 }
 
-func (e *Engine) Merge(src, dst string, fn CandleFn) {
+func (e *Engine) Merge(src, dst string, fn common.CandleFn) {
 	e.merges = append(e.merges, NewKlinePlugin(src, dst, fn))
 	return
 }

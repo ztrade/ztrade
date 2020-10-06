@@ -17,9 +17,14 @@ var downloadCmd = &cobra.Command{
 	Run:   runDownload,
 }
 
+var (
+	bAuto *bool
+)
+
 func init() {
 	rootCmd.AddCommand(downloadCmd)
 	initTimerange(downloadCmd)
+	bAuto = downloadCmd.PersistentFlags().BoolP("auto", "a", false, "auto download")
 }
 
 func runDownload(cmd *cobra.Command, args []string) {
@@ -33,7 +38,12 @@ func runDownload(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("init db failed:", err.Error())
 	}
-	down := ctl.NewDataDownload(cfg, db, exchangeName, symbol, binSize, startTime, endTime)
+	var down *ctl.DataDownload
+	if *bAuto {
+		down = ctl.NewDataDownloadAuto(cfg, db, exchangeName, symbol, binSize)
+	} else {
+		down = ctl.NewDataDownload(cfg, db, exchangeName, symbol, binSize, startTime, endTime)
+	}
 	err = down.Run()
 	if err != nil {
 		log.Fatal("download data error", err.Error())

@@ -24,6 +24,19 @@ type DataDownload struct {
 	bInit    bool
 	db       *dbstore.DBStore
 	cfg      *viper.Viper
+	isAuto   bool
+}
+
+// NewDataDownload constructor of DataDownload
+func NewDataDownloadAuto(cfg *viper.Viper, db *dbstore.DBStore, exchange, symbol, binSize string) (d *DataDownload) {
+	d = new(DataDownload)
+	d.cfg = cfg
+	d.exchange = exchange
+	d.symbol = symbol
+	d.binSize = binSize
+	d.db = db
+	d.isAuto = true
+	return
 }
 
 // NewDataDownload constructor of DataDownload
@@ -77,7 +90,11 @@ func (d *DataDownload) AutoRun() (err error) {
 
 // Run run backtest and wait for finish
 func (d *DataDownload) Run() (err error) {
-	err = d.download(d.start, d.end)
+	if d.isAuto {
+		err = d.AutoRun()
+	} else {
+		err = d.download(d.start, d.end)
+	}
 	return
 }
 
