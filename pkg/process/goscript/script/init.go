@@ -1,4 +1,4 @@
-package goscript
+package script
 
 import (
 	"path/filepath"
@@ -6,6 +6,7 @@ import (
 	. "reflect"
 
 	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/cosmos72/gomacro/base/paths"
@@ -30,7 +31,7 @@ func init() {
 			"Candle":      TypeOf(Candle{}),
 			"Currency":    TypeOf(Currency{}),
 			"Balance":     TypeOf(Balance{}),
-			"ParamData":   TypeOf(ParamData{}),
+			"ParamData":   TypeOf(common.ParamData{}),
 		},
 		Binds: map[string]Value{
 			"min":         reflect.ValueOf(min),
@@ -42,6 +43,8 @@ func init() {
 			"FloatDiv":    reflect.ValueOf(common.FloatDiv),
 		},
 	}
+
+	engine.Register(".go", NewRunnerExport)
 }
 
 func min(a, b float64) float64 {

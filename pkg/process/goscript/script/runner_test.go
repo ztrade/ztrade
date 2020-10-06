@@ -1,4 +1,4 @@
-package goscript
+package script
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestRunner(t *testing.T) {
-	r, err := NewRunner("./strategy.go")
+	r, err := NewRunner("../../../helper/strategy.go")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -20,7 +20,7 @@ func TestRunner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	err = r.OnPosition(16)
+	err = r.OnPosition(16, 100)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

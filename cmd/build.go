@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ztrade/ztrade/pkg/common"
-	"github.com/ztrade/ztrade/pkg/process/goscript"
+	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 )
 
 // buildCmd represents the build command
@@ -48,7 +48,7 @@ func runBuild(cmd *cobra.Command, args []string) {
 		log.Fatal("create temp dir failed:", err.Error())
 	}
 	defer func() {
-		os.RemoveAll(tempDir)
+		// os.RemoveAll(tempDir)
 	}()
 
 	err = common.CopyWithMainPkg(filepath.Join(tempDir, baseName), scriptFile)
@@ -59,7 +59,7 @@ func runBuild(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("copy tmpl file failed:", err.Error())
 	}
-	runner, err := goscript.NewRunner(scriptFile)
+	runner, err := engine.NewRunner(scriptFile)
 	if err != nil {
 		log.Fatal("export.go error:", err.Error())
 	}

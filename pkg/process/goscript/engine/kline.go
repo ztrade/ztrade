@@ -1,4 +1,4 @@
-package goscript
+package engine
 
 import (
 	"github.com/ztrade/ztrade/pkg/common"

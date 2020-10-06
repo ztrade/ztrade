@@ -9,6 +9,7 @@ import (
 	"github.com/ztrade/ztrade/pkg/common"
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
+	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
 	"github.com/SuperGod/coinex"
 	"github.com/SuperGod/indicator"
@@ -17,14 +18,14 @@ import (
 )
 
 type scriptInfo struct {
-	*Runner
-	params   ParamData
+	engine.Runner
+	params   common.ParamData
 	binSizes []string
 }
 
 type GoEngine struct {
 	BaseProcesser
-	engine      *Engine
+	engine      *engine.Engine
 	vms         map[string]*scriptInfo
 	scriptMutex sync.Mutex
 	mutex       sync.Mutex
@@ -41,7 +42,7 @@ func NewGoEngine(binSizes string) (s *GoEngine, err error) {
 	s.binSizes = common.ParseBinStrs(binSizes)
 	s.Name = "multi_script"
 	s.vms = make(map[string]*scriptInfo)
-	s.engine = NewEngine(&s.BaseProcesser)
+	s.engine = engine.NewEngine(&s.BaseProcesser)
 	return
 }
 
@@ -144,8 +145,8 @@ func (s *GoEngine) doAddScript(name, src string, param map[string]interface{}) (
 		err = fmt.Errorf("%s script aleady exist", name)
 		return
 	}
-	paramData := ParamData(param)
-	r, err := NewRunner(src)
+	paramData := common.ParamData(param)
+	r, err := engine.NewRunner(src)
 	if err != nil {
 		err = fmt.Errorf("AddScript %s %s error: %w", name, src, err)
 		return
@@ -172,24 +173,25 @@ func (s *GoEngine) onTrades(trades []Trade) {
 
 func (s *GoEngine) onPosition(pos coinex.Position) {
 	log.Debug("on position:", pos.Hold)
-	if s.engine.pos == pos.Hold {
+	posHold, _ := s.engine.Position()
+	if posHold == pos.Hold {
 		return
 	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.engine.updatePosition(pos.Hold, pos.Price)
+	s.engine.UpdatePosition(pos.Hold, pos.Price)
 	for _, vm := range s.vms {
 		vm.OnPosition(pos.Hold, pos.Price)
 	}
 }
 
 func (s *GoEngine) onBalance(balance float64) {
-	if s.engine.balance == balance {
+	if s.engine.Balance() == balance {
 		return
 	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.engine.updateBalance(balance)
+	s.engine.UpdateBalance(balance)
 }
 
 func (s *GoEngine) onCandle(name, binSize string, candle Candle) {
@@ -198,7 +200,7 @@ func (s *GoEngine) onCandle(name, binSize string, candle Candle) {
 	for _, vm := range s.vms {
 		vm.OnCandle(candle)
 	}
-	s.engine.onCandle(candle)
+	s.engine.OnCandle(candle)
 }
 
 func (s *GoEngine) onTradeHistory(th Trade) {

@@ -1,4 +1,4 @@
-package goscript
+package script
 
 import (
 	"errors"
@@ -8,6 +8,8 @@ import (
 	. "github.com/ztrade/ztrade/pkg/event"
 
 	. "github.com/SuperGod/trademodel"
+    "github.com/ztrade/ztrade/pkg/common"
+    "github.com/ztrade/ztrade/pkg/process/goscript/engine"
 	"github.com/cosmos72/gomacro/fast"
 	"github.com/cosmos72/gomacro/xreflect"
 )
@@ -73,7 +75,7 @@ func (ci *CallInfo) extraFunc(t xreflect.Type, name string) (method reflect.Valu
 	return
 }
 
-func (ci *CallInfo) Param() (paramInfo []Param, err error) {
+func (ci *CallInfo) Param() (paramInfo []common.Param, err error) {
 	if !ci.param.IsValid() {
 		err = fmt.Errorf("%w param", ErrNoMethod)
 		return
@@ -84,14 +86,14 @@ func (ci *CallInfo) Param() (paramInfo []Param, err error) {
 		return
 	}
 	ret := rets[0].Interface()
-	paramInfo, ok := ret.([]Param)
+	paramInfo, ok := ret.([]common.Param)
 	if !ok {
 		err = fmt.Errorf("call Param success but return value is not map[string]string")
 		return
 	}
 	return
 }
-func (ci *CallInfo) Init(engine *Engine, data ParamData) (err error) {
+func (ci *CallInfo) Init(engine *engine.Engine, data common.ParamData) (err error) {
 	if !ci.init.IsValid() {
 		err = fmt.Errorf("%w init", ErrNoMethod)
 		return

@@ -1,9 +1,11 @@
-package goscript
+package script
 
 import (
 	"fmt"
 
+	"github.com/ztrade/ztrade/pkg/common"
 	. "github.com/ztrade/ztrade/pkg/event"
+	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/cosmos72/gomacro/fast"
@@ -14,15 +16,24 @@ type Runner struct {
 	info *CallInfo
 }
 
+func NewRunnerExport(file string) (r engine.Runner, err error) {
+	temp, err := NewRunner(file)
+	if err != nil {
+		return
+	}
+	r = temp
+	return
+}
+
 func NewRunner(file string) (r *Runner, err error) {
 	r = new(Runner)
 	r.p = fast.New()
 	// importInfo := r.p.ImportPackage("", "github.com/SuperGod/trademodel")
 	// r.p.Comp.CompGlobals.KnownImports["github.com/SuperGod/trademodel"] = importInfo
 	// fmt.Println("import:", importInfo)
-	paramType := r.p.TypeOf(Param{})
+	paramType := r.p.TypeOf(common.Param{})
 	r.p.DeclType(paramType)
-	var eng Engine
+	var eng engine.Engine
 	engineType := r.p.TypeOf(eng)
 	r.p.DeclType(engineType)
 	_, err = r.p.EvalFile(file)
@@ -51,10 +62,10 @@ func (r *Runner) extraScript() (err error) {
 	return
 }
 
-func (r *Runner) Param() (paramInfo []Param, err error) {
+func (r *Runner) Param() (paramInfo []common.Param, err error) {
 	return r.info.Param()
 }
-func (r *Runner) Init(engine *Engine, params ParamData) (err error) {
+func (r *Runner) Init(engine *engine.Engine, params common.ParamData) (err error) {
 	return r.info.Init(engine, params)
 }
 func (r *Runner) OnCandle(candle Candle) (err error) {

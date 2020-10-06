@@ -1,4 +1,4 @@
-package goscript
+package engine
 
 import (
 	"fmt"
@@ -58,7 +58,7 @@ func (e *Engine) AddIndicator(name string, params ...int) (ind indicator.CommonI
 	}
 	return
 }
-func (e *Engine) updatePosition(pos, price float64) {
+func (e *Engine) UpdatePosition(pos, price float64) {
 	e.pos = pos
 	e.posPrice = price
 }
@@ -104,12 +104,12 @@ func (e *Engine) Merge(src, dst string, fn common.CandleFn) {
 	return
 }
 
-func (e *Engine) onCandle(candle Candle) {
+func (e *Engine) OnCandle(candle Candle) {
 	for _, v := range e.merges {
 		v.Update(candle)
 	}
 }
 
-func (e *Engine) updateBalance(balance float64) {
+func (e *Engine) UpdateBalance(balance float64) {
 	e.balance = balance
 }
