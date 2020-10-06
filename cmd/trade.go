@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/base/common"
 	"github.com/ztrade/ztrade/pkg/ctl"
 	"github.com/ztrade/ztrade/pkg/report"
 

@@ -7,7 +7,7 @@ import (
 	"reflect"
 
 	. "github.com/SuperGod/trademodel"
-	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/base/common"
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 )

@@ -8,7 +8,7 @@ import (
 
 	gobinance "github.com/adshao/go-binance"
 	"github.com/adshao/go-binance/futures"
-	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/base/common"
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
 

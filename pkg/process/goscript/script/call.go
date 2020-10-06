@@ -8,10 +8,10 @@ import (
 	. "github.com/ztrade/ztrade/pkg/event"
 
 	. "github.com/SuperGod/trademodel"
-    "github.com/ztrade/ztrade/pkg/common"
-    "github.com/ztrade/ztrade/pkg/process/goscript/engine"
 	"github.com/cosmos72/gomacro/fast"
 	"github.com/cosmos72/gomacro/xreflect"
+	"github.com/ztrade/base/common"
+	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 )
 
 var (

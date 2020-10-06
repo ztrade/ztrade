@@ -12,7 +12,7 @@ import (
 	. "github.com/SuperGod/trademodel"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
-	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/base/common"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

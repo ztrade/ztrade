@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/base/common"
 
 	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"

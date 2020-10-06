@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/base/common"
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
 

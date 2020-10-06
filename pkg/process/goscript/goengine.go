@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ztrade/ztrade/pkg/common"
+	"github.com/ztrade/base/common"
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
