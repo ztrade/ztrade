@@ -14,6 +14,7 @@ import (
 )
 
 func init() {
+	eng := engine.NewEngine(nil)
 
 	paths.GoSrcDir = filepath.Join(common.GetExecDir(), "plugins")
 	imports.Packages["github.com/SuperGod/trademodel"] = imports.Package{
@@ -32,6 +33,8 @@ func init() {
 			"Currency":    TypeOf(Currency{}),
 			"Balance":     TypeOf(Balance{}),
 			"ParamData":   TypeOf(common.ParamData{}),
+			"Param":       TypeOf(common.Param{}),
+			"Engine":      TypeOf(eng),
 		},
 		Binds: map[string]Value{
 			"min":         reflect.ValueOf(min),

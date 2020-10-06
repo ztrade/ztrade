@@ -11,7 +11,7 @@ import (
 	"github.com/cosmos72/gomacro/fast"
 	"github.com/cosmos72/gomacro/xreflect"
 	"github.com/ztrade/base/common"
-	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
+	bengine "github.com/ztrade/base/engine"
 )
 
 var (
@@ -93,7 +93,7 @@ func (ci *CallInfo) Param() (paramInfo []common.Param, err error) {
 	}
 	return
 }
-func (ci *CallInfo) Init(engine *engine.Engine, data common.ParamData) (err error) {
+func (ci *CallInfo) Init(engine bengine.Engine, data common.ParamData) (err error) {
 	if !ci.init.IsValid() {
 		err = fmt.Errorf("%w init", ErrNoMethod)
 		return

@@ -8,6 +8,7 @@ build-ztrade:
 copy-files:
 	cp -r files/report dist/
 	cp -r configs dist/
+	cp -r files/tmpl dist/
 
 .PHONY: help
 all: help

@@ -8,6 +8,7 @@ import (
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/ztrade/base/common"
+	bengine "github.com/ztrade/base/engine"
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 )
@@ -61,7 +62,7 @@ func (sp *StrategyPlugin) Param() (paramInfo []common.Param, err error) {
 	paramInfo = sp.Runner.Param()
 	return
 }
-func (sp *StrategyPlugin) Init(engine *engine.Engine, params common.ParamData) (err error) {
+func (sp *StrategyPlugin) Init(engine bengine.Engine, params common.ParamData) (err error) {
 	sp.Runner.Init(engine, params)
 	return
 }

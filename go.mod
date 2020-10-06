@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	cloud.google.com/go v0.57.0 // indirect
+	github.com/GoAdminGroup/go-admin v1.2.17
 	github.com/SuperGod/coinex v1.0.7
 	github.com/SuperGod/indicator v1.0.0
 	github.com/SuperGod/trademodel v1.0.4
@@ -14,6 +15,7 @@ require (
 	github.com/beefsack/go-rate v0.0.0-20200827232406-6cde80facd47 // indirect
 	github.com/cosmos72/gomacro v0.0.0-20200910170124-789393c457ce
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/gin-gonic/gin v1.6.3 // indirect
 	github.com/go-openapi/runtime v0.19.22 // indirect
 	github.com/go-openapi/spec v0.19.9 // indirect
 	github.com/go-openapi/validate v0.19.11 // indirect
@@ -38,7 +40,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/tidwall/gjson v1.6.1 // indirect
-	github.com/ztrade/base v0.0.1
+	github.com/ztrade/base v0.0.2
 	go.mongodb.org/mongo-driver v1.4.1 // indirect
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
 	golang.org/x/net v0.0.0-20200927032502-5d4f70055728 // indirect

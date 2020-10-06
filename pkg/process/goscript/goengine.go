@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ztrade/base/common"
+	bengine "github.com/ztrade/base/engine"
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
@@ -25,7 +26,7 @@ type scriptInfo struct {
 
 type GoEngine struct {
 	BaseProcesser
-	engine      *engine.Engine
+	engine      bengine.Engine
 	vms         map[string]*scriptInfo
 	scriptMutex sync.Mutex
 	mutex       sync.Mutex

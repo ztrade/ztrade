@@ -6,6 +6,7 @@ import (
 
 	. "github.com/SuperGod/trademodel"
 	"github.com/ztrade/base/common"
+	"github.com/ztrade/base/engine"
 	. "github.com/ztrade/ztrade/pkg/event"
 )
 
@@ -21,7 +22,7 @@ func Register(ext string, fn NewRunnerFn) {
 
 type Runner interface {
 	Param() (paramInfo []common.Param, err error)
-	Init(engine *Engine, params common.ParamData) (err error)
+	Init(engine engine.Engine, params common.ParamData) (err error)
 	OnCandle(candle Candle) (err error)
 	OnPosition(pos, price float64) (err error)
 	OnTrade(trade Trade) (err error)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ztrade/base/common"
+	bengine "github.com/ztrade/base/engine"
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
@@ -31,11 +32,6 @@ func NewRunner(file string) (r *Runner, err error) {
 	// importInfo := r.p.ImportPackage("", "github.com/SuperGod/trademodel")
 	// r.p.Comp.CompGlobals.KnownImports["github.com/SuperGod/trademodel"] = importInfo
 	// fmt.Println("import:", importInfo)
-	paramType := r.p.TypeOf(common.Param{})
-	r.p.DeclType(paramType)
-	var eng engine.Engine
-	engineType := r.p.TypeOf(eng)
-	r.p.DeclType(engineType)
 	_, err = r.p.EvalFile(file)
 	if err != nil {
 		return
@@ -65,7 +61,7 @@ func (r *Runner) extraScript() (err error) {
 func (r *Runner) Param() (paramInfo []common.Param, err error) {
 	return r.info.Param()
 }
-func (r *Runner) Init(engine *engine.Engine, params common.ParamData) (err error) {
+func (r *Runner) Init(engine bengine.Engine, params common.ParamData) (err error) {
 	return r.info.Init(engine, params)
 }
 func (r *Runner) OnCandle(candle Candle) (err error) {
