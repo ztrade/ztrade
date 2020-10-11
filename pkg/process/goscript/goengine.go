@@ -61,7 +61,7 @@ func (s *GoEngine) Init(bus *Bus) (err error) {
 func (s *GoEngine) Start() (err error) {
 	atomic.StoreInt32(&s.started, 1)
 	for _, v := range s.vms {
-		v.Init(s.engine, map[string]interface{}{})
+		v.Init(s.engine, v.params)
 	}
 	return
 }

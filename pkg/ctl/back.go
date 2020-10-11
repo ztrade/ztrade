@@ -1,8 +1,10 @@
 package ctl
 
 import (
+	"encoding/json"
 	"time"
 
+	"github.com/ztrade/base/common"
 	. "github.com/ztrade/ztrade/pkg/define"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
@@ -17,6 +19,7 @@ type Backtest struct {
 	progress    int
 	exchange    string
 	symbol      string
+	paramData   common.ParamData
 	start       time.Time
 	end         time.Time
 	running     bool
@@ -28,7 +31,7 @@ type Backtest struct {
 }
 
 // NewBacktest constructor of Backtest
-func NewBacktest(db *dbstore.DBStore, exchange, symbol string, start time.Time, end time.Time) (b *Backtest, err error) {
+func NewBacktest(db *dbstore.DBStore, exchange, symbol, param string, start time.Time, end time.Time) (b *Backtest, err error) {
 	b = new(Backtest)
 	b.start = start
 	b.end = end
@@ -36,6 +39,10 @@ func NewBacktest(db *dbstore.DBStore, exchange, symbol string, start time.Time, 
 	b.symbol = symbol
 	b.db = db
 	b.balanceInit = 100000
+	b.paramData = make(common.ParamData)
+	if param != "" {
+		err = json.Unmarshal([]byte(param), &b.paramData)
+	}
 	return
 }
 
@@ -76,7 +83,7 @@ func (b *Backtest) Run() (err error) {
 	tbl.SetLoadDataMode(true)
 	tbl.SetCloseCh(closeCh)
 	ex := vex.NewVExchange(b.symbol)
-	engine, err := NewScript(b.scriptFile, nil)
+	engine, err := NewScript(b.scriptFile, b.paramData)
 	if err != nil {
 		return
 	}

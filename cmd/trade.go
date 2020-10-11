@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -30,6 +31,7 @@ func init() {
 	tradeCmd.PersistentFlags().StringVarP(&binSize, "binSize", "b", "1m", "binSize: 1m,5m,15m,1h,1d")
 	tradeCmd.PersistentFlags().StringVar(&symbol, "symbol", "XBTUSD", "symbol")
 	tradeCmd.PersistentFlags().StringVar(&exchangeName, "exchange", "bitmex", "exchage name, only support bitmex current now")
+	tradeCmd.PersistentFlags().StringVar(&param, "param", "", "param json string")
 }
 
 func runTrade(cmd *cobra.Command, args []string) {
@@ -44,7 +46,14 @@ func runTrade(cmd *cobra.Command, args []string) {
 	real, err := ctl.NewTrade(exchangeName, symbol)
 	r := report.NewReportSimple()
 	real.SetReporter(r)
-	real.AddScript(filepath.Base(scriptFile), scriptFile, nil)
+	paramData := make(map[string]interface{})
+	if param != "" {
+		err = json.Unmarshal([]byte(param), &paramData)
+		if err != nil {
+			log.Fatal("param error:", err.Error())
+		}
+	}
+	real.AddScript(filepath.Base(scriptFile), scriptFile, paramData)
 	// real.SetScript(scriptFile)
 	go func() {
 		sig := <-gracefulStop

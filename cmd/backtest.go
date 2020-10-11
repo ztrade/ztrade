@@ -22,6 +22,7 @@ var (
 	symbol       string
 	exchangeName string
 	balanceInit  float64
+	param        string
 )
 
 // backtestCmd represents the backtest command
@@ -38,7 +39,7 @@ func init() {
 	backtestCmd.PersistentFlags().StringVar(&scriptFile, "script", "", "script file to backtest")
 	backtestCmd.PersistentFlags().StringVarP(&rptFile, "report", "o", "report.html", "output report html file path")
 	backtestCmd.PersistentFlags().Float64VarP(&balanceInit, "balance", "", 100000, "init total balance")
-
+	backtestCmd.PersistentFlags().StringVar(&param, "param", "", "param json string")
 	initTimerange(backtestCmd)
 }
 
@@ -59,7 +60,7 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	}
 
 	r := report.NewReportSimple()
-	back, err := ctl.NewBacktest(db, exchangeName, symbol, startTime, endTime)
+	back, err := ctl.NewBacktest(db, exchangeName, symbol, param, startTime, endTime)
 	if err != nil {
 		log.Fatal("init backtest failed:", err.Error())
 	}
