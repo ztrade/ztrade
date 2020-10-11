@@ -5,7 +5,7 @@ go 1.14
 require (
 	cloud.google.com/go v0.57.0 // indirect
 	github.com/GoAdminGroup/go-admin v1.2.17
-	github.com/SuperGod/coinex v1.0.7
+	github.com/SuperGod/coinex v1.0.8
 	github.com/SuperGod/indicator v1.0.0
 	github.com/SuperGod/trademodel v1.0.4
 	github.com/SuperGod/wxwork v0.0.2

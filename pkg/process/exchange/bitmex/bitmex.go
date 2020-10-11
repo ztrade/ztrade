@@ -43,6 +43,7 @@ type BitmexTrade struct {
 	lastKlines     map[string]time.Time
 	depthChan      chan Depth
 	tradeChan      chan Trade
+	balanceChan    chan Balance
 }
 
 func NewBitmexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *BitmexTrade, err error) {
@@ -63,10 +64,12 @@ func NewBitmexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *Bitm
 	b.actChan = make(chan TradeAction, 10)
 	b.depthChan = make(chan Depth, 10)
 	b.tradeChan = make(chan Trade, 10)
+	b.balanceChan = make(chan Balance, 10)
 	b.bm.WS().SetPositionChan(b.posChan)
 	b.bm.WS().SetOrderChan(b.orderChan)
 	b.bm.WS().SetDepthChan(b.depthChan)
 	b.bm.WS().SetTradeChan(b.tradeChan)
+	b.bm.WS().SetBalanceChan(b.balanceChan)
 	b.lastKlines = make(map[string]time.Time)
 	return
 }
@@ -103,6 +106,7 @@ func (b *BitmexTrade) startWS() (err error) {
 		subs = append(subs, bitmex.SubscribeInfo{Op: bitmex.BitmexWSPosition, Param: v.Symbol})
 		subs = append(subs, bitmex.SubscribeInfo{Op: bitmex.BitmexWSOrder, Param: v.Symbol})
 	}
+	subs = append(subs, bitmex.SubscribeInfo{Op: bitmex.BitmexWSMargin})
 	b.bm.WS().SetSubscribe(subs)
 	err = b.bm.StartWS()
 	if err != nil {
@@ -155,6 +159,8 @@ func (b *BitmexTrade) handleData() {
 	var posTime int64
 	for {
 		select {
+		case ba := <-b.balanceChan:
+			b.Send("balance", EventBalance, ba)
 		case pos := <-b.posChan:
 			for _, v := range pos {
 				if v.Info.Symbol == b.symbol {
