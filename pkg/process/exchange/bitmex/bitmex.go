@@ -136,13 +136,18 @@ func (b *BitmexTrade) checkPos() {
 					if v.Info.Symbol == b.symbol {
 						posTime = time.Now().Unix()
 						atomic.StoreInt64(&b.positionUpdate, posTime)
-						b.Send(v.Info.Symbol, EventPosition, v)
+						b.Send(v.Info.Symbol, EventPosition, Position{
+							Symbol:      b.symbol,
+							Hold:        v.Hold,
+							Price:       v.Price,
+							ProfitRatio: v.ProfitRatio,
+						})
 						return
 					}
 				}
 				// send zero position to clear position
-				posEmpty := coinex.Position{
-					Info:        coinex.Contract{Symbol: b.symbol},
+				posEmpty := Position{
+					Symbol:      b.symbol,
 					Hold:        0,
 					Price:       0,
 					ProfitRatio: 0,

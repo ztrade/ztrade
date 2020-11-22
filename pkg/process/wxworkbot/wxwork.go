@@ -7,7 +7,6 @@ import (
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	"github.com/SuperGod/coinex"
 	. "github.com/SuperGod/trademodel"
 	"github.com/SuperGod/wxwork"
 	"github.com/mitchellh/mapstructure"
@@ -130,7 +129,7 @@ func (w *WXWork) onEventTrade(e Event) (err error) {
 	return
 }
 func (w *WXWork) onEventPosition(e Event) (err error) {
-	pos := new(coinex.Position)
+	pos := new(Position)
 	err = mapstructure.Decode(e.GetData(), pos)
 	if err != nil {
 		return

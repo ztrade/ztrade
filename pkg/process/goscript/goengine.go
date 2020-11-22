@@ -12,7 +12,6 @@ import (
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
-	"github.com/SuperGod/coinex"
 	"github.com/SuperGod/indicator"
 	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
@@ -172,7 +171,7 @@ func (s *GoEngine) onTrades(trades []Trade) {
 	}
 }
 
-func (s *GoEngine) onPosition(pos coinex.Position) {
+func (s *GoEngine) onPosition(pos Position) {
 	log.Debug("on position:", pos.Hold)
 	posHold, _ := s.engine.Position()
 	if posHold == pos.Hold {
@@ -245,7 +244,7 @@ func (s *GoEngine) onEventTrade(e Event) (err error) {
 }
 
 func (s *GoEngine) onEventPosition(e Event) (err error) {
-	pos, ok := e.GetData().(*coinex.Position)
+	pos, ok := e.GetData().(*Position)
 	if !ok {
 		log.Errorf("onEventPosition type error: %##v", e.GetData())
 		return

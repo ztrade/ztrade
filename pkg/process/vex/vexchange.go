@@ -10,7 +10,6 @@ import (
 	. "github.com/ztrade/ztrade/pkg/define"
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	"github.com/SuperGod/coinex"
 	. "github.com/SuperGod/trademodel"
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
@@ -63,7 +62,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 	var deleteElems []*list.Element
 	virtualTime := candle.Time()
 	var trades []*Event
-	var pos coinex.Position
+	var pos Position
 	for elem := ex.orders.Front(); elem != nil; elem = elem.Next() {
 		v, ok := elem.Value.(TradeAction)
 		if !ok {
@@ -123,7 +122,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 	if posChange {
 
 		ex.position = ex.balance.Pos()
-		pos.Info.Symbol = ex.symbol
+		pos.Symbol = ex.symbol
 		pos.Hold = ex.position
 		ex.Send(ex.symbol, EventCurPosition, pos)
 		ex.Send(ex.symbol, EventPosition, pos)

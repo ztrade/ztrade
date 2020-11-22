@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/SuperGod/coinex"
 	. "github.com/SuperGod/trademodel"
 )
 
@@ -39,7 +38,7 @@ var (
 		EventOrder:       reflect.TypeOf(TradeAction{}),
 		// EventOrderCancelAll     = "order_cancel_all"
 		EventTrade:    reflect.TypeOf(Trade{}),
-		EventPosition: reflect.TypeOf(coinex.Position{}),
+		EventPosition: reflect.TypeOf(Position{}),
 		// EventCurPosition        = "cur_position" // position of current script
 		// EventRiskLimit          = "risk_limit"
 		EventDepth:        reflect.TypeOf(Depth{}),
