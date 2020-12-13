@@ -10,7 +10,8 @@ require (
 	github.com/SuperGod/trademodel v1.0.4
 	github.com/SuperGod/wxwork v0.0.2
 	github.com/ThreeDotsLabs/watermill v1.1.1
-	github.com/adshao/go-binance v0.0.0-20200902122540-c058cbfccbc5
+	github.com/adshao/go-binance v0.0.0-20201105055342-4ff9cf0459bb
+	github.com/adshao/go-binance/v2 v2.1.2-0.20201105055342-4ff9cf0459bb
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/beefsack/go-rate v0.0.0-20200827232406-6cde80facd47 // indirect
 	github.com/cosmos72/gomacro v0.0.0-20200910170124-789393c457ce
@@ -22,6 +23,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-xorm/xorm v0.7.9
 	github.com/google/uuid v1.1.2 // indirect
+	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.10
 	github.com/lib/pq v1.8.0
 	github.com/magiconair/properties v1.8.4 // indirect
