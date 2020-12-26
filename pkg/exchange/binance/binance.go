@@ -42,8 +42,10 @@ type BinanceTrade struct {
 	datas   *exchange.ExchangeChan
 	closeCh chan bool
 
-	cancelService *futures.CancelAllOpenOrdersService
-	klineLimit    int
+	cancelService   *futures.CancelAllOpenOrdersService
+	klineLimit      int
+	wsUserListenKey string
+	wsUser          *websocket.Conn
 }
 
 func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *BinanceTrade, err error) {
@@ -84,23 +86,23 @@ func NewBinanceTrade(cfg *viper.Viper, cltName string) (b *BinanceTrade, err err
 }
 
 func (b *BinanceTrade) Start() (err error) {
-	// ctx := context.Background()
-	// listenKey, err := b.api.NewStartUserStreamService().Do(ctx)
-	// if err != nil {
-	// return
-	// }
-	// go func() {
-	// 	var err error
-	// 	ticker := time.NewTicker(time.Minute * 50)
-	// 	for _ := range ticker.C {
-	// 		err = b.api.NewKeepaliveUserStreamService().ListenKey(listenKey).Do(ctx)
-	// 		if err != nil {
-	// 			log.Errorf("set listenkey error:%s", err.Error())
-	// 			break
-	// 		}
-	// 	}
-
-	// }()
+	// watch position and order changed
+	ctx := context.Background()
+	listenKey, err := b.api.NewStartUserStreamService().Do(ctx)
+	if err != nil {
+		return
+	}
+	go func() {
+		var err error
+		ticker := time.NewTicker(time.Minute * 50)
+		for range ticker.C {
+			err = b.api.NewKeepaliveUserStreamService().ListenKey(listenKey).Do(ctx)
+			if err != nil {
+				log.Errorf("set listenkey error:%s", err.Error())
+				break
+			}
+		}
+	}()
 	return
 }
 func (b *BinanceTrade) Stop() (err error) {
