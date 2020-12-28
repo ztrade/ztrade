@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	wsURL = "wss://fstream.binance.com"
+	wsURL = "wss://fstream.binance.com/ws"
 )
 
 type accountInfo struct {

@@ -7,7 +7,7 @@ require (
 	github.com/GoAdminGroup/go-admin v1.2.17
 	github.com/SuperGod/coinex v1.0.8
 	github.com/SuperGod/indicator v1.0.0
-	github.com/SuperGod/trademodel v1.0.4
+	github.com/SuperGod/trademodel v1.0.5
 	github.com/SuperGod/wxwork v0.0.2
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/adshao/go-binance v0.0.0-20201105055342-4ff9cf0459bb
@@ -52,3 +52,5 @@ require (
 	xorm.io/builder v0.3.7 // indirect
 	xorm.io/core v0.7.3 // indirect
 )
+
+replace github.com/SuperGod/trademodel => /home/super/code/go/src/github.com/SuperGod/trademodel

@@ -76,6 +76,8 @@ func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *Bin
 		}
 		b.api.HTTPClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 		websocket.DefaultDialer.Proxy = http.ProxyURL(proxyURL)
+		websocket.DefaultDialer.HandshakeTimeout = time.Second * 60
+		fmt.Println("proxy:", proxyURL)
 	}
 	b.cancelService = b.api.NewCancelAllOpenOrdersService().Symbol(b.symbol)
 	return
@@ -87,30 +89,11 @@ func NewBinanceTrade(cfg *viper.Viper, cltName string) (b *BinanceTrade, err err
 
 func (b *BinanceTrade) Start() (err error) {
 	// watch position and order changed
-	ctx := context.Background()
-	listenKey, err := b.api.NewStartUserStreamService().Do(ctx)
-	if err != nil {
-		return
-	}
-	go func() {
-		var err error
-		ticker := time.NewTicker(time.Minute * 50)
-		for range ticker.C {
-			err = b.api.NewKeepaliveUserStreamService().ListenKey(listenKey).Do(ctx)
-			if err != nil {
-				log.Errorf("set listenkey error:%s", err.Error())
-				break
-			}
-		}
-	}()
+	err = b.startUserWS()
 	return
 }
 func (b *BinanceTrade) Stop() (err error) {
 	close(b.closeCh)
-	return
-}
-
-func (b *BinanceTrade) handleData() (err error) {
 	return
 }
 
