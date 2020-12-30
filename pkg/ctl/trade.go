@@ -8,7 +8,7 @@ import (
 
 	. "github.com/ztrade/ztrade/pkg/define"
 	"github.com/ztrade/ztrade/pkg/event"
-	"github.com/ztrade/ztrade/pkg/process/exchange/bitmex"
+	"github.com/ztrade/ztrade/pkg/process/exchange"
 	"github.com/ztrade/ztrade/pkg/process/goscript"
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 	"github.com/ztrade/ztrade/pkg/process/wxworkbot"
@@ -102,9 +102,9 @@ func (b *Trade) init() (err error) {
 		err = fmt.Errorf("unsupport exchange: %s", b.exchangeType)
 		return
 	}
-	bm, err := bitmex.NewBitmexTradeWithSymbol(cfg, b.exchangeName, b.symbol)
+	ex, err := exchange.GetTradeExchange(b.exchangeName, cfg, b.exchangeName, b.symbol)
 	if err != nil {
-		err = fmt.Errorf("creat bitmex trade failed:%s", err.Error())
+		err = fmt.Errorf("creat exchange trade %s failed:%s", b.exchangeName, err.Error())
 		return
 	}
 	notify, err := wxworkbot.NewWXWork(true)
@@ -113,7 +113,7 @@ func (b *Trade) init() (err error) {
 		err = nil
 	}
 	b.proc = event.NewProcessers()
-	procs := []event.Processer{param, bm, b.engine}
+	procs := []event.Processer{param, ex, b.engine}
 	if notify != nil {
 		procs = append(procs, notify)
 	}

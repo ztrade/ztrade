@@ -6,9 +6,8 @@ import (
 
 	// . "github.com/ztrade/ztrade/pkg/define"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
-	"github.com/ztrade/ztrade/pkg/process/exchange/bitmex"
+	"github.com/ztrade/ztrade/pkg/process/exchange"
 
-	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -100,7 +99,7 @@ func (d *DataDownload) Run() (err error) {
 
 func (d *DataDownload) download(start, end time.Time) (err error) {
 	log.Info("begin download candle:", start, end, d.symbol, d.binSize)
-	ex, err := bitmex.NewBitmexTrade(d.cfg, "bitmex")
+	ex, err := exchange.NewExchange("bitmex", d.cfg, "bitmex", d.symbol)
 	if err != nil {
 		return
 	}
@@ -109,20 +108,12 @@ func (d *DataDownload) download(start, end time.Time) (err error) {
 	var t time.Time
 	for v := range klines {
 		t = time.Now()
-		if len(v) > 0 {
-			var tStart, tEnd time.Time
-			s := v[0]
-			e := v[len(v)-1]
-			tStart = s.(*Candle).Time()
-			tEnd = e.(*Candle).Time()
-			log.Infof("%s download: %s %s len: %d", t.Format(time.RFC3339), tStart.Format(time.RFC3339), tEnd.Format(time.RFC3339), len(v))
-		}
-		err = tbl.WriteDatas(v)
+		err = tbl.WriteData(v)
 		if err != nil {
-			log.Errorf("%s write error: %s len: %d %s", time.Now().Format(time.RFC3339), time.Since(t), len(v), err.Error())
+			log.Errorf("%s write error: %s value: %#v %s", time.Now().Format(time.RFC3339), time.Since(t), v, err.Error())
 			return
 		}
-		log.Infof("%s write finish: %s len: %d ", time.Now().Format(time.RFC3339), time.Since(t), len(v))
+		// log.Infof("%s write finish: %s len: %d ", time.Now().Format(time.RFC3339), time.Since(t), len(v))
 	}
 	err = <-errChan
 	// log.Debugf("%s-%s %s %s %s data total %d stored\n", gStart,

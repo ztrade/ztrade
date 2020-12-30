@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/SuperGod/trademodel"
@@ -14,6 +15,25 @@ var (
 
 func RegisterExchange(name string, fn NewExchangeFn) {
 	exchangeFactory[name] = fn
+}
+
+func GetTradeExchange(name string, cfg *viper.Viper, cltName, symbol string) (t *TradeExchange, err error) {
+	ex, err := NewExchange(name, cfg, cltName, symbol)
+	if err != nil {
+		return
+	}
+	t = NewTradeExchange(ex)
+	return
+}
+
+func NewExchange(name string, cfg *viper.Viper, cltName, symbol string) (ex Exchange, err error) {
+	fn, ok := exchangeFactory[name]
+	if !ok {
+		err = fmt.Errorf("no such exchange %s", name)
+		return
+	}
+	ex, err = fn(cfg, cltName, symbol)
+	return
 }
 
 type ExchangeChan struct {
@@ -42,7 +62,7 @@ func (ec *ExchangeChan) Close() {
 	close(ec.TradeChan)
 }
 
-type NewExchangeFn func(cfg *viper.Viper, cltName, symbol string) (t TradeExchange, err error)
+type NewExchangeFn func(cfg *viper.Viper, cltName, symbol string) (t Exchange, err error)
 
 type Exchange interface {
 	Start() error

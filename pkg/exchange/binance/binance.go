@@ -28,6 +28,10 @@ var (
 
 var _ exchange.Exchange = &BinanceTrade{}
 
+func init() {
+	exchange.RegisterExchange("binance", NewBinanceExchange)
+}
+
 type OrderInfo struct {
 	Order
 	Action TradeType
@@ -35,7 +39,7 @@ type OrderInfo struct {
 }
 
 type BinanceTrade struct {
-	BaseProcesser
+	Name   string
 	api    *futures.Client
 	symbol string
 
@@ -46,6 +50,15 @@ type BinanceTrade struct {
 	klineLimit      int
 	wsUserListenKey string
 	wsUser          *websocket.Conn
+}
+
+func NewBinanceExchange(cfg *viper.Viper, cltName, symbol string) (e exchange.Exchange, err error) {
+	b, err := NewBinanceExchange(cfg, cltName, symbol)
+	if err != nil {
+		return
+	}
+	e = b
+	return
 }
 
 func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *BinanceTrade, err error) {
@@ -77,7 +90,6 @@ func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *Bin
 		b.api.HTTPClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 		websocket.DefaultDialer.Proxy = http.ProxyURL(proxyURL)
 		websocket.DefaultDialer.HandshakeTimeout = time.Second * 60
-		fmt.Println("proxy:", proxyURL)
 	}
 	b.cancelService = b.api.NewCancelAllOpenOrdersService().Symbol(b.symbol)
 	return
@@ -145,10 +157,12 @@ func (b *BinanceTrade) KlineChan(start, end time.Time, symbol, bSize string) (da
 func (b *BinanceTrade) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, stopC chan struct{}, err error) {
 	f := newKlineFilter(b.Name, symbol.Resolutions)
 	datas = f.GetData()
-	doneC, stopC, err := futures.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError)
+	doneC, stopC, err := futures.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError("watchKline"))
 	go func() {
 		select {
 		case <-doneC:
+		case <-b.closeCh:
+			close(stopC)
 		}
 		f.Close()
 	}()
@@ -158,15 +172,75 @@ func (b *BinanceTrade) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, st
 	return
 }
 
-func (b *BinanceTrade) handleError(err error) {
-	log.Errorf("binance watchkline error:%s", err.Error())
+func (b *BinanceTrade) handleError(typ string) func(error) {
+	return func(err error) {
+		log.Errorf("binance %s error:%s", typ, err.Error())
+	}
+}
+func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
+	var err error
+	var trade Trade
+	trade.ID = fmt.Sprintf("%d", evt.AggregateTradeID)
+	trade.Amount, err = strconv.ParseFloat(evt.Quantity, 64)
+	if err != nil {
+		log.Errorf("AggTradeEvent parse amount failed:", evt.Quantity)
+	}
+	trade.Price, err = strconv.ParseFloat(evt.Price, 64)
+	if err != nil {
+		log.Errorf("AggTradeEvent parse amount failed:", evt.Quantity)
+	}
+	trade.Time = time.Unix(evt.Time, 0)
+	b.datas.TradeChan <- trade
+}
+
+func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
+	var depth Depth
+	var err error
+	var price, amount float64
+	for _, v := range evt.Asks {
+		// depth.Sells
+		price, err = strconv.ParseFloat(v.Price, 64)
+		if err != nil {
+			log.Errorf("handleDepth parse price failed: %s", v.Price)
+		}
+		amount, err = strconv.ParseFloat(v.Quantity, 64)
+		if err != nil {
+			log.Errorf("handleDepth parse amount failed: %s", v.Quantity)
+		}
+		depth.Sells = append(depth.Sells, DepthInfo{Price: price, Amount: amount})
+	}
+	for _, v := range evt.Bids {
+		// depth.Sells
+		price, err = strconv.ParseFloat(v.Price, 64)
+		if err != nil {
+			log.Errorf("handleDepth parse price failed: %s", v.Price)
+		}
+		amount, err = strconv.ParseFloat(v.Quantity, 64)
+		if err != nil {
+			log.Errorf("handleDepth parse amount failed: %s", v.Quantity)
+		}
+		depth.Buys = append(depth.Buys, DepthInfo{Price: price, Amount: amount})
+	}
+	b.datas.DepthChan <- depth
 }
 
 func (b *BinanceTrade) Watch(param WatchParam) (err error) {
+	var stopC chan struct{}
 	switch param.Type {
 	case EventDepth:
+		_, stopC, err = futures.WsPartialDepthServe(b.symbol, 10, b.handleDepth, b.handleError("depth"))
 	case EventTradeHistory:
+		_, stopC, err = futures.WsAggTradeServe(b.symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
+	default:
+		err = fmt.Errorf("unknown wathc param: %s", param.Type)
 	}
+	if err != nil {
+		return
+	}
+	go func() {
+		<-b.closeCh
+		close(stopC)
+	}()
 	return
 }
 
