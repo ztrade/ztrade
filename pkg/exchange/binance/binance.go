@@ -53,7 +53,7 @@ type BinanceTrade struct {
 }
 
 func NewBinanceExchange(cfg *viper.Viper, cltName, symbol string) (e exchange.Exchange, err error) {
-	b, err := NewBinanceExchange(cfg, cltName, symbol)
+	b, err := NewBinanceTradeWithSymbol(cfg, cltName, symbol)
 	if err != nil {
 		return
 	}
@@ -111,8 +111,8 @@ func (b *BinanceTrade) Stop() (err error) {
 
 // KlineChan get klines
 func (b *BinanceTrade) KlineChan(start, end time.Time, symbol, bSize string) (data chan *Candle, errCh chan error) {
-	data = make(chan *Candle)
-	errCh = make(chan error)
+	data = make(chan *Candle, 1024*10)
+	errCh = make(chan error, 1)
 	go func() {
 		defer func() {
 			close(data)
@@ -124,7 +124,6 @@ func (b *BinanceTrade) KlineChan(start, end time.Time, symbol, bSize string) (da
 		nEnd := end.Unix() * 1000
 		var nPrevStart int64
 		for {
-			// fmt.Println("begin", bSize, symbol, nStart, nEnd)
 			klines, err := b.api.NewKlinesService().Interval(bSize).Symbol(symbol).StartTime(nStart).EndTime(nEnd).Limit(b.klineLimit).Do(ctx)
 			if err != nil {
 				errCh <- err
@@ -133,7 +132,7 @@ func (b *BinanceTrade) KlineChan(start, end time.Time, symbol, bSize string) (da
 			sort.Slice(klines, func(i, j int) bool {
 				return klines[i].OpenTime < klines[j].OpenTime
 			})
-			nPrevStart = nStart
+
 			for _, v := range klines {
 				if v.OpenTime <= nPrevStart {
 					continue
@@ -142,11 +141,11 @@ func (b *BinanceTrade) KlineChan(start, end time.Time, symbol, bSize string) (da
 				data <- temp
 				nStart = temp.Start * 1000
 			}
-			if nStart >= nEnd || nStart >= nPrevStart || len(klines) == 0 {
+			if nStart >= nEnd || nStart <= nPrevStart || len(klines) == 0 {
 				fmt.Println(time.Unix(nStart/1000, 0), start, end)
 				break
 			}
-
+			nPrevStart = nStart
 		}
 	}()
 

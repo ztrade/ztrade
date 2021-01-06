@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/ztrade/ztrade/pkg/ctl"
 
 	log "github.com/sirupsen/logrus"
@@ -46,6 +48,7 @@ func runDownload(cmd *cobra.Command, args []string) {
 	}
 	err = down.Run()
 	if err != nil {
+		fmt.Println("download data error", err.Error())
 		log.Fatal("download data error", err.Error())
 	}
 }

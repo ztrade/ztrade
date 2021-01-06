@@ -5,6 +5,8 @@ import (
 	"time"
 
 	// . "github.com/ztrade/ztrade/pkg/define"
+
+	"github.com/SuperGod/trademodel"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
 	"github.com/ztrade/ztrade/pkg/process/exchange"
 
@@ -99,21 +101,44 @@ func (d *DataDownload) Run() (err error) {
 
 func (d *DataDownload) download(start, end time.Time) (err error) {
 	log.Info("begin download candle:", start, end, d.symbol, d.binSize)
-	ex, err := exchange.NewExchange("bitmex", d.cfg, "bitmex", d.symbol)
+	ex, err := exchange.NewExchange(d.exchange, d.cfg, d.exchange, d.symbol)
 	if err != nil {
 		return
 	}
 	tbl := d.db.GetKlineTbl(d.exchange, d.symbol, d.binSize)
 	klines, errChan := ex.KlineChan(start, end, d.symbol, d.binSize)
 	var t time.Time
+	cache := make([]interface{}, 1024)
+	i := 0
 	for v := range klines {
+		cache[i] = v
+		i++
 		t = time.Now()
-		err = tbl.WriteData(v)
-		if err != nil {
-			log.Errorf("%s write error: %s value: %#v %s", time.Now().Format(time.RFC3339), time.Since(t), v, err.Error())
-			return
+		if i >= 1024 {
+
+			err = tbl.WriteDatas(cache)
+			if err != nil {
+				fmt.Printf("write %s - %s error: %s\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time(), err.Error())
+				log.Errorf("%s write error: %s value: %#v %s", time.Now().Format(time.RFC3339), time.Since(t), v, err.Error())
+				return
+			} else {
+				fmt.Printf("write %s - %s success\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time())
+			}
+			i = 0
 		}
+
 		// log.Infof("%s write finish: %s len: %d ", time.Now().Format(time.RFC3339), time.Since(t), len(v))
+	}
+	if i > 0 {
+
+		err = tbl.WriteDatas(cache[0:i])
+		if err != nil {
+			fmt.Printf("write %s - %s error: %s\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time(), err.Error())
+			log.Errorf("%s write error: %s value: %#v %s", time.Now().Format(time.RFC3339), time.Since(t), len(cache), err.Error())
+			return
+		} else {
+			fmt.Printf("write %s - %s success\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time())
+		}
 	}
 	err = <-errChan
 	// log.Debugf("%s-%s %s %s %s data total %d stored\n", gStart,

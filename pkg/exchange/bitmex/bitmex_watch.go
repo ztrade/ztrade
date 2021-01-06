@@ -15,9 +15,6 @@ func (b *BitmexTrade) KlineChan(start, end time.Time, symbol, bSize string) (dat
 	bm := b.bm.Clone()
 	bm.SetSymbol(symbol)
 	temp, err := bm.KlineChan(start, end, bSize)
-	if err != nil {
-		return
-	}
 	data = make(chan *Candle, 1024)
 	go func() {
 		for v := range temp {
@@ -26,6 +23,7 @@ func (b *BitmexTrade) KlineChan(start, end time.Time, symbol, bSize string) (dat
 				data <- cd
 			}
 		}
+		close(data)
 	}()
 	return
 }

@@ -43,7 +43,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
-	golang.org/x/sys v0.0.0-20201223074533-0d417f636930 // indirect
+	golang.org/x/sys v0.0.0-20210105210732-16f7687f5001 // indirect
 	golang.org/x/tools v0.0.0-20201229221835-b8413747bbd4 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	xorm.io/builder v0.3.7 // indirect
