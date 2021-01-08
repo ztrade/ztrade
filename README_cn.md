@@ -1,56 +1,54 @@
 # ztrade
-I hope ztrade is "The last trade app you need" !
-
-[中文](README_cn.md)
+希望ztrade能成为 "你的最后一个交易系统"！
 
 # Features
 
-1. Develop/write strategy with only go language,no other script need
-2. Event base framework,easy to extend
-3. Support bitmex,binance
-4. use [gomacro](https://github.com/cosmos72/gomacro) as script engine
-5. can build strategy to go golang plugin,best performance
+1. 使用go语言来开发/运行策略，不需要其他脚本语言
+2. 基于事件模型，方便扩展
+3. 支持bitmex，币安
+4. 使用[gomacro](https://github.com/cosmos72/gomacro)作为脚本引擎
+5. 可以将策略编译为go plugin,执行效率高
 
-# build
+# 编译
 
 ``` shell
 make
 ```
 
-## simple run
+## 运行
 ``` shell
 cd dist
 ./ztrade --help
 ```
 
-# Use
-## replace your key and secret
-replace your key and secret in dist/configs/ztrade.yaml
+# 使用
+## 在配置文件中填写你的secret，key
 
-## download history Kline
+## 下载K线历史
 
 ``` shell
-# run first
+# 首次运行
 ./ztrade download --binSize 1m --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --exchange binance --symbol BTCUSDT
-# auto download kline
+# 自动下载K线
 ./ztrade download --symbol BTCUSDT -a --exchange binance
 ```
 
-## backtest
+## 回测
 
 ``` shell
 ./ztrade backtest --script debug.go --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --symbol BTCUSDT --exchange binance
 ```
 
-## real trade
+## 实盘
 
 ``` shell
 ./ztrade trade --symbol BTCUSDT --exchange binance --script debug.go
 ```
 
 
-## strategy
-Just copy pkg/helper/helper.go to your own strategy dir,and then you can develop it as you would normally write go code
+## 策略
+复制 pkg/helper/helper.go 到你自己的策略目录,然后就可以使用go语言方便的开发策略了
+
 
 [strategy.go](pkg/helper/strategy.go)
 
@@ -109,7 +107,7 @@ func (s *DemoStrategy) OnDepth(depth Depth) {
 
 ```
 
-## Thanks
+## 鸣谢
 
 [gomacro](https://github.com/cosmos72/gomacro)
 

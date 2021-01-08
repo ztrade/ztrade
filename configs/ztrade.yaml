@@ -3,6 +3,10 @@ exchanges:
     type: bitmex
     key: key
     secret: secret
+  binance:
+    type: binance
+    key: key
+    secret: secret
 proxy: socks5://127.0.0.1:1080
 db:
   type: mysql

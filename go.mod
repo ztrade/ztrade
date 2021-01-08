@@ -49,3 +49,5 @@ require (
 	xorm.io/builder v0.3.7 // indirect
 	xorm.io/core v0.7.3 // indirect
 )
+
+replace github.com/SuperGod/coinex => /home/super/code/gocode/coinex
