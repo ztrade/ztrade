@@ -4,14 +4,14 @@ go 1.14
 
 require (
 	github.com/SuperGod/coinex v1.0.8
-	github.com/SuperGod/indicator v1.0.0
+	github.com/SuperGod/indicator v1.0.1
 	github.com/SuperGod/trademodel v1.0.5
 	github.com/SuperGod/wxwork v0.0.2
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/adshao/go-binance/v2 v2.1.2-0.20201105055342-4ff9cf0459bb
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/beefsack/go-rate v0.0.0-20200827232406-6cde80facd47 // indirect
-	github.com/cosmos72/gomacro v0.0.0-20201219161206-88cbcb53f72a
+	github.com/cosmos72/gomacro v0.0.0-20210110194420-b4c3ab9b218f
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-openapi/validate v0.20.0 // indirect
@@ -49,5 +49,3 @@ require (
 	xorm.io/builder v0.3.7 // indirect
 	xorm.io/core v0.7.3 // indirect
 )
-
-replace github.com/SuperGod/coinex => /home/super/code/gocode/coinex
