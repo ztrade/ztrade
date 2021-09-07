@@ -36,11 +36,15 @@ var rootCmd = &cobra.Command{
 	Short: "The last trade system you need",
 	Long: `The last trade system you need.
 Trade with all popular exchanges.
-Backtest with javascrit.
-View chanlun chart`,
+Backtest with golang script/plugin`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },
+}
+
+// RootCmd export RootCmd
+func RootCmd() *cobra.Command {
+	return rootCmd
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
