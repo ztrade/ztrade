@@ -17,7 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	. "github.com/ztrade/ztrade/pkg/define"
-	. "github.com/ztrade/ztrade/pkg/event"
+
+	// . "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/exchange"
 )
 

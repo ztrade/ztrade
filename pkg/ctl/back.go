@@ -11,7 +11,7 @@ import (
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 	"github.com/ztrade/ztrade/pkg/process/vex"
 
-	. "github.com/SuperGod/trademodel"
+	// . "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
 )
 
