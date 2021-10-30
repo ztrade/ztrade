@@ -3,8 +3,8 @@ package engine
 import (
 	"github.com/ztrade/base/common"
 
-	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
+	. "github.com/ztrade/trademodel"
 )
 
 type KlinePlugin struct {

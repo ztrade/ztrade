@@ -1,16 +1,16 @@
-package define
+package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
 
-	. "github.com/SuperGod/trademodel"
+	. "github.com/ztrade/trademodel"
 )
 
 // Events
 const (
-	EventCandleParam    = "candle_param"
 	EventCandle         = "candle"
 	EventOrder          = "order"
 	EventOrderCancelAll = "order_cancel_all"
@@ -21,7 +21,7 @@ const (
 	EventRiskLimit   = "risk_limit"
 	EventDepth       = "depth"
 	// all trades in the markets
-	EventTradeHistory = "trade_history"
+	EventTradeMarket = "trade_market"
 
 	EventBalance     = "balance"
 	EventBalanceInit = "balance_init"
@@ -33,23 +33,25 @@ const (
 
 var (
 	EventTypes = map[string]reflect.Type{
-		EventCandleParam: reflect.TypeOf(CandleParam{}),
-		EventCandle:      reflect.TypeOf(Candle{}),
-		EventOrder:       reflect.TypeOf(TradeAction{}),
+		EventCandle: reflect.TypeOf(Candle{}),
+		EventOrder:  reflect.TypeOf(TradeAction{}),
 		// EventOrderCancelAll     = "order_cancel_all"
 		EventTrade:    reflect.TypeOf(Trade{}),
 		EventPosition: reflect.TypeOf(Position{}),
 		// EventCurPosition        = "cur_position" // position of current script
 		// EventRiskLimit          = "risk_limit"
-		EventDepth:        reflect.TypeOf(Depth{}),
-		EventTradeHistory: reflect.TypeOf(Trade{}),
-		EventBalance:      reflect.TypeOf(Balance{}),
-		EventBalanceInit:  reflect.TypeOf(BalanceInfo{}),
-		EventWatch:        reflect.TypeOf(WatchParam{}),
-
-		EventNotify: reflect.TypeOf(NotifyEvent{}),
+		EventDepth:       reflect.TypeOf(Depth{}),
+		EventTradeMarket: reflect.TypeOf(Trade{}),
+		EventBalance:     reflect.TypeOf(Balance{}),
+		EventBalanceInit: reflect.TypeOf(BalanceInfo{}),
+		EventWatch:       reflect.TypeOf(WatchParam{}),
+		EventNotify:      reflect.TypeOf(NotifyEvent{}),
 	}
 )
+
+type Initer interface {
+	Init() error
+}
 
 // CandleParam get candle param
 type CandleParam struct {
@@ -81,7 +83,31 @@ func (r RiskLimit) Key() string {
 // WatchParam add watch event param
 type WatchParam struct {
 	Type  string
-	Param map[string]interface{}
+	Param interface{}
+}
+
+func (wp *WatchParam) Init() (err error) {
+	if wp.Type != EventCandle {
+		return
+	}
+	var buf []byte
+	buf, err = json.Marshal(wp.Param)
+	if err != nil {
+		return
+	}
+	p := &CandleParam{}
+	err = json.Unmarshal(buf, p)
+	if err != nil {
+		return
+	}
+	wp.Param = p
+	return
+}
+
+func NewWatchCandle(cp *CandleParam) *WatchParam {
+	wp := &WatchParam{Type: EventCandle,
+		Param: cp}
+	return wp
 }
 
 // BalanceInfo balance

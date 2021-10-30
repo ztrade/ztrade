@@ -6,9 +6,9 @@ import (
 	"plugin"
 	"reflect"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/ztrade/base/common"
 	bengine "github.com/ztrade/base/engine"
+	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 )

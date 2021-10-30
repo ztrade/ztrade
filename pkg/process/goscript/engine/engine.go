@@ -6,12 +6,12 @@ import (
 
 	"github.com/ztrade/base/common"
 	"github.com/ztrade/base/engine"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	"github.com/SuperGod/indicator"
-	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
+	"github.com/ztrade/indicator"
+	. "github.com/ztrade/trademodel"
 )
 
 type EngineImpl struct {

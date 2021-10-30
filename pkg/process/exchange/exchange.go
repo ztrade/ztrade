@@ -1,15 +1,15 @@
 package exchange
 
 import (
-	"reflect"
+	"fmt"
 	"sync/atomic"
 	"time"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/base/common"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/trademodel"
+	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 )
 
@@ -21,9 +21,10 @@ type OrderInfo struct {
 
 type TradeExchange struct {
 	BaseProcesser
+
 	impl Exchange
 
-	datas   *ExchangeChan
+	datas   chan *ExchangeData
 	actChan chan TradeAction
 
 	orders map[string]*OrderInfo
@@ -31,10 +32,12 @@ type TradeExchange struct {
 	closeCh chan bool
 
 	positionUpdate int64
+	exchangeName   string
 }
 
-func NewTradeExchange(impl Exchange) *TradeExchange {
+func NewTradeExchange(exName string, impl Exchange) *TradeExchange {
 	te := new(TradeExchange)
+	te.exchangeName = exName
 	te.impl = impl
 	te.datas = impl.GetDataChan()
 	te.actChan = make(chan TradeAction, 10)
@@ -45,10 +48,9 @@ func NewTradeExchange(impl Exchange) *TradeExchange {
 
 func (b *TradeExchange) Init(bus *Bus) (err error) {
 	b.BaseProcesser.Init(bus)
-	bus.Subscribe(EventCandleParam, b.onEventCandleParam)
-	bus.Subscribe(EventOrder, b.onEventOrder)
-	bus.Subscribe(EventOrderCancelAll, b.onEventOrderCancelAll)
-	bus.Subscribe(EventWatch, b.onEventWatch)
+	b.Subscribe(EventOrder, b.onEventOrder)
+	b.Subscribe(EventOrderCancelAll, b.onEventOrderCancelAll)
+	b.Subscribe(EventWatch, b.onEventWatch)
 	return
 }
 
@@ -67,23 +69,21 @@ func (b *TradeExchange) recvDatas() {
 	var trade Trade
 	var posTime int64
 	var o *OrderInfo
+	var candle *Candle
 Out:
-	for {
-		select {
-		case balance, ok = <-b.datas.BalanceChan:
-			if !ok {
-				return
-			}
-			b.Send("balance", EventBalance, balance)
-		case depth, ok = <-b.datas.DepthChan:
-			if !ok {
-				return
-			}
-			b.Send("depth", EventDepth, depth)
-		case order, ok = <-b.datas.OrderChan:
-			if !ok {
-				return
-			}
+	for data := range b.datas {
+		switch data.Type {
+		case EventCandle:
+			candle = data.Data.(*Candle)
+			b.Send(data.Name, data.Type, candle)
+		case EventBalance:
+			balance = data.Data.(Balance)
+			b.Send(b.exchangeName, EventBalance, balance)
+		case EventDepth:
+			depth = data.Data.(Depth)
+			b.Send(b.exchangeName, EventDepth, depth)
+		case EventOrder:
+			order = data.Data.(Order)
 			o, ok = b.orders[order.OrderID]
 			if !ok || o.Filled {
 				continue Out
@@ -101,28 +101,30 @@ Out:
 				Side:   o.Side,
 				Remark: ""}
 			b.Send(o.OrderID, EventTrade, tr)
-		case pos, ok = <-b.datas.PosChan:
-			if !ok {
-				return
-			}
+		case EventPosition:
+			pos = data.Data.(Position)
 			posTime = time.Now().Unix()
 			atomic.StoreInt64(&b.positionUpdate, posTime)
 			b.Send(pos.Symbol, EventPosition, pos)
-		case trade, ok = <-b.datas.TradeChan:
-			if !ok {
-				return
-			}
-			b.Send("trade_history", EventTradeHistory, trade)
+		case EventTradeMarket:
+			trade = data.Data.(Trade)
+			b.Send(b.exchangeName, EventTradeMarket, trade)
 		}
 	}
 }
 
 func (b *TradeExchange) onEventCandleParam(e Event) (err error) {
-	var cParam CandleParam
-	err = mapstructure.Decode(e.GetData(), &cParam)
-	if err != nil {
+	wParam, ok := e.Data.(*WatchParam)
+	if !ok {
+		err = fmt.Errorf("event not watch %s %#v", e.Name, e.Data)
+		return
 	}
-	go b.emitCandles(cParam)
+	cParam, _ := wParam.Param.(*CandleParam)
+	if cParam == nil {
+		err = fmt.Errorf("event not CandleParam %s %#v", e.Name, e.Data)
+		return
+	}
+	go b.emitCandles(*cParam)
 	return
 }
 
@@ -142,6 +144,9 @@ func (b *TradeExchange) onEventOrderCancelAll(e Event) (err error) {
 }
 
 func (b *TradeExchange) onEventWatch(e Event) (err error) {
+	if e.Name == "candle" {
+		return b.onEventCandleParam(e)
+	}
 	var param WatchParam
 	err = mapstructure.Decode(e.GetData(), &param)
 	if err != nil {
@@ -185,39 +190,12 @@ func (b *TradeExchange) emitCandles(param CandleParam) {
 		log.Info("BitmexTrade emit candle binsize not 1m:", param)
 		return
 	}
-	// emit recent cancles
-	nRecent := 60 * 24 * 3
-	tLast, err := b.emitRecentCandles(param, nRecent)
-	if err != nil {
-		log.Errorf("downCandles emitRecentCandles failed:", err.Error())
-		return
-	}
+	watchParam := WatchParam{Type: EventCandle, Param: &param}
 
-	symbolInfo := SymbolInfo{Exchange: "bitmex", Symbol: param.Symbol, Resolutions: param.BinSize}
-	datas, _, err := b.impl.WatchKline(symbolInfo)
+	err := b.impl.Watch(watchParam)
 	if err != nil {
 		log.Errorf("emitCandles wathKline failed:", err.Error())
 		return
-	}
-	// log.Infof("emitCandles wathKline :%##v", symbols)
-	for v := range datas {
-		candle := v.Data.(*Candle)
-		if candle == nil {
-			log.Error("emitCandles data type error:", reflect.TypeOf(v.Data))
-			continue
-		}
-		if candle.Start == tLast {
-			continue
-		}
-		b.Send(NewCandleName("candle", param.BinSize).String(), EventCandle, candle)
-		tLast = candle.Start
-	}
-	if b.closeCh != nil {
-		b.closeCh <- true
-	}
-
-	if err != nil {
-		log.Error("exchange emitCandle error:", err.Error())
 	}
 }
 
@@ -229,7 +207,7 @@ func (b *TradeExchange) emitRecentCandles(param CandleParam, recent int) (tLast 
 	}
 	tEnd := time.Now()
 	tStart := tEnd.Add(0 - (time.Duration(recent) * dur))
-	klines, errChan := b.impl.KlineChan(tStart, tEnd, param.Symbol, param.BinSize)
+	klines, errChan := b.impl.GetKline(param.Symbol, param.BinSize, tStart, tEnd)
 	for v := range klines {
 		tLast = v.Start
 		b.Send(NewCandleName("recent", param.BinSize).String(), EventCandle, v)

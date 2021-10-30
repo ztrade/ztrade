@@ -22,6 +22,12 @@ func NewBaseProcesser(name string) *BaseProcesser {
 	return bp
 }
 
+// Subscribe event
+func (b *BaseProcesser) Subscribe(sub string, cb ProcessCall) (err error) {
+	b.Bus.Subscribe(b.Name, sub, cb)
+	return
+}
+
 // Send send event
 func (b *BaseProcesser) Send(name, strType string, data Data) {
 	b.Bus.Send(NewEvent(name, strType, b.Name, data))

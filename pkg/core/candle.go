@@ -1,12 +1,12 @@
-package define
+package core
 
 import (
 	"fmt"
 	"strings"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
+	. "github.com/ztrade/trademodel"
 )
 
 // CandleName candle info

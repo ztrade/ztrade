@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/ztrade/base/common"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 	"github.com/ztrade/ztrade/pkg/process/vex"
 
-	// . "github.com/SuperGod/trademodel"
+	// . "github.com/ztrade/trademodel"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -103,8 +103,9 @@ func (b *Backtest) Run() (err error) {
 		Symbol:  b.symbol,
 		BinSize: bSize,
 	}
+
 	log.Info("backtest candle param:", candleParam)
-	param.Send("load_candle", EventCandleParam, candleParam)
+	param.Send("load_candle", EventWatch, NewWatchCandle(&candleParam))
 	// TODO wait for finish
 	<-closeCh
 	processers.WaitClose(time.Second * 10)

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/trademodel"
+	. "github.com/ztrade/ztrade/pkg/core"
 )
 
 var (
@@ -171,7 +171,7 @@ func (b *BinanceTrade) wsUserLoop() {
 			order.Status = resp.O.Status
 			order.Side = resp.O.Side
 			order.Time = time.Unix(0, resp.TradeTime*int64(time.Millisecond))
-			b.datas.OrderChan <- order
+			b.datas <- &ExchangeData{Name: EventOrder, Data: &order}
 		case "ACCOUNT_UPDATE":
 			var profit, total float64
 			var balance Balance
@@ -179,7 +179,7 @@ func (b *BinanceTrade) wsUserLoop() {
 				if v.Name == "USDT" {
 					balance.Balance, _ = strconv.ParseFloat(v.Balance, 64)
 					balance.Available, _ = strconv.ParseFloat(v.Availa, 64)
-					b.datas.BalanceChan <- balance
+					b.datas <- &ExchangeData{Name: EventBalance, Data: &balance}
 					total = balance.Balance
 				}
 			}
@@ -202,7 +202,7 @@ func (b *BinanceTrade) wsUserLoop() {
 				case "short":
 					pos.Type = Short
 				}
-				b.datas.PosChan <- pos
+				b.datas <- &ExchangeData{Name: EventPosition, Data: &pos}
 			}
 		default:
 			continue

@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/ztrade/base/common"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
+	. "github.com/ztrade/trademodel"
 )
 
 // VExchange Virtual exchange impl FuturesBaseExchanger
@@ -41,10 +41,10 @@ func NewVExchange(symbol string) *VExchange {
 
 func (b *VExchange) Init(bus *Bus) (err error) {
 	b.BaseProcesser.Init(bus)
-	bus.Subscribe(EventCandle, b.onEventCandle)
-	bus.Subscribe(EventOrder, b.onEventOrder)
-	bus.Subscribe(EventOrderCancelAll, b.onEventOrderCancelAll)
-	bus.Subscribe(EventBalanceInit, b.onEventBalanceInit)
+	b.Subscribe(EventCandle, b.onEventCandle)
+	b.Subscribe(EventOrder, b.onEventOrder)
+	b.Subscribe(EventOrderCancelAll, b.onEventOrderCancelAll)
+	b.Subscribe(EventBalanceInit, b.onEventBalanceInit)
 	return
 }
 

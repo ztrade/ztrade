@@ -7,11 +7,11 @@ import (
 
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/cosmos72/gomacro/fast"
 	"github.com/cosmos72/gomacro/xreflect"
 	"github.com/ztrade/base/common"
 	bengine "github.com/ztrade/base/engine"
+	. "github.com/ztrade/trademodel"
 )
 
 var (
@@ -19,17 +19,17 @@ var (
 )
 
 type CallInfo struct {
-	name           string
-	instance       reflect.Value
-	constructor    reflect.Value
-	param          reflect.Value
-	init           reflect.Value
-	onCandle       reflect.Value
-	onPosition     reflect.Value
-	onTrade        reflect.Value
-	onTradeHistory reflect.Value
-	onDepth        reflect.Value
-	onEvent        reflect.Value
+	name          string
+	instance      reflect.Value
+	constructor   reflect.Value
+	param         reflect.Value
+	init          reflect.Value
+	onCandle      reflect.Value
+	onPosition    reflect.Value
+	onTrade       reflect.Value
+	onTradeMarket reflect.Value
+	onDepth       reflect.Value
+	onEvent       reflect.Value
 }
 
 func NewCallInfo(p *fast.Interp, name string, t xreflect.Type) (ci *CallInfo, err error) {
@@ -60,7 +60,7 @@ func NewCallInfo(p *fast.Interp, name string, t xreflect.Type) (ci *CallInfo, er
 	}
 	ci.onPosition, _ = ci.extraFunc(t, "OnPosition")
 	ci.onTrade, _ = ci.extraFunc(t, "OnTrade")
-	ci.onTradeHistory, _ = ci.extraFunc(t, "OnTradeHistory")
+	ci.onTradeMarket, _ = ci.extraFunc(t, "OnTradeMarket")
 	ci.onDepth, _ = ci.extraFunc(t, "OnDepth")
 	ci.onEvent, _ = ci.extraFunc(t, "OnEvent")
 	return
@@ -128,11 +128,11 @@ func (ci *CallInfo) OnTrade(trade Trade) (err error) {
 	return
 }
 func (ci *CallInfo) OnTradeHistory(trade Trade) (err error) {
-	if !ci.onTradeHistory.IsValid() {
+	if !ci.onTradeMarket.IsValid() {
 		err = fmt.Errorf("%w onTradeHistory", ErrNoMethod)
 		return
 	}
-	ci.onTradeHistory.Call([]reflect.Value{ci.instance, reflect.ValueOf(trade)})
+	ci.onTradeMarket.Call([]reflect.Value{ci.instance, reflect.ValueOf(trade)})
 	return
 }
 func (ci *CallInfo) OnDepth(depth Depth) (err error) {

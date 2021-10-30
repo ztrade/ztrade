@@ -1,4 +1,4 @@
-package define
+package core
 
 // RiskLimits risk limits
 type RiskLimits map[string]RiskLimit

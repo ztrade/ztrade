@@ -6,12 +6,11 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/exchange"
 	"github.com/ztrade/ztrade/pkg/process/goscript"
 	"github.com/ztrade/ztrade/pkg/process/rpt"
-	"github.com/ztrade/ztrade/pkg/process/wxworkbot"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -103,16 +102,16 @@ func (b *Trade) init() (err error) {
 		err = fmt.Errorf("creat exchange trade %s failed:%s", b.exchangeName, err.Error())
 		return
 	}
-	notify, err := wxworkbot.NewWXWork(true)
-	if err != nil {
-		log.Errorf("creat wxworkbot failed:%s", err.Error())
-		err = nil
-	}
+	// notify, err := wxworkbot.NewWXWork(true)
+	// if err != nil {
+	// log.Errorf("creat wxworkbot failed:%s", err.Error())
+	// err = nil
+	// }
 	b.proc = event.NewProcessers()
 	procs := []event.Processer{param, ex, b.engine}
-	if notify != nil {
-		procs = append(procs, notify)
-	}
+	// if notify != nil {
+	// procs = append(procs, notify)
+	// }
 	if b.rpt != nil {
 		r := rpt.NewRpt(b.rpt)
 		procs = append(procs, r)
@@ -135,7 +134,7 @@ func (b *Trade) init() (err error) {
 		BinSize: "1m",
 	}
 	log.Info("real trade candle param:", candleParam)
-	param.Send("trade", EventCandleParam, candleParam)
+	param.Send("trade", EventWatch, NewWatchCandle(&candleParam))
 	return
 }
 

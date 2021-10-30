@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	. "github.com/SuperGod/trademodel"
 	gobinance "github.com/adshao/go-binance/v2"
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	. "github.com/ztrade/ztrade/pkg/define"
-
+	. "github.com/ztrade/trademodel"
+	. "github.com/ztrade/ztrade/pkg/core"
 	// . "github.com/ztrade/ztrade/pkg/event"
-	"github.com/ztrade/ztrade/pkg/process/exchange"
 )
 
 var (
@@ -27,10 +26,10 @@ var (
 	background      = context.Background()
 )
 
-var _ exchange.Exchange = &BinanceTrade{}
+var _ Exchange = &BinanceTrade{}
 
 func init() {
-	exchange.RegisterExchange("binance", NewBinanceExchange)
+	RegisterExchange("binance", NewBinanceExchange)
 }
 
 type OrderInfo struct {
@@ -44,7 +43,7 @@ type BinanceTrade struct {
 	api    *futures.Client
 	symbol string
 
-	datas   *exchange.ExchangeChan
+	datas   chan *ExchangeData
 	closeCh chan bool
 
 	cancelService   *futures.CancelAllOpenOrdersService
@@ -53,7 +52,7 @@ type BinanceTrade struct {
 	wsUser          *websocket.Conn
 }
 
-func NewBinanceExchange(cfg *viper.Viper, cltName, symbol string) (e exchange.Exchange, err error) {
+func NewBinanceExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err error) {
 	b, err := NewBinanceTradeWithSymbol(cfg, cltName, symbol)
 	if err != nil {
 		return
@@ -74,7 +73,7 @@ func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *Bin
 	apiSecret := cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
 
 	b.symbol = symbol
-	b.datas = exchange.NewExchangeChan()
+	b.datas = make(chan *ExchangeData)
 	b.closeCh = make(chan bool)
 
 	// if isDebug{
@@ -100,7 +99,7 @@ func NewBinanceTrade(cfg *viper.Viper, cltName string) (b *BinanceTrade, err err
 	return NewBinanceTradeWithSymbol(cfg, cltName, "BTCUSDT")
 }
 
-func (b *BinanceTrade) Start() (err error) {
+func (b *BinanceTrade) Start(param map[string]interface{}) (err error) {
 	// watch position and order changed
 	err = b.startUserWS()
 	return
@@ -111,7 +110,7 @@ func (b *BinanceTrade) Stop() (err error) {
 }
 
 // KlineChan get klines
-func (b *BinanceTrade) KlineChan(start, end time.Time, symbol, bSize string) (data chan *Candle, errCh chan error) {
+func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, errCh chan error) {
 	data = make(chan *Candle, 1024*10)
 	errCh = make(chan error, 1)
 	go func() {
@@ -190,7 +189,7 @@ func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
 		log.Errorf("AggTradeEvent parse amount failed:", evt.Quantity)
 	}
 	trade.Time = time.Unix(evt.Time, 0)
-	b.datas.TradeChan <- trade
+	b.datas <- &ExchangeData{Name: EventTradeMarket, Data: trade}
 }
 
 func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
@@ -221,15 +220,52 @@ func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
 		}
 		depth.Buys = append(depth.Buys, DepthInfo{Price: price, Amount: amount})
 	}
-	b.datas.DepthChan <- depth
+	b.datas <- &ExchangeData{Name: EventDepth, Data: &depth}
 }
 
 func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 	var stopC chan struct{}
 	switch param.Type {
+	case EventCandle:
+		cParam, ok := param.Param.(*CandleParam)
+		if !ok {
+			err = fmt.Errorf("event not CandleParam %s %#v", param.Type, param.Param)
+			return
+		}
+		symbolInfo := SymbolInfo{Exchange: cParam.Exchange, Symbol: cParam.Symbol, Resolutions: cParam.BinSize}
+		var datas chan *CandleInfo
+		datas, _, err = b.WatchKline(symbolInfo)
+		if err != nil {
+			log.Errorf("emitCandles wathKline failed:", err.Error())
+			return
+		}
+		go func() {
+			var tLast int64
+			log.Infof("emitCandles wathKline :%##v", symbolInfo)
+			for v := range datas {
+				candle := v.Data.(*Candle)
+				if candle == nil {
+					log.Error("emitCandles data type error:", reflect.TypeOf(v.Data))
+					continue
+				}
+				if candle.Start == tLast {
+					continue
+				}
+				b.datas <- &ExchangeData{Type: EventCandle, Name: NewCandleName("candle", cParam.BinSize).String(), Data: candle}
+				tLast = candle.Start
+			}
+			if b.closeCh != nil {
+				b.closeCh <- true
+			}
+
+			if err != nil {
+				log.Error("exchange emitCandle error:", err.Error())
+			}
+		}()
+
 	case EventDepth:
 		_, stopC, err = futures.WsPartialDepthServe(b.symbol, 10, b.handleDepth, b.handleError("depth"))
-	case EventTradeHistory:
+	case EventTradeMarket:
 		_, stopC, err = futures.WsAggTradeServe(b.symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
 	default:
 		err = fmt.Errorf("unknown wathc param: %s", param.Type)
@@ -284,7 +320,7 @@ func (b *BinanceTrade) CancelAllOrders() (orders []*Order, err error) {
 	return
 }
 
-func (b *BinanceTrade) GetDataChan() *exchange.ExchangeChan {
+func (b *BinanceTrade) GetDataChan() chan *ExchangeData {
 	return b.datas
 }
 

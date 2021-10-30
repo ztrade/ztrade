@@ -9,10 +9,10 @@ import (
 	"os"
 	"sort"
 
-	. "github.com/SuperGod/trademodel"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/base/common"
+	. "github.com/ztrade/trademodel"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

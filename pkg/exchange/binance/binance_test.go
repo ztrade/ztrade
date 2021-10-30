@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SuperGod/trademodel"
 	"github.com/spf13/viper"
-	"github.com/ztrade/ztrade/pkg/define"
+	"github.com/ztrade/trademodel"
+	"github.com/ztrade/ztrade/pkg/core"
 )
 
 var (
@@ -86,7 +86,7 @@ func TestCancelAllOrders(t *testing.T) {
 }
 
 func TestWatchKline(t *testing.T) {
-	symbol := define.SymbolInfo{Symbol: "EOSUSDT", Resolutions: "1m"}
+	symbol := core.SymbolInfo{Symbol: "EOSUSDT", Resolutions: "1m"}
 	datas, stopC, err := testClt.WatchKline(symbol)
 	go func() {
 		<-time.After(time.Minute)

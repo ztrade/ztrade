@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/ztrade/base/common"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/core"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"

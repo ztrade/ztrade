@@ -8,16 +8,16 @@ import (
 	"github.com/ztrade/base/common"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/cosmos72/gomacro/base/paths"
 	"github.com/cosmos72/gomacro/imports"
+	. "github.com/ztrade/trademodel"
 )
 
 func init() {
 	eng := engine.NewEngine(nil)
 
 	paths.GoSrcDir = filepath.Join(common.GetExecDir(), "plugins")
-	imports.Packages["github.com/SuperGod/trademodel"] = imports.Package{
+	imports.Packages["github.com/ztrade/trademodel"] = imports.Package{
 		Types: map[string]Type{
 			"TradeType":   TypeOf(DirectLong),
 			"Trade":       TypeOf(Trade{}),

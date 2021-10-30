@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	// . "github.com/ztrade/ztrade/pkg/define"
+	// . "github.com/ztrade/ztrade/pkg/core"
 	// . "github.com/ztrade/ztrade/pkg/event"
 
-	// . "github.com/SuperGod/trademodel"
 	"github.com/go-xorm/xorm"
 	log "github.com/sirupsen/logrus"
 )

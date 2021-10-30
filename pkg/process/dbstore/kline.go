@@ -1,12 +1,13 @@
 package dbstore
 
 import (
-	. "github.com/ztrade/ztrade/pkg/define"
+	"fmt"
+
+	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	. "github.com/SuperGod/trademodel"
-	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
+	. "github.com/ztrade/trademodel"
 )
 
 // KlineTbl kline data table
@@ -38,9 +39,9 @@ func (tbl *KlineTbl) SetLoadDataMode(bLoad bool) {
 func (tbl *KlineTbl) Init(bus *Bus) (err error) {
 	tbl.BaseProcesser.Init(bus)
 	if !tbl.loadData {
-		bus.Subscribe(EventCandle, tbl.onEventCandle)
+		tbl.Subscribe(EventCandle, tbl.onEventCandle)
 	}
-	bus.Subscribe(EventCandleParam, tbl.onEventCandleParam)
+	tbl.Subscribe(EventWatch, tbl.onEventCandleParam)
 	return
 }
 
@@ -58,6 +59,7 @@ func (tbl *KlineTbl) GetSlice(data interface{}) (rets []interface{}) {
 }
 
 func (tbl *KlineTbl) emitCandles(param CandleParam) {
+	fmt.Println("emit candles:", param)
 	candles, err := tbl.DataChan(param.Start, param.End, param.BinSize)
 	if err != nil {
 		log.Error("KlineTbl tbl get candles failed:", err.Error())
@@ -88,15 +90,16 @@ func (tbl *KlineTbl) onEventCandle(e Event) (err error) {
 }
 
 func (tbl *KlineTbl) onEventCandleParam(e Event) (err error) {
-	var cParam CandleParam
-	// d := e.GetData()
-	err = mapstructure.Decode(e.GetData(), &cParam)
-	if err != nil {
-		log.Error("KlineTbl OnEventCandleParam error:", err.Error())
+	wParam, ok := e.Data.(*WatchParam)
+	if !ok {
+		err = fmt.Errorf("event not watch %s %#v", e.Name, e.Data)
 		return
 	}
-	if e.GetName() == "load_candle" {
-		go tbl.emitCandles(cParam)
+	candleParam, _ := wParam.Param.(*CandleParam)
+	if candleParam == nil {
+		err = fmt.Errorf("event not CandleParam %s %#v", e.Name, e.Data)
+		return
 	}
+	go tbl.emitCandles(*candleParam)
 	return
 }

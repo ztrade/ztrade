@@ -4,9 +4,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/base/common"
+	"github.com/ztrade/trademodel"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
 )
 

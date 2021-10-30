@@ -8,8 +8,8 @@ import (
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
-	. "github.com/SuperGod/trademodel"
 	"github.com/cosmos72/gomacro/fast"
+	. "github.com/ztrade/trademodel"
 )
 
 type Runner struct {
@@ -29,9 +29,6 @@ func NewRunnerExport(file string) (r engine.Runner, err error) {
 func NewRunner(file string) (r *Runner, err error) {
 	r = new(Runner)
 	r.p = fast.New()
-	// importInfo := r.p.ImportPackage("", "github.com/SuperGod/trademodel")
-	// r.p.Comp.CompGlobals.KnownImports["github.com/SuperGod/trademodel"] = importInfo
-	// fmt.Println("import:", importInfo)
 	_, err = r.p.EvalFile(file)
 	if err != nil {
 		return

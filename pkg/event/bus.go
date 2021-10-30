@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/ztrade/ztrade/pkg/define"
+	"github.com/ztrade/ztrade/pkg/core"
 
-	. "github.com/ThreeDotsLabs/watermill/message"
+	"github.com/ThreeDotsLabs/watermill/message"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,37 +16,42 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // ProcessCall callback to process event
 type ProcessCall func(e Event) error
-type ProcessList []ProcessCall
+
+type ProcessCallInfo struct {
+	Cb   ProcessCall
+	Name string
+}
+type ProcessList []ProcessCallInfo
 
 // Bus event bus
 type Bus struct {
-	Sub        Subscriber
-	Pub        Publisher
+	sub        message.Subscriber
+	pub        message.Publisher
 	procs      map[string]ProcessList
 	procsMutex sync.RWMutex
 }
 
-func NewBus(pub Publisher, sub Subscriber) *Bus {
+func NewBus(pub message.Publisher, sub message.Subscriber) *Bus {
 	b := new(Bus)
-	b.Sub = sub
-	b.Pub = pub
+	b.sub = sub
+	b.pub = pub
 	b.procs = make(map[string]ProcessList)
 	return b
 }
 
 func (b *Bus) runProc(sub string) (err error) {
 	log.Debug("Bus runProc of ", sub)
-	typ, ok := define.EventTypes[sub]
-	msgs, err := b.Sub.Subscribe(context.Background(), sub)
+	typ, ok := core.EventTypes[sub]
+	msgs, err := b.sub.Subscribe(context.Background(), sub)
 	if err != nil {
-		log.Error("subscribe %s failed: %s", sub, err.Error())
+		log.Errorf("subscribe %s failed: %s", sub, err.Error())
 		return
 	}
 	b.procsMutex.RLock()
 	procs := b.procs[sub]
 	b.procsMutex.RUnlock()
+	var e Event
 	for msg := range msgs {
-		var e Event
 		if ok {
 			e.Data = reflect.New(typ).Interface()
 		} else {
@@ -55,38 +60,39 @@ func (b *Bus) runProc(sub string) (err error) {
 		err = json.Unmarshal(msg.Payload, &e)
 		if err != nil {
 			log.Errorf("subscribe %s error: %s", sub, err.Error())
-
+			b.Send(NewErrorEvent("unmarshal json:"+err.Error(), "Bus"))
 			continue
 		}
-		// var wg sync.WaitGroup
-		// wg.Add(len(procs))
-		// fmt.Printf("proc:%s\n", string(msg.Payload))
-		for _, cb := range procs {
-			// go func() {
-			err = cb(e)
+		if in, _ := e.Data.(core.Initer); in != nil {
+			err = in.Init()
 			if err != nil {
+				log.Errorf("init data %s error: %s", sub, err.Error())
+				b.Send(NewErrorEvent("init data error:"+err.Error(), "Bus"))
+				continue
+			}
+		}
+		for _, p := range procs {
+			err = p.Cb(e)
+			if err != nil {
+				b.Send(NewErrorEvent(err.Error(), p.Name))
 				log.Errorf("subscribe %s process error: %s", sub, err.Error())
 				continue
 			}
-			// wg.Done()
-			// }()
 		}
-		// wg.Wait()
-		// fmt.Printf("proc finished:%s\n", string(msg.Payload))
 		msg.Ack()
-
 	}
 	return
 }
 
 // Subscribe event
-func (b *Bus) Subscribe(sub string, cb ProcessCall) (err error) {
+func (b *Bus) Subscribe(from, sub string, cb ProcessCall) (err error) {
 	b.procsMutex.Lock()
+	pi := ProcessCallInfo{Cb: cb, Name: from}
 	_, ok := b.procs[sub]
 	if !ok {
-		b.procs[sub] = ProcessList{cb}
+		b.procs[sub] = ProcessList{pi}
 	} else {
-		b.procs[sub] = append(b.procs[sub], cb)
+		b.procs[sub] = append(b.procs[sub], pi)
 	}
 	b.procsMutex.Unlock()
 	return
@@ -97,7 +103,7 @@ func (b *Bus) Send(e *Event) (err error) {
 	if err != nil {
 		return
 	}
-	err = b.Pub.Publish(e.GetType(), NewMessage("", buf))
+	err = b.pub.Publish(e.GetType(), message.NewMessage("", buf))
 	return
 }
 
@@ -106,8 +112,8 @@ func (b *Bus) WaitEmpty() {
 }
 
 func (b *Bus) Close() {
-	b.Sub.Close()
-	b.Pub.Close()
+	b.sub.Close()
+	b.pub.Close()
 }
 func (b *Bus) Start() {
 	for k := range b.procs {

@@ -8,13 +8,13 @@ import (
 
 	"github.com/ztrade/base/common"
 	bengine "github.com/ztrade/base/engine"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
-	"github.com/SuperGod/indicator"
-	. "github.com/SuperGod/trademodel"
 	log "github.com/sirupsen/logrus"
+	"github.com/ztrade/indicator"
+	. "github.com/ztrade/trademodel"
 )
 
 type scriptInfo struct {
@@ -48,12 +48,12 @@ func NewGoEngine(binSizes string) (s *GoEngine, err error) {
 
 func (s *GoEngine) Init(bus *Bus) (err error) {
 	s.BaseProcesser.Init(bus)
-	bus.Subscribe(EventCandle, s.onEventCandle)
-	bus.Subscribe(EventTrade, s.onEventTrade)
-	bus.Subscribe(EventPosition, s.onEventPosition)
-	bus.Subscribe(EventTradeHistory, s.onEventTradeHistory)
-	bus.Subscribe(EventDepth, s.onEventDepth)
-	bus.Subscribe(EventBalance, s.onEventBalance)
+	s.Subscribe(EventCandle, s.onEventCandle)
+	s.Subscribe(EventTrade, s.onEventTrade)
+	s.Subscribe(EventPosition, s.onEventPosition)
+	s.Subscribe(EventTradeMarket, s.onEventTradeMarket)
+	s.Subscribe(EventDepth, s.onEventDepth)
+	s.Subscribe(EventBalance, s.onEventBalance)
 	return
 }
 
@@ -252,10 +252,10 @@ func (s *GoEngine) onEventPosition(e Event) (err error) {
 	s.onPosition(*pos)
 	return
 }
-func (s *GoEngine) onEventTradeHistory(e Event) (err error) {
+func (s *GoEngine) onEventTradeMarket(e Event) (err error) {
 	th, ok := e.GetData().(*Trade)
 	if !ok {
-		log.Errorf("onEventTradeHistory type error: %##v", e.GetData())
+		log.Errorf("onEventTradeMarket type error: %##v", e.GetData())
 		return
 	}
 	s.onTradeHistory(*th)

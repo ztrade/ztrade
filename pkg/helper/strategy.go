@@ -3,7 +3,7 @@ package helper
 import (
 	"fmt"
 
-	. "github.com/SuperGod/trademodel"
+	. "github.com/ztrade/trademodel"
 )
 
 type DemoStrategy struct {

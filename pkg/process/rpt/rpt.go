@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
-	. "github.com/ztrade/ztrade/pkg/define"
+	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	. "github.com/SuperGod/trademodel"
+	. "github.com/ztrade/trademodel"
 )
 
 // Reporter report generater
@@ -29,8 +29,8 @@ func NewRpt(rpt Reporter) *Rpt {
 
 func (rpt *Rpt) Init(bus *Bus) (err error) {
 	rpt.BaseProcesser.Init(bus)
-	bus.Subscribe(EventTrade, rpt.OnEventTrade)
-	bus.Subscribe(EventBalanceInit, rpt.OnEventBalanceInit)
+	rpt.Subscribe(EventTrade, rpt.OnEventTrade)
+	rpt.Subscribe(EventBalanceInit, rpt.OnEventBalanceInit)
 	return
 }
 

@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+var (
+	EventError string = "error"
+)
+
 type Data interface{}
 
 // Event base event
@@ -15,12 +19,22 @@ type Event struct {
 	Data Data
 }
 
+func NewErrorEvent(from, msg string) *Event {
+	e := new(Event)
+	e.Name = msg
+	e.Type = EventError
+	e.From = from
+	e.Time = time.Now()
+	return e
+}
+
 func NewEvent(name, strType, from string, data Data) *Event {
 	e := new(Event)
 	e.Name = name
 	e.Type = strType
 	e.From = from
 	e.Data = data
+	e.Time = time.Now()
 	return e
 }
 

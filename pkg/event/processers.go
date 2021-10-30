@@ -12,7 +12,6 @@ import (
 type Processers struct {
 	handlers []Processer
 	bus      *Bus
-	nRoutine int
 }
 
 // NewProcessers create default Processers

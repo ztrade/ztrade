@@ -3,7 +3,7 @@ package script
 import (
 	"testing"
 
-	. "github.com/SuperGod/trademodel"
+	. "github.com/ztrade/trademodel"
 )
 
 func TestRunner(t *testing.T) {
