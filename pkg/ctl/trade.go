@@ -98,10 +98,6 @@ func (b *Trade) Stop() (err error) {
 func (b *Trade) init() (err error) {
 	b.stop = make(chan bool)
 	param := event.NewBaseProcesser("param")
-	if b.exchangeType != "bitmex" {
-		err = fmt.Errorf("unsupport exchange: %s", b.exchangeType)
-		return
-	}
 	ex, err := exchange.GetTradeExchange(b.exchangeName, cfg, b.exchangeName, b.symbol)
 	if err != nil {
 		err = fmt.Errorf("creat exchange trade %s failed:%s", b.exchangeName, err.Error())
