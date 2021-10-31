@@ -135,6 +135,11 @@ func (b *Trade) init() (err error) {
 	}
 	log.Info("real trade candle param:", candleParam)
 	param.Send("trade", EventWatch, NewWatchCandle(&candleParam))
+
+	log.Info("real trade watch trade_market")
+	param.Send("trade", EventWatch, &WatchParam{Type: EventTradeMarket, Data: map[string]interface{}{"name": "market"}})
+	log.Info("real trade watch depth")
+	param.Send("trade", EventWatch, &WatchParam{Type: EventDepth, Data: map[string]interface{}{"name": "depth"}})
 	return
 }
 

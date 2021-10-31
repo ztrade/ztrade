@@ -188,14 +188,15 @@ func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
 	if err != nil {
 		log.Errorf("AggTradeEvent parse amount failed:", evt.Quantity)
 	}
-	trade.Time = time.Unix(evt.Time, 0)
-	b.datas <- NewExchangeData(b.Name, EventTradeMarket, trade)
+	trade.Time = time.Unix(evt.Time/1000, (evt.Time%1000)*int64(time.Millisecond))
+	b.datas <- NewExchangeData(b.Name, EventTradeMarket, &trade)
 }
 
 func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
 	var depth Depth
 	var err error
 	var price, amount float64
+	depth.UpdateTime = time.Unix(evt.TransactionTime/1000, (evt.TransactionTime%1000)*int64(time.Millisecond))
 	for _, v := range evt.Asks {
 		// depth.Sells
 		price, err = strconv.ParseFloat(v.Price, 64)

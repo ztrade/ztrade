@@ -13,7 +13,7 @@ type Runner interface {
 	OnCandle(candle Candle)
 	OnPosition(pos, price float64)
 	OnTrade(trade Trade)
-	OnTradeHistory(trade Trade)
+	OnTradeMarket(trade Trade)
 	OnDepth(depth Depth)
 	// OnEvent(e Event)
 }

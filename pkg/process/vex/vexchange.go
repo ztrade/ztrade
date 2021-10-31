@@ -120,7 +120,6 @@ func (ex *VExchange) processCandle(candle Candle) {
 		}
 	}
 	if posChange {
-
 		ex.position = ex.balance.Pos()
 		pos.Symbol = ex.symbol
 		pos.Hold = ex.position

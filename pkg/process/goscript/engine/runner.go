@@ -26,7 +26,7 @@ type Runner interface {
 	OnCandle(candle Candle) (err error)
 	OnPosition(pos, price float64) (err error)
 	OnTrade(trade Trade) (err error)
-	OnTradeHistory(trade Trade) (err error)
+	OnTradeMarket(trade Trade) (err error)
 	OnDepth(depth Depth) (err error)
 	OnEvent(e Event) (err error)
 	GetName() string

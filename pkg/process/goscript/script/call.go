@@ -127,9 +127,9 @@ func (ci *CallInfo) OnTrade(trade Trade) (err error) {
 	ci.onTrade.Call([]reflect.Value{ci.instance, reflect.ValueOf(trade)})
 	return
 }
-func (ci *CallInfo) OnTradeHistory(trade Trade) (err error) {
+func (ci *CallInfo) OnTradeMarket(trade Trade) (err error) {
 	if !ci.onTradeMarket.IsValid() {
-		err = fmt.Errorf("%w onTradeHistory", ErrNoMethod)
+		err = fmt.Errorf("%w onTradeMarket", ErrNoMethod)
 		return
 	}
 	ci.onTradeMarket.Call([]reflect.Value{ci.instance, reflect.ValueOf(trade)})

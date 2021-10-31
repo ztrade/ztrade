@@ -28,7 +28,7 @@ func TestRunner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	err = r.OnTradeHistory(Trade{ID: "tradehistory"})
+	err = r.OnTradeMarket(Trade{ID: "tradeMarket"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

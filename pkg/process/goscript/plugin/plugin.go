@@ -78,8 +78,8 @@ func (sp *StrategyPlugin) OnTrade(trade Trade) (err error) {
 	sp.Runner.OnTrade(trade)
 	return
 }
-func (sp *StrategyPlugin) OnTradeHistory(trade Trade) (err error) {
-	sp.Runner.OnTradeHistory(trade)
+func (sp *StrategyPlugin) OnTradeMarket(trade Trade) (err error) {
+	sp.Runner.OnTradeMarket(trade)
 	return
 }
 func (sp *StrategyPlugin) OnDepth(depth Depth) (err error) {

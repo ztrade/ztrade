@@ -85,6 +85,12 @@ func (b *Bus) Subscribe(from, sub string, cb ProcessCall) (err error) {
 func (b *Bus) Send(e *Event) (err error) {
 	buf, err := json.Marshal(e)
 	if err != nil {
+		log.Errorf("marshal data %s failed:", e.GetType(), err.Error())
+		return
+	}
+	_, ok := b.procs[e.GetType()]
+	if !ok {
+		log.Warnf("Send %s event,but no subscribers, skip", e.GetType())
 		return
 	}
 	err = b.pub.Publish(e.GetType(), message.NewMessage("", buf))

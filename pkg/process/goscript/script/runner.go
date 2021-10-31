@@ -72,8 +72,8 @@ func (r *Runner) OnPosition(pos, price float64) (err error) {
 func (r *Runner) OnTrade(trade Trade) (err error) {
 	return r.info.OnTrade(trade)
 }
-func (r *Runner) OnTradeHistory(trade Trade) (err error) {
-	return r.info.OnTradeHistory(trade)
+func (r *Runner) OnTradeMarket(trade Trade) (err error) {
+	return r.info.OnTradeMarket(trade)
 }
 func (r *Runner) OnDepth(depth Depth) (err error) {
 	return r.info.OnDepth(depth)

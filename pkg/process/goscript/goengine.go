@@ -203,11 +203,11 @@ func (s *GoEngine) onCandle(name, binSize string, candle Candle) {
 	s.engine.OnCandle(candle)
 }
 
-func (s *GoEngine) onTradeHistory(th Trade) {
+func (s *GoEngine) onTradeMarket(th Trade) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, vm := range s.vms {
-		vm.OnTradeHistory(th)
+		vm.OnTradeMarket(th)
 	}
 }
 
@@ -258,7 +258,7 @@ func (s *GoEngine) onEventTradeMarket(e Event) (err error) {
 		log.Errorf("onEventTradeMarket type error: %##v", e.GetData())
 		return
 	}
-	s.onTradeHistory(*th)
+	s.onTradeMarket(*th)
 	return
 }
 
