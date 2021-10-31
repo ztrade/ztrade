@@ -1,11 +1,12 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
+	"github.com/tidwall/gjson"
 	. "github.com/ztrade/trademodel"
 )
 
@@ -26,7 +27,8 @@ const (
 	EventBalance     = "balance"
 	EventBalanceInit = "balance_init"
 
-	EventWatch = "watch"
+	EventWatch       = "watch"
+	EventWatchCandle = "watch_candle"
 
 	EventNotify = "notify"
 )
@@ -46,12 +48,11 @@ var (
 		EventBalanceInit: reflect.TypeOf(BalanceInfo{}),
 		EventWatch:       reflect.TypeOf(WatchParam{}),
 		EventNotify:      reflect.TypeOf(NotifyEvent{}),
+		EventWatchCandle: reflect.TypeOf(CandleParam{}),
 	}
-)
 
-type Initer interface {
-	Init() error
-}
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+)
 
 // CandleParam get candle param
 type CandleParam struct {
@@ -80,33 +81,32 @@ func (r RiskLimit) Key() string {
 	return fmt.Sprintf("%s-%.2f", r.Code, r.Lever)
 }
 
-// WatchParam add watch event param
-type WatchParam struct {
-	Type  string
-	Param interface{}
+type EventData struct {
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
 }
 
-func (wp *WatchParam) Init() (err error) {
-	if wp.Type != EventCandle {
-		return
+// UnmarshalJSON EventData can't be used as Embed
+func (d *EventData) UnmarshalJSON(buf []byte) (err error) {
+	ret := gjson.ParseBytes(buf)
+	d.Type = ret.Get("type").String()
+	typ, ok := EventTypes[d.Type]
+	if ok {
+		d.Data = reflect.New(typ).Interface()
+	} else {
+		d.Data = map[string]interface{}{}
 	}
-	var buf []byte
-	buf, err = json.Marshal(wp.Param)
-	if err != nil {
-		return
-	}
-	p := &CandleParam{}
-	err = json.Unmarshal(buf, p)
-	if err != nil {
-		return
-	}
-	wp.Param = p
+	err = json.Unmarshal([]byte(ret.Get("data").Raw), d.Data)
 	return
 }
 
+// WatchParam add watch event param
+type WatchParam = EventData
+
 func NewWatchCandle(cp *CandleParam) *WatchParam {
-	wp := &WatchParam{Type: EventCandle,
-		Param: cp}
+	wp := &WatchParam{
+		Type: EventWatchCandle,
+		Data: cp}
 	return wp
 }
 

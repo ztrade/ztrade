@@ -155,7 +155,6 @@ func (b *BinanceTrade) wsUserLoop() {
 			log.Println("read:", err)
 			return
 		}
-		fmt.Println(string(message))
 		err = json.Unmarshal(message, &resp)
 		if err != nil {
 			log.Errorf("unmarshal error:%s message:%s", err.Error(), string(message))
@@ -171,7 +170,7 @@ func (b *BinanceTrade) wsUserLoop() {
 			order.Status = resp.O.Status
 			order.Side = resp.O.Side
 			order.Time = time.Unix(0, resp.TradeTime*int64(time.Millisecond))
-			b.datas <- &ExchangeData{Name: EventOrder, Data: &order}
+			b.datas <- NewExchangeData(b.Name, EventOrder, &order)
 		case "ACCOUNT_UPDATE":
 			var profit, total float64
 			var balance Balance
@@ -179,7 +178,7 @@ func (b *BinanceTrade) wsUserLoop() {
 				if v.Name == "USDT" {
 					balance.Balance, _ = strconv.ParseFloat(v.Balance, 64)
 					balance.Available, _ = strconv.ParseFloat(v.Availa, 64)
-					b.datas <- &ExchangeData{Name: EventBalance, Data: &balance}
+					b.datas <- NewExchangeData(b.Name, EventBalance, &balance)
 					total = balance.Balance
 				}
 			}
@@ -202,7 +201,7 @@ func (b *BinanceTrade) wsUserLoop() {
 				case "short":
 					pos.Type = Short
 				}
-				b.datas <- &ExchangeData{Name: EventPosition, Data: &pos}
+				b.datas <- NewExchangeData(b.Name, EventPosition, &pos)
 			}
 		default:
 			continue

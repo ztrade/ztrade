@@ -2,11 +2,9 @@ package event
 
 import (
 	"context"
-	"reflect"
 	"sync"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/ztrade/ztrade/pkg/core"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	log "github.com/sirupsen/logrus"
@@ -41,7 +39,6 @@ func NewBus(pub message.Publisher, sub message.Subscriber) *Bus {
 
 func (b *Bus) runProc(sub string) (err error) {
 	log.Debug("Bus runProc of ", sub)
-	typ, ok := core.EventTypes[sub]
 	msgs, err := b.sub.Subscribe(context.Background(), sub)
 	if err != nil {
 		log.Errorf("subscribe %s failed: %s", sub, err.Error())
@@ -52,29 +49,16 @@ func (b *Bus) runProc(sub string) (err error) {
 	b.procsMutex.RUnlock()
 	var e Event
 	for msg := range msgs {
-		if ok {
-			e.Data = reflect.New(typ).Interface()
-		} else {
-			e.Data = map[string]interface{}{}
-		}
 		err = json.Unmarshal(msg.Payload, &e)
 		if err != nil {
 			log.Errorf("subscribe %s error: %s", sub, err.Error())
-			b.Send(NewErrorEvent("unmarshal json:"+err.Error(), "Bus"))
+			// b.Send(NewErrorEvent("unmarshal json:"+err.Error(), "Bus"))
 			continue
-		}
-		if in, _ := e.Data.(core.Initer); in != nil {
-			err = in.Init()
-			if err != nil {
-				log.Errorf("init data %s error: %s", sub, err.Error())
-				b.Send(NewErrorEvent("init data error:"+err.Error(), "Bus"))
-				continue
-			}
 		}
 		for _, p := range procs {
 			err = p.Cb(e)
 			if err != nil {
-				b.Send(NewErrorEvent(err.Error(), p.Name))
+				// b.Send(NewErrorEvent(err.Error(), p.Name))
 				log.Errorf("subscribe %s process error: %s", sub, err.Error())
 				continue
 			}

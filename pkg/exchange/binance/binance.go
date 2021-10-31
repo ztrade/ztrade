@@ -189,7 +189,7 @@ func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
 		log.Errorf("AggTradeEvent parse amount failed:", evt.Quantity)
 	}
 	trade.Time = time.Unix(evt.Time, 0)
-	b.datas <- &ExchangeData{Name: EventTradeMarket, Data: trade}
+	b.datas <- NewExchangeData(b.Name, EventTradeMarket, trade)
 }
 
 func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
@@ -220,16 +220,16 @@ func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
 		}
 		depth.Buys = append(depth.Buys, DepthInfo{Price: price, Amount: amount})
 	}
-	b.datas <- &ExchangeData{Name: EventDepth, Data: &depth}
+	b.datas <- NewExchangeData(b.Name, EventDepth, &depth)
 }
 
 func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 	var stopC chan struct{}
 	switch param.Type {
-	case EventCandle:
-		cParam, ok := param.Param.(*CandleParam)
+	case EventWatchCandle:
+		cParam, ok := param.Data.(*CandleParam)
 		if !ok {
-			err = fmt.Errorf("event not CandleParam %s %#v", param.Type, param.Param)
+			err = fmt.Errorf("event not CandleParam %s %#v", param.Type, param.Data)
 			return
 		}
 		symbolInfo := SymbolInfo{Exchange: cParam.Exchange, Symbol: cParam.Symbol, Resolutions: cParam.BinSize}
@@ -251,7 +251,7 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 				if candle.Start == tLast {
 					continue
 				}
-				b.datas <- &ExchangeData{Type: EventCandle, Name: NewCandleName("candle", cParam.BinSize).String(), Data: candle}
+				b.datas <- NewExchangeData(NewCandleName("candle", cParam.BinSize).String(), EventCandle, candle)
 				tLast = candle.Start
 			}
 			if b.closeCh != nil {

@@ -39,8 +39,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
-	github.com/tidwall/gjson v1.6.8 // indirect
-	github.com/tidwall/pretty v1.1.0 // indirect
+	github.com/tidwall/gjson v1.11.0 // indirect
 	github.com/ztrade/base v0.0.3
 	github.com/ztrade/indicator v1.1.1
 	github.com/ztrade/trademodel v1.1.0

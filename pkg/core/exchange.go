@@ -29,9 +29,20 @@ func NewExchange(name string, cfg *viper.Viper, cltName, symbol string) (ex Exch
 }
 
 type ExchangeData struct {
+	Data EventData `json:"data"`
 	Name string
-	Type string // EventBalance
-	Data interface{}
+}
+
+func (e *ExchangeData) GetType() string {
+	return e.Data.Type
+}
+
+func (e *ExchangeData) GetData() interface{} {
+	return e.Data.Data
+}
+
+func NewExchangeData(name, typ string, data interface{}) *ExchangeData {
+	return &ExchangeData{Name: name, Data: EventData{Type: typ, Data: data}}
 }
 
 type Exchange interface {

@@ -59,7 +59,6 @@ func (tbl *KlineTbl) GetSlice(data interface{}) (rets []interface{}) {
 }
 
 func (tbl *KlineTbl) emitCandles(param CandleParam) {
-	fmt.Println("emit candles:", param)
 	candles, err := tbl.DataChan(param.Start, param.End, param.BinSize)
 	if err != nil {
 		log.Error("KlineTbl tbl get candles failed:", err.Error())
@@ -90,12 +89,12 @@ func (tbl *KlineTbl) onEventCandle(e Event) (err error) {
 }
 
 func (tbl *KlineTbl) onEventCandleParam(e Event) (err error) {
-	wParam, ok := e.Data.(*WatchParam)
+	wParam, ok := e.GetData().(*WatchParam)
 	if !ok {
 		err = fmt.Errorf("event not watch %s %#v", e.Name, e.Data)
 		return
 	}
-	candleParam, _ := wParam.Param.(*CandleParam)
+	candleParam, _ := wParam.Data.(*CandleParam)
 	if candleParam == nil {
 		err = fmt.Errorf("event not CandleParam %s %#v", e.Name, e.Data)
 		return

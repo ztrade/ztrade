@@ -62,33 +62,33 @@ func (b *TradeExchange) Start() (err error) {
 
 func (b *TradeExchange) recvDatas() {
 	var ok bool
-	var balance Balance
-	var depth Depth
-	var order Order
-	var pos Position
-	var trade Trade
+	var balance *Balance
+	var depth *Depth
+	var order *Order
+	var pos *Position
+	var trade *Trade
 	var posTime int64
 	var o *OrderInfo
 	var candle *Candle
 Out:
 	for data := range b.datas {
-		switch data.Type {
+		switch data.GetType() {
 		case EventCandle:
-			candle = data.Data.(*Candle)
-			b.Send(data.Name, data.Type, candle)
+			candle = data.GetData().(*Candle)
+			b.Send(data.Name, data.GetType(), candle)
 		case EventBalance:
-			balance = data.Data.(Balance)
+			balance = data.GetData().(*Balance)
 			b.Send(b.exchangeName, EventBalance, balance)
 		case EventDepth:
-			depth = data.Data.(Depth)
+			depth = data.GetData().(*Depth)
 			b.Send(b.exchangeName, EventDepth, depth)
 		case EventOrder:
-			order = data.Data.(Order)
+			order = data.GetData().(*Order)
 			o, ok = b.orders[order.OrderID]
 			if !ok || o.Filled {
 				continue Out
 			}
-			o.Order = order
+			o.Order = *order
 			if order.Status != OrderStatusFilled {
 				continue Out
 			}
@@ -102,24 +102,24 @@ Out:
 				Remark: ""}
 			b.Send(o.OrderID, EventTrade, tr)
 		case EventPosition:
-			pos = data.Data.(Position)
+			pos = data.GetData().(*Position)
 			posTime = time.Now().Unix()
 			atomic.StoreInt64(&b.positionUpdate, posTime)
 			b.Send(pos.Symbol, EventPosition, pos)
 		case EventTradeMarket:
-			trade = data.Data.(Trade)
+			trade = data.GetData().(*Trade)
 			b.Send(b.exchangeName, EventTradeMarket, trade)
 		}
 	}
 }
 
 func (b *TradeExchange) onEventCandleParam(e Event) (err error) {
-	wParam, ok := e.Data.(*WatchParam)
+	wParam, ok := e.GetData().(*WatchParam)
 	if !ok {
 		err = fmt.Errorf("event not watch %s %#v", e.Name, e.Data)
 		return
 	}
-	cParam, _ := wParam.Param.(*CandleParam)
+	cParam, _ := wParam.Data.(*CandleParam)
 	if cParam == nil {
 		err = fmt.Errorf("event not CandleParam %s %#v", e.Name, e.Data)
 		return
@@ -190,7 +190,7 @@ func (b *TradeExchange) emitCandles(param CandleParam) {
 		log.Info("BitmexTrade emit candle binsize not 1m:", param)
 		return
 	}
-	watchParam := WatchParam{Type: EventCandle, Param: &param}
+	watchParam := WatchParam{Type: EventWatchCandle, Data: &param}
 
 	err := b.impl.Watch(watchParam)
 	if err != nil {

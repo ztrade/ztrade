@@ -29,7 +29,7 @@ func (b *BaseProcesser) Subscribe(sub string, cb ProcessCall) (err error) {
 }
 
 // Send send event
-func (b *BaseProcesser) Send(name, strType string, data Data) {
+func (b *BaseProcesser) Send(name, strType string, data interface{}) {
 	b.Bus.Send(NewEvent(name, strType, b.Name, data))
 }
 
@@ -55,6 +55,6 @@ func (b *BaseProcesser) GetName() string {
 }
 
 // CreateEvent create new event
-func (b *BaseProcesser) CreateEvent(name, strType string, data Data) *Event {
+func (b *BaseProcesser) CreateEvent(name, strType string, data interface{}) *Event {
 	return NewEvent(name, strType, b.Name, data)
 }

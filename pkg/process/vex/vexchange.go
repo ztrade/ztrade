@@ -3,6 +3,7 @@ package vex
 import (
 	"container/list"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 
-	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 	. "github.com/ztrade/trademodel"
 )
@@ -133,19 +133,20 @@ func (ex *VExchange) processCandle(candle Candle) {
 }
 
 func (ex *VExchange) onEventCandle(e Event) (err error) {
-	var candle Candle
-	err = mapstructure.Decode(e.GetData(), &candle)
-	if err != nil {
+	candle, ok := e.GetData().(*Candle)
+	if !ok {
+		err = fmt.Errorf("VExchange candle type error:%s", reflect.TypeOf(e.GetData()))
 		return
 	}
+	// fmt.Println("candle:", e.Name, e.GetType(), e.GetData())
 	cn := ParseCandleName(e.GetName())
 	if cn.BinSize != "1m" {
 		return
 	}
 
-	ex.candle = &candle
+	ex.candle = candle
 	ex.orderIndex = 0
-	ex.processCandle(candle)
+	ex.processCandle(*candle)
 	return
 }
 
