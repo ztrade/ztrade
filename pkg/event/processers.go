@@ -2,10 +2,6 @@ package event
 
 import (
 	"time"
-
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
-	log "github.com/sirupsen/logrus"
 )
 
 // Processers processers
@@ -17,13 +13,7 @@ type Processers struct {
 // NewProcessers create default Processers
 func NewProcessers() *Processers {
 	p := new(Processers)
-	l := log.WithField("component", "pubsub")
-	logger := watermill.NewStdLoggerWithOut(l.Writer(), false, false)
-	pubSub := gochannel.NewGoChannel(
-		gochannel.Config{OutputChannelBuffer: 1024, BlockPublishUntilSubscriberAck: true},
-		logger,
-	)
-	p.bus = NewBus(pubSub, pubSub)
+	p.bus = NewBus(1024)
 	return p
 }
 

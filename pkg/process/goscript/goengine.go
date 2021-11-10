@@ -72,7 +72,7 @@ func (s *GoEngine) Stop() (err error) {
 func (s *GoEngine) addOrder(price, amount float64, orderType TradeType) {
 	// FixMe: in backtest, time may be the time of candle
 	e := TradeAction{Action: orderType, Amount: amount, Price: price, Time: time.Now()}
-	s.Send(EventOrder, EventOrder, e)
+	s.Send(EventOrder, EventOrder, &e)
 }
 
 func (s *GoEngine) sendNotify(content, contentType string) {
@@ -80,7 +80,7 @@ func (s *GoEngine) sendNotify(content, contentType string) {
 		contentType = "text"
 	}
 	data := NotifyEvent{Type: contentType, Content: content}
-	s.Send("notify", EventNotify, data)
+	s.Send("notify", EventNotify, &data)
 }
 
 func (s *GoEngine) addIndicator(name string, params ...int) (ind indicator.CommonIndicator) {

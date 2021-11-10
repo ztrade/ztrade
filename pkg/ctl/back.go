@@ -96,7 +96,7 @@ func (b *Backtest) Run() (err error) {
 	processers.Add(r)
 	processers.Start()
 
-	param.Send("balance_init", EventBalanceInit, BalanceInfo{Balance: b.balanceInit})
+	param.Send("balance_init", EventBalanceInit, &BalanceInfo{Balance: b.balanceInit})
 	candleParam := CandleParam{
 		Start:   b.start,
 		End:     b.end,

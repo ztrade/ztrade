@@ -75,12 +75,12 @@ func (e *EngineImpl) Log(v ...interface{}) {
 func (e *EngineImpl) addOrder(price, amount float64, orderType TradeType) {
 	// FixMe: in backtest, time may be the time of candle
 	act := TradeAction{Action: orderType, Amount: amount, Price: price, Time: time.Now()}
-	e.proc.Send(EventOrder, EventOrder, act)
+	e.proc.Send(EventOrder, EventOrder, &act)
 }
 
 func (e *EngineImpl) Watch(watchType string) {
 	param := WatchParam{Type: watchType}
-	e.proc.Send(EventWatch, EventWatch, param)
+	e.proc.Send(EventWatch, EventWatch, &param)
 	return
 }
 
@@ -89,7 +89,7 @@ func (e *EngineImpl) SendNotify(content, contentType string) {
 		contentType = "text"
 	}
 	data := NotifyEvent{Type: contentType, Content: content}
-	e.proc.Send("notify", EventNotify, data)
+	e.proc.Send("notify", EventNotify, &data)
 }
 
 func (e *EngineImpl) SetBalance(balance float64) {

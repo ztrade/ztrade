@@ -100,7 +100,7 @@ Out:
 				Amount: o.Amount,
 				Side:   o.Side,
 				Remark: ""}
-			b.Send(o.OrderID, EventTrade, tr)
+			b.Send(o.OrderID, EventTrade, &tr)
 		case EventPosition:
 			pos = data.GetData().(*Position)
 			posTime = time.Now().Unix()
