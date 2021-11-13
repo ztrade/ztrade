@@ -37,6 +37,7 @@ type TimeTbl struct {
 	table    string
 	creator  DataCreator
 	closeCh  chan bool
+	loadOnce int
 }
 
 // NewTimeTbl create new time table
@@ -47,16 +48,17 @@ func NewTimeTbl(db *DBStore, creator DataCreator, exchange, symbol, binSize, ext
 	t.exchange = exchange
 	t.symbol = symbol
 	t.binSize = binSize
+	t.loadOnce = 5000
 
 	t.table = fmt.Sprintf("%s_%s_%s", exchange, symbol, binSize)
 	if extName != "" {
 		t.table += "_" + extName
 	}
-	if creator.Sing == nil || creator.Slice == nil {
-		log.Error("TimeTbl data creator can't be nil")
-		t = nil
-	}
 	return
+}
+
+func (t *TimeTbl) SetLoadOnce(loadOnce int) {
+	t.loadOnce = loadOnce
 }
 
 func (t *TimeTbl) SetCloseCh(closeCh chan bool) {
@@ -121,7 +123,7 @@ func (t *TimeTbl) DataChan(start, end time.Time, bSize string) (klines chan []in
 	klines = make(chan []interface{}, 10240)
 	go func() {
 		nOffset := 0
-		once := 500
+		once := t.loadOnce
 		var err1 error
 		var data []interface{}
 		for {

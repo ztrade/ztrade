@@ -22,6 +22,7 @@ type ProcessList []ProcessCallInfo
 
 // Bus event bus
 type Bus struct {
+	syncMode   bool
 	chs        map[string]chan *Event
 	chsMutex   sync.Mutex
 	cache      int
@@ -32,6 +33,14 @@ type Bus struct {
 func NewBus(cache int) *Bus {
 	b := new(Bus)
 	b.cache = cache
+	b.chs = make(map[string]chan *Event)
+	b.procs = make(map[string]ProcessList)
+	return b
+}
+
+func NewSyncBus() *Bus {
+	b := new(Bus)
+	b.syncMode = true
 	b.chs = make(map[string]chan *Event)
 	b.procs = make(map[string]ProcessList)
 	return b
@@ -76,13 +85,27 @@ func (b *Bus) Subscribe(from, sub string, cb ProcessCall) (err error) {
 
 func (b *Bus) Send(e *Event) (err error) {
 	typ := e.GetType()
-	_, ok := b.procs[typ]
+	procs, ok := b.procs[typ]
 	if !ok {
 		log.Warnf("Send %s event,but no subscribers, skip", e.GetType())
 		return
 	}
+	if b.syncMode {
+		return b.sendSync(procs, e)
+	}
 	chs := b.chs[typ]
 	chs <- e
+	return
+}
+func (b *Bus) sendSync(procs ProcessList, e *Event) (err error) {
+	event := *e
+	for _, p := range procs {
+		err = p.Cb(event)
+		if err != nil {
+			log.Errorf("subscribe %s process error: %s", e.GetType(), err.Error())
+			continue
+		}
+	}
 	return
 }
 
@@ -94,6 +117,9 @@ func (b *Bus) Close() {
 
 }
 func (b *Bus) Start() {
+	if b.syncMode {
+		return
+	}
 	for k := range b.procs {
 		ch := make(chan *Event, b.cache)
 		b.chs[k] = ch

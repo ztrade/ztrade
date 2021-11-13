@@ -49,7 +49,7 @@ func (b *VExchange) Init(bus *Bus) (err error) {
 }
 
 func (ex *VExchange) Start() (err error) {
-	ex.Send(ex.symbol, EventBalance, &BalanceInfo{Balance: ex.balance.Get()})
+	ex.Send(ex.symbol, EventBalance, &Balance{Balance: ex.balance.Get()})
 	return
 }
 func (ex *VExchange) processCandle(candle Candle) {

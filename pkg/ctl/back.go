@@ -28,6 +28,7 @@ type Backtest struct {
 	scriptFile  string
 	rpt         rpt.Reporter
 	balanceInit float64
+	loadDBOnce  int
 }
 
 // NewBacktest constructor of Backtest
@@ -39,11 +40,16 @@ func NewBacktest(db *dbstore.DBStore, exchange, symbol, param string, start time
 	b.symbol = symbol
 	b.db = db
 	b.balanceInit = 100000
+	b.loadDBOnce = 50000
 	b.paramData = make(common.ParamData)
 	if param != "" {
 		err = json.Unmarshal([]byte(param), &b.paramData)
 	}
 	return
+}
+
+func (b *Backtest) SetLoadDBOnce(loadOnce int) {
+	b.loadDBOnce = loadOnce
 }
 
 func (b *Backtest) SetBalanceInit(balanceInit float64) {
@@ -80,6 +86,7 @@ func (b *Backtest) Run() (err error) {
 	param := event.NewBaseProcesser("param")
 	bSize := "1m"
 	tbl := b.db.GetKlineTbl(b.exchange, b.symbol, bSize)
+	tbl.SetLoadOnce(b.loadDBOnce)
 	tbl.SetLoadDataMode(true)
 	tbl.SetCloseCh(closeCh)
 	ex := vex.NewVExchange(b.symbol)
@@ -88,7 +95,7 @@ func (b *Backtest) Run() (err error) {
 		return
 	}
 	r := rpt.NewRpt(b.rpt)
-	processers := event.NewProcessers()
+	processers := event.NewSyncProcessers()
 	processers.Add(param)
 	processers.Add(tbl)
 	processers.Add(ex)

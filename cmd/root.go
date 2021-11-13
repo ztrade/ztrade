@@ -70,7 +70,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.configs/ztrade.yaml or ./configs/ztrade.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "P", false, "run debug mode")
-	rootCmd.PersistentFlags().BoolVarP(&runPprof, "pprof", "p", false, "run with pprof mode at :8888")
+	rootCmd.PersistentFlags().BoolVarP(&runPprof, "pprof", "p", false, "run with pprof mode at :8088")
 	rootCmd.PersistentFlags().StringVarP(&logFile, "log", "l", "ztrade.log", "log file")
 
 	// Cobra also supports local flags, which will only run
@@ -93,7 +93,7 @@ func init() {
 			return
 		}
 		go func() {
-			http.ListenAndServe("0.0.0.0:8888", nil)
+			http.ListenAndServe("0.0.0.0:8088", nil)
 		}()
 
 	}

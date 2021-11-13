@@ -17,6 +17,13 @@ func NewProcessers() *Processers {
 	return p
 }
 
+// NewSyncProcessers create sync Processers
+func NewSyncProcessers() *Processers {
+	p := new(Processers)
+	p.bus = NewSyncBus()
+	return p
+}
+
 // Adds add processer
 func (h *Processers) Adds(ehs ...Processer) (err error) {
 	for _, v := range ehs {
