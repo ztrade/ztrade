@@ -11,3 +11,6 @@ proxy: socks5://127.0.0.1:1080
 db:
   type: mysql
   uri: root:123456@tcp(localhost:3306)/exchange
+plugins:
+  - type: exchange
+    uri: plugins/ctp.so
