@@ -79,7 +79,7 @@ func init() {
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		var err error
 		if logFile != "" {
-			logF, err = os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY, 0666)
+			logF, err = os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 			if err != nil {
 				log.Error("open log file failed:", err.Error())
 			} else {

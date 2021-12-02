@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/sirupsen/logrus"
 	"github.com/ztrade/ctp"
 )
 
 type MdSpi struct {
-	hasLogin SafeWait
-	ex       *CtpExchange
-	cfg      *Config
-	api      *ctp.CThostFtdcMdApi
+	hasLogin  SafeWait
+	ex        *CtpExchange
+	cfg       *Config
+	api       *ctp.CThostFtdcMdApi
+	connected uint32
 }
 
 func NewMdSpi(ex *CtpExchange, cfg *Config, api *ctp.CThostFtdcMdApi) (spi *MdSpi, err error) {
@@ -22,6 +24,20 @@ func NewMdSpi(ex *CtpExchange, cfg *Config, api *ctp.CThostFtdcMdApi) (spi *MdSp
 	spi.cfg = cfg
 	spi.ex = ex
 	return
+}
+
+func (s *MdSpi) WaiDisconnect(closeChan chan bool) {
+	for {
+		select {
+		case <-closeChan:
+			return
+		default:
+		}
+		isConnected := atomic.LoadUint32(&s.connected)
+		if isConnected == 0 {
+			return
+		}
+	}
 }
 
 func (s *MdSpi) WaitLogin(ctx context.Context) error {
@@ -33,11 +49,14 @@ func (s *MdSpi) OnFrontConnected() {
 	nRet := s.api.ReqUserLogin(&ctp.CThostFtdcReqUserLoginField{UserID: s.cfg.User, BrokerID: s.cfg.BrokerID, Password: s.cfg.Password}, 0)
 	if nRet != 0 {
 		s.hasLogin.Done(fmt.Errorf("ReqUserLogin failed: %d", nRet))
+		return
 	}
+	atomic.StoreUint32(&s.connected, 1)
 }
 
 func (s *MdSpi) OnFrontDisconnected(nReason int) {
 	logrus.Println("OnFrontDisconnected:", nReason)
+	atomic.StoreUint32(&s.connected, 0)
 }
 
 func (s *MdSpi) OnHeartBeatWarning(nTimeLapse int) {

@@ -8,11 +8,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/ztrade/base/common"
 	"github.com/ztrade/ctp"
 	. "github.com/ztrade/trademodel"
 	"github.com/ztrade/ztrade/pkg/core"
@@ -38,21 +40,24 @@ type Config struct {
 }
 
 type CtpExchange struct {
-	name       string
-	mdApi      *ctp.CThostFtdcMdApi
-	mdSpi      *MdSpi
-	tdApi      *ctp.CThostFtdcTraderApi
-	tdSpi      *TdSpi
-	cfg        *Config
-	symbol     string
-	exchangeID string
-	datas      chan *core.ExchangeData
-	prevVolume float64
-	orderID    uint64
-	orders     map[string]*Order
-	inited     bool
-	stopChan   chan bool
-	strStart   string
+	name          string
+	mdApi         *ctp.CThostFtdcMdApi
+	mdSpi         *MdSpi
+	tdApi         *ctp.CThostFtdcTraderApi
+	tdSpi         *TdSpi
+	cfg           *Config
+	symbol        string
+	exchangeID    string
+	datas         chan *core.ExchangeData
+	prevVolume    float64
+	orderID       uint64
+	orders        map[string]*Order
+	inited        uint32
+	stopChan      chan bool
+	strStart      string
+	startOnce     sync.Once
+	positionReqID int
+	positionCache []Position
 }
 
 func NewCtp(cfg *viper.Viper, cltName, symbol string) (e core.Exchange, err error) {
@@ -85,6 +90,81 @@ func NewCtpExchange(cfg *viper.Viper, cltName, symbol string) (c *CtpExchange, e
 	c.stopChan = make(chan bool)
 	c.datas = make(chan *core.ExchangeData, 1024)
 	c.orders = make(map[string]*Order)
+	err = c.initConn()
+	if err != nil {
+		return
+	}
+	c.Start(map[string]interface{}{})
+	return
+}
+
+func (c *CtpExchange) HasInit() bool {
+	v := atomic.LoadUint32(&c.inited)
+	return v == 1
+}
+
+func (c *CtpExchange) SetInit(bInit bool) {
+	if bInit {
+		atomic.StoreUint32(&c.inited, 1)
+	} else {
+		atomic.StoreUint32(&c.inited, 0)
+	}
+}
+
+func (c *CtpExchange) reConnectTdApi() {
+	var err error
+Out:
+	for {
+		c.tdSpi.WaiDisconnect(c.stopChan)
+		select {
+		case <-c.stopChan:
+			break Out
+		default:
+		}
+		if !c.HasInit() {
+			time.Sleep(time.Second * 10)
+			continue
+		}
+
+		if c.tdApi != nil {
+			// c.tdApi.Join()
+			c.tdApi.Release()
+			c.tdApi = nil
+		}
+		err = c.initTdApi()
+		if err != nil {
+			logrus.Errorf("initTdApi failed: %s", err.Error())
+		}
+	}
+}
+
+func (c *CtpExchange) reConnectMdApi() {
+	var err error
+Out:
+	for {
+		c.mdSpi.WaiDisconnect(c.stopChan)
+		select {
+		case <-c.stopChan:
+			break Out
+		default:
+		}
+		if !c.HasInit() {
+			time.Sleep(time.Second * 10)
+			continue
+		}
+		if c.mdApi != nil {
+			// c.mdApi.Join()
+			c.mdApi.Release()
+			c.mdApi = nil
+		}
+		err = c.initMdApi()
+		if err != nil {
+			logrus.Errorf("initMdApi failed: %s", err.Error())
+		}
+	}
+}
+
+func (c *CtpExchange) initConn() (err error) {
 	err = c.initTdApi()
 	if err != nil {
 		err = fmt.Errorf("initTdApi failed: %w", err)
@@ -95,11 +175,12 @@ func NewCtpExchange(cfg *viper.Viper, cltName, symbol string) (c *CtpExchange, e
 		err = fmt.Errorf("initMdApi failed: %w", err)
 		return
 	}
-	c.inited = true
+	c.SetInit(true)
 	return
 }
 
 func (c *CtpExchange) initMdApi() (err error) {
+	WaitTradeTime()
 	c.mdApi = ctp.MdCreateFtdcMdApi("./ctp/md", false, false)
 	c.mdApi.RegisterFront(fmt.Sprintf("tcp://%s", c.cfg.MdServer))
 	c.mdSpi, err = NewMdSpi(c, c.cfg, c.mdApi)
@@ -119,6 +200,7 @@ func (c *CtpExchange) initMdApi() (err error) {
 }
 
 func (c *CtpExchange) initTdApi() (err error) {
+	WaitTradeTime()
 	err = os.MkdirAll("./ctp", os.ModePerm)
 	if err != nil {
 		return
@@ -143,11 +225,16 @@ func (c *CtpExchange) initTdApi() (err error) {
 		return
 	}
 	logrus.Println("TdApi login success")
+
 	return
 }
 
 func (c *CtpExchange) Start(map[string]interface{}) error {
-	go c.syncPosition()
+	c.startOnce.Do(func() {
+		go c.syncPosition()
+		go c.reConnectMdApi()
+		go c.reConnectTdApi()
+	})
 	return nil
 }
 
@@ -157,15 +244,21 @@ func (c *CtpExchange) Stop() error {
 }
 
 func (c *CtpExchange) syncPosition() (err error) {
-	tick := time.NewTicker(time.Second * 2)
+	tick := time.NewTicker(time.Second * 5)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
-			pQryInvestorPosition := &ctp.CThostFtdcQryInvestorPositionField{}
-			nRet := c.tdApi.ReqQryInvestorPosition(pQryInvestorPosition, getReqID())
+			if !c.HasInit() {
+				continue
+			}
+			reqID := getReqID()
+			pQryInvestorPosition := &ctp.CThostFtdcQryInvestorPositionDetailField{}
+			nRet := c.tdApi.ReqQryInvestorPositionDetail(pQryInvestorPosition, reqID)
 			if nRet != 0 {
-				logrus.Errorf("ReqQryInvestorPosition failed: %d", nRet)
+				logrus.Errorf("ReqQryInvestorPositionDetail failed: %d", nRet)
+			} else {
+				c.positionReqID = reqID
 			}
 		case <-c.stopChan:
 			return
@@ -187,7 +280,7 @@ func (c *CtpExchange) Watch(core.WatchParam) error {
 // ProcessOrder process order
 func (c *CtpExchange) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	orderID := atomic.AddUint64(&c.orderID, 1)
-	strOrderID := fmt.Sprintf("%s_%d", c.strStart, orderID)
+	strOrderID := fmt.Sprintf("%s%d", c.strStart, orderID)
 	var action ctp.CThostFtdcInputOrderField
 	// ----------必填字段----------------
 	action.BrokerID = c.cfg.BrokerID
@@ -332,7 +425,7 @@ func (c *CtpExchange) GetDataChan() chan *core.ExchangeData {
 
 // {"TradingDay":"20211119","InstrumentID":"al2201","ExchangeID":"","ExchangeInstID":"","LastPrice":18350,"PreSettlementPrice":18580,"PreClosePrice":18475,"PreOpenInterest":236229,"OpenPrice":18475,"HighestPrice":18490,"LowestPrice":18230,"Volume":165674,"Turnover":15192326925,"OpenInterest":250293,"ClosePrice":0,"SettlementPrice":0,"UpperLimitPrice":20065,"LowerLimitPrice":17090,"PreDelta":0,"CurrDelta":0,"UpdateTime":"23:40:51","UpdateMillisec":500,"BidPrice1":18350,"BidVolume1":25,"AskPrice1":18355,"AskVolume1":71,"BidPrice2":18345,"BidVolume2":43,"AskPrice2":18360,"AskVolume2":83,"BidPrice3":18340,"BidVolume3":59,"AskPrice3":18365,"AskVolume3":48,"BidPrice4":18335,"BidVolume4":61,"AskPrice4":18370,"AskVolume4":75,"BidPrice5":18330,"BidVolume5":69,"AskPrice5":18375,"AskVolume5":155,"AveragePrice":91700.12750944626,"ActionDay":"20211118"}
 func (c *CtpExchange) onDepthData(pDepthMarketData *ctp.CThostFtdcDepthMarketDataField) {
-	if !c.inited {
+	if !c.HasInit() {
 		return
 	}
 	if c.prevVolume == 0 {
@@ -399,15 +492,36 @@ func (c *CtpExchange) updateOrderStatus(id, orderSysID, status, err string) {
 	o.Status = status
 }
 
-func (c *CtpExchange) updatePosition(pInvestorPosition *ctp.CThostFtdcInvestorPositionField) {
+func (c *CtpExchange) updatePosition(pInvestorPosition *ctp.CThostFtdcInvestorPositionDetailField, reqID int, isLast bool) {
+	if reqID != c.positionReqID {
+		logrus.Errorf("updatePosition error, reqID notmatch: %d %d", c.positionReqID, reqID)
+		return
+	}
 	buf, _ := json.Marshal(pInvestorPosition)
-	logrus.Warnf("updatePosition:", string(buf))
+	logrus.Warn("updatePosition:", string(buf))
 	if pInvestorPosition.InstrumentID != c.symbol {
 		return
 	}
 	var pos Position
-	pos.Hold = float64(pInvestorPosition.Position)
+	pos.Hold = float64(pInvestorPosition.Volume)
+	if pInvestorPosition.Direction == '1' {
+		pos.Hold = 0 - pos.Hold
+	}
 	pos.Symbol = c.symbol
-	pos.Price = pInvestorPosition.PositionCost
-	c.datas <- core.NewExchangeData(c.symbol, core.EventPosition, &pos)
+	pos.Price = pInvestorPosition.OpenPrice
+	c.positionCache = append(c.positionCache, pos)
+	if isLast {
+		var posMerge Position
+		var totalPrice float64
+		for _, v := range c.positionCache {
+			if v.Hold != 0 {
+				totalPrice += v.Price
+			}
+			posMerge.Hold += v.Hold
+		}
+		posMerge.Price = common.FloatMul(totalPrice, posMerge.Hold)
+		posMerge.Symbol = c.symbol
+		c.datas <- core.NewExchangeData(c.symbol, core.EventPosition, &posMerge)
+		c.positionCache = []Position{}
+	}
 }

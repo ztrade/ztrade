@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/sirupsen/logrus"
 	"github.com/ztrade/ctp"
@@ -18,6 +19,7 @@ type TdSpi struct {
 	cfg       *Config
 	frontID   int
 	sessionID int
+	connected uint32
 }
 
 func NewTdSpi(ex *CtpExchange, cfg *Config, api *ctp.CThostFtdcTraderApi) *TdSpi {
@@ -28,6 +30,20 @@ func NewTdSpi(ex *CtpExchange, cfg *Config, api *ctp.CThostFtdcTraderApi) *TdSpi
 	td.symbols = make(map[string]*ctp.CThostFtdcInstrumentField)
 	return td
 }
+func (s *TdSpi) WaiDisconnect(closeChan chan bool) {
+	for {
+		select {
+		case <-closeChan:
+			return
+		default:
+		}
+		isConnected := atomic.LoadUint32(&s.connected)
+		if isConnected == 0 {
+			return
+		}
+	}
+}
+
 func (s *TdSpi) GetSymbols() (symbols map[string]*ctp.CThostFtdcInstrumentField) {
 	return s.symbols
 }
@@ -36,7 +52,14 @@ func (s *TdSpi) OnFrontConnected() {
 	nRet := s.api.ReqAuthenticate(&ctp.CThostFtdcReqAuthenticateField{BrokerID: s.cfg.BrokerID, UserID: s.cfg.User, UserProductInfo: "", AuthCode: s.cfg.AuthCode, AppID: s.cfg.AppID}, getReqID())
 	if nRet != 0 {
 		s.hasLogin.Done(fmt.Errorf("ReqAuthenticate failed: %d", nRet))
+		return
 	}
+	atomic.StoreUint32(&s.connected, 1)
+}
+
+func (s *TdSpi) OnFrontDisconnected(nReason int) {
+	fmt.Println("tdSpi OnFrontDisconnected", nReason)
+	atomic.StoreUint32(&s.connected, 0)
 }
 
 func (s *TdSpi) OnRspAuthenticate(pRspAuthenticateField *ctp.CThostFtdcRspAuthenticateField, pRspInfo *ctp.CThostFtdcRspInfoField, nRequestID int, bIsLast bool) {
@@ -145,15 +168,34 @@ func (s *TdSpi) OnRspQrySettlementInfo(pSettlementInfo *ctp.CThostFtdcSettlement
 
 func (s *TdSpi) OnRspQryInvestorPosition(pInvestorPosition *ctp.CThostFtdcInvestorPositionField, pRspInfo *ctp.CThostFtdcRspInfoField, nRequestID int, bIsLast bool) {
 	if pRspInfo != nil && pRspInfo.ErrorID != 0 {
-		logrus.Errorf("OnRspQryInvestorPosition error:", pRspInfo.ErrorMsg)
+		logrus.Error("OnRspQryInvestorPosition error:", pRspInfo.ErrorMsg)
 		return
 	}
-	s.ex.updatePosition(pInvestorPosition)
+	if pInvestorPosition == nil {
+		return
+	}
+	buf, _ := json.Marshal(pInvestorPosition)
+	logrus.Info("OnRspQryInvestorPosition:", string(buf))
+	// s.ex.updatePosition(pInvestorPosition)
+}
+
+func (s *TdSpi) OnRspQryInvestorPositionDetail(pInvestorPositionDetail *ctp.CThostFtdcInvestorPositionDetailField, pRspInfo *ctp.CThostFtdcRspInfoField, nRequestID int, bIsLast bool) {
+	if pRspInfo != nil && pRspInfo.ErrorID != 0 {
+		logrus.Error("OnRspQryInvestorPositionDetail error:", pRspInfo.ErrorMsg)
+		return
+	}
+	if pInvestorPositionDetail == nil {
+		logrus.Info("OnRspQryInvestorPositionDetail: null", pInvestorPositionDetail, pRspInfo, nRequestID, bIsLast)
+		return
+	}
+	buf, _ := json.Marshal(pInvestorPositionDetail)
+	logrus.Info("OnRspQryInvestorPositionDetail:", nRequestID, bIsLast, string(buf))
+	s.ex.updatePosition(pInvestorPositionDetail, nRequestID, bIsLast)
 }
 
 func (s *TdSpi) OnRspOrderAction(pInputOrderAction *ctp.CThostFtdcInputOrderActionField, pRspInfo *ctp.CThostFtdcRspInfoField, nRequestID int, bIsLast bool) {
 	if pRspInfo != nil && pRspInfo.ErrorID != 0 {
-		logrus.Errorf("OnRspOrderAction error:", pRspInfo.ErrorMsg)
+		logrus.Error("OnRspOrderAction error:", pRspInfo.ErrorMsg)
 		return
 	}
 	buf, _ := json.Marshal(pInputOrderAction)
