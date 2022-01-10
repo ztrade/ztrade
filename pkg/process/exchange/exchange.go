@@ -187,7 +187,7 @@ func (b *TradeExchange) cancelAllOrder() {
 
 func (b *TradeExchange) emitCandles(param CandleParam) {
 	if param.BinSize != "1m" {
-		log.Info("BitmexTrade emit candle binsize not 1m:", param)
+		log.Info("TradeExchange emit candle binsize not 1m:", param)
 		return
 	}
 	watchParam := WatchParam{Type: EventWatchCandle, Data: &param}

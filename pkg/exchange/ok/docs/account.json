@@ -1,0 +1,1390 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "REST API",
+        "version": "v5",
+        "description": "# 使用说明 \n <b>该功能接口用户需先登陆，接口只会请求模拟环境</b><br><br>*Parameters* 面板中点击`Try it out`按钮，编辑请求参数，点击`Execute`按钮发送请求。*Responses* 面板中查看请求结果。<br>"
+    },
+    "tags": [
+        {
+            "name": "Account",
+            "description": "账户"
+        }
+    ],
+    "paths": {
+        "/api/v5/account/balance": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取账户中资金余额信息",
+                "parameters": [
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，如：`BTC`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "adjEq": "10679688.0460531643092577",
+                                                "details": [
+                                                    {
+                                                        "availBal": "",
+                                                        "availEq": "9930359.9998",
+                                                        "cashBal": "9930359.9998",
+                                                        "ccy": "USDT",
+                                                        "crossLiab": "0",
+                                                        "disEq": "9439737.0772999514",
+                                                        "eq": "9930359.9998",
+                                                        "eqUsd": "9933041.196999946",
+                                                        "frozenBal": "0",
+                                                        "interest": "0",
+                                                        "isoEq": "0",
+                                                        "isoLiab": "0",
+                                                        "isoUpl": "0",
+                                                        "liab": "0",
+                                                        "maxLoan": "10000",
+                                                        "mgnRatio": "",
+                                                        "notionalLever": "",
+                                                        "ordFrozen": "0",
+                                                        "twap": "0",
+                                                        "uTime": "1620722938250",
+                                                        "upl": "0",
+                                                        "uplLiab": "0",
+                                                        "stgyEq": "0"
+                                                    },
+                                                    {
+                                                        "availBal": "",
+                                                        "availEq": "33.6799714158199414",
+                                                        "cashBal": "33.2009985",
+                                                        "ccy": "BTC",
+                                                        "crossLiab": "0",
+                                                        "disEq": "1239950.9687532129092577",
+                                                        "eq": "33.771820625136023",
+                                                        "eqUsd": "1239950.9687532129092577",
+                                                        "frozenBal": "0.0918492093160816",
+                                                        "interest": "0",
+                                                        "isoEq": "0",
+                                                        "isoLiab": "0",
+                                                        "isoUpl": "0",
+                                                        "liab": "0",
+                                                        "maxLoan": "1453.92289531493594",
+                                                        "mgnRatio": "",
+                                                        "notionalLever": "",
+                                                        "ordFrozen": "0",
+                                                        "twap": "0",
+                                                        "uTime": "1620722938250",
+                                                        "upl": "0.570822125136023",
+                                                        "uplLiab": "0",
+                                                        "stgyEq": "0"
+                                                    }
+                                                ],
+                                                "imr": "3372.2942371050594217",
+                                                "isoEq": "0",
+                                                "mgnRatio": "70375.35408747017",
+                                                "mmr": "134.8917694842024",
+                                                "notionalUsd": "33722.9423710505978888",
+                                                "ordFroz": "0",
+                                                "totalEq": "11172992.1657531589092577",
+                                                "uTime": "1623392334718"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/positions": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "查看持仓信息",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`SPOT`：币币<br>`MARGIN`：币币杠杆<br>`SWAP`：永续合约<br>`FUTURES`：交割合约<br>`OPTION`：期权",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT`<br>支持多个instId查询（不超过10个），半角逗号分隔",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "posId",
+                        "in": "query",
+                        "description": "持仓ID，支持多个posId查询（不超过20个），半角逗号分割",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "adl": "1",
+                                                "availPos": "1",
+                                                "avgPx": "2566.31",
+                                                "cTime": "1619507758793",
+                                                "ccy": "ETH",
+                                                "deltaBS": "",
+                                                "deltaPA": "",
+                                                "gammaBS": "",
+                                                "gammaPA": "",
+                                                "imr": "",
+                                                "instId": "ETH-USD-210430",
+                                                "instType": "FUTURES",
+                                                "interest": "0",
+                                                "last": "2566.22",
+                                                "lever": "10",
+                                                "liab": "",
+                                                "liabCcy": "",
+                                                "liqPx": "2352.8496681818233",
+                                                "margin": "0.0003896645377994",
+                                                "mgnMode": "isolated",
+                                                "mgnRatio": "11.731726509588816",
+                                                "mmr": "0.0000311811092368",
+                                                "notionalUsd": "2276.2546609009605",
+                                                "optVal": "",
+                                                "pTime": "1619507761462",
+                                                "pos": "1",
+                                                "posCcy": "",
+                                                "posId": "307173036051017730",
+                                                "posSide": "long",
+                                                "thetaBS": "",
+                                                "thetaPA": "",
+                                                "tradeId": "109844",
+                                                "uTime": "1619507761462",
+                                                "upl": "-0.0000009932766034",
+                                                "uplRatio": "-0.0025490556801078",
+                                                "vegaBS": "",
+                                                "vegaPA": ""
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/account-position-risk": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "查看账户持仓风险",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`SPOT`：币币<br>`MARGIN`：币币杠杆<br>`SWAP`：永续合约<br>`FUTURES`：交割合约<br>`OPTION`：期权",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "data": [
+                                            {
+                                                "adjEq": "174238.6793649711331679",
+                                                "balData": [
+                                                    {
+                                                        "ccy": "BTC",
+                                                        "disEq": "78846.7803721021362242",
+                                                        "eq": "1.3863533369419636"
+                                                    },
+                                                    {
+                                                        "ccy": "USDT",
+                                                        "disEq": "73417.2495112863300127",
+                                                        "eq": "73323.395564963177146"
+                                                    }
+                                                ],
+                                                "posData": [
+                                                    {
+                                                        "ccy": "USDT",
+                                                        "instId": "BTC-USDT-210507",
+                                                        "instType": "FUTURES",
+                                                        "mgnMode": "cross",
+                                                        "notionalCcy": "0.98",
+                                                        "notionalUsd": "55806.8814912",
+                                                        "pos": "98",
+                                                        "posCcy": "",
+                                                        "posId": "310423695953113090",
+                                                        "posSide": "net"
+                                                    }
+                                                ],
+                                                "ts": "1620282889345"
+                                            }
+                                        ],
+                                        "msg": ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/bills": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "账单流水查询（近七天）",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`SPOT`：币币<br>`MARGIN`：币币杠杆<br>`SWAP`：永续合约<br>`FUTURES`：交割合约<br>`OPTION`：期权",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，如：`BTC`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "mgnMode",
+                        "in": "query",
+                        "description": "仓位类型<br>`isolated`：逐仓 `cross`：全仓",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ctType",
+                        "in": "query",
+                        "description": "合约类型<br>`linear`：正向合约 `inverse`：反向合约<br>仅交割/永续有效",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "账单类型<br>1：划转 2：交易 3：交割 4：自动换币 5：强平 6：保证金划转 7：扣息 8：资金费 9：自动减仓 10：穿仓补偿 11：系统换币 12：策略划拨",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "subType",
+                        "in": "query",
+                        "description": "子账单类型<br>1：买入 2：卖出 3：开多 4：开空 5：平多 6：平空 9：扣息 11：转入 12：转出 160：手动追加保证金 161：手动减少保证金 162：自动追加保证金 114：自动换币买入 115：自动换币卖出 118：系统换币转入 119：系统换币转出 100：强减平多 101：强减平空 102：强减买入 103：强减卖出 104：强平平多 105：强平平空 106：强平买入 107：强平卖出 110：强平换币转入 111：强平换币转出 125：自动减仓平多 126：自动减仓平空 127：自动减仓买入 128：自动减仓卖出 170：到期行权 171：到期被行权 172：到期作废 112：交割平多 113：交割平空 117：交割/期权穿仓补偿 173：资金费支出 174：资金费收入 200:系统转入 201:手动转入 202:系统转出 203:手动转出",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "description": "请求此ID之前（更旧的数据）的分页内容，传的值为对应接口的`billId`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "description": "请求此ID之后（更新的数据）的分页内容，传的值为对应接口的`billId`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "返回结果的数量，默认100条",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "bal": "0.0000819307998198",
+                                                "balChg": "-664.2679586599999802",
+                                                "billId": "310394313544966151",
+                                                "ccy": "USDT",
+                                                "fee": "0",
+                                                "from": "",
+                                                "instId": "LTC-USDT",
+                                                "instType": "SPOT",
+                                                "mgnMode": "cross",
+                                                "notes": "",
+                                                "ordId": "310394313519800320",
+                                                "pnl": "0",
+                                                "posBal": "0",
+                                                "posBalChg": "0",
+                                                "subType": "2",
+                                                "sz": "664.26795866",
+                                                "to": "",
+                                                "ts": "1620275771196",
+                                                "type": "2"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/bills-archive": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "账单流水查询（近三月）",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`SPOT`：币币<br>`MARGIN`：币币杠杆<br>`SWAP`：永续合约<br>`FUTURES`：交割合约<br>`OPTION`：期权",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，如：`BTC`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "mgnMode",
+                        "in": "query",
+                        "description": "仓位类型<br>`isolated`：逐仓 `cross`：全仓",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ctType",
+                        "in": "query",
+                        "description": "合约类型<br>`linear`：正向合约 `inverse`：反向合约<br>仅交割/永续有效",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "账单类型<br>1：划转 2：交易 3：交割 4：自动换币 5：强平 6：保证金划转 7：扣息 8：资金费 9：自动减仓 10：穿仓补偿 11：系统换币 12：策略划拨",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "subType",
+                        "in": "query",
+                        "description": "子账单类型<br>1：买入 2：卖出 3：开多 4：开空 5：平多 6：平空 9：扣息 11：转入 12：转出 160：手动追加保证金 161：手动减少保证金 162：自动追加保证金 114：自动换币买入 115：自动换币卖出 118：系统换币转入 119：系统换币转出 100：强减平多 101：强减平空 102：强减买入 103：强减卖出 104：强平平多 105：强平平空 106：强平买入 107：强平卖出 110：强平换币转入 111：强平换币转出 125：自动减仓平多 126：自动减仓平空 127：自动减仓买入 128：自动减仓卖出 170：到期行权 171：到期被行权 172：到期作废 112：交割平多 113：交割平空 117：交割/期权穿仓补偿 173：资金费支出 174：资金费收入 200:系统转入 201:手动转入 202:系统转出 203:手动转出",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "description": "请求此ID之前（更旧的数据）的分页内容，传的值为对应接口的`billId`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "description": "请求此ID之后（更新的数据）的分页内容，传的值为对应接口的`billId`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "返回结果的数量，默认100条",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "bal": "0.0000819307998198",
+                                                "balChg": "-664.2679586599999802",
+                                                "billId": "310394313544966151",
+                                                "ccy": "USDT",
+                                                "fee": "0",
+                                                "from": "",
+                                                "instId": "LTC-USDT",
+                                                "instType": "SPOT",
+                                                "mgnMode": "cross",
+                                                "notes": "",
+                                                "ordId": "310394313519800320",
+                                                "pnl": "0",
+                                                "posBal": "0",
+                                                "posBalChg": "0",
+                                                "subType": "2",
+                                                "sz": "664.26795866",
+                                                "to": "",
+                                                "ts": "1620275771196",
+                                                "type": "2"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/config": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "查看账户配置",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "uid": "43812",
+                                                "acctLv": "2",
+                                                "posMode": "long_short_mode",
+                                                "autoLoan": true,
+                                                "greeksType": "BS",
+                                                "level": "lv1",
+                                                "levelTmp": ""
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/set-position-mode": {
+            "post": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "设置持仓模式",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "posMode"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                    "posMode": {
+                                        "type": "string",
+                                        "description": "持仓方式<br>`long_short_mode`：双向持仓<br>`net_mode`：单向持仓",
+                                        "example": "long_short_mode"
+                                    }
+                                }
+                            },
+                            "examples": {
+                                "1": {
+                                    "summary": "设置双向持仓",
+                                    "value": {
+                                        "posMode": "long_short_mode"
+                                    }
+                                },
+                                "2": {
+                                    "summary": "设置单向持仓",
+                                    "value": {
+                                        "posMode": "net_mode"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "object",
+                                        "properties": {}
+                                    },
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "posMode": "long_short_mode"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/set-leverage": {
+            "post": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "设置杠杆倍数",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "mgnMode",
+                                    "lever"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                    "lever": {
+                                        "type": "string",
+                                        "description": "必填<br>杠杆倍数"
+                                    },
+                                    "mgnMode": {
+                                        "type": "string",
+                                        "description": "保证金模式<br>`isolated`：逐仓，`cross`：全仓<br>如果`ccy`有效传值，该参数值只能为`cross`。"
+                                    },
+                                    "instId": {
+                                        "type": "string",
+                                        "description": "可选<br>产品ID：币对、合约<br>`instId`和`ccy`至少要传一个；如果两个都传，默认使用instId"
+                                    },
+                                    "ccy": {
+                                        "type": "string",
+                                        "description": "可选<br>保证金币种，仅适用于跨币种保证金模式的全仓`币币杠杆`。"
+                                    },
+                                    "posSide": {
+                                        "type": "string",
+                                        "description": "可选<br>持仓方向<br>`long`：双向持仓多头<br>`short`：双向持仓空头<br>`net`：单向持仓<br>在双向持仓且保证金模式为逐仓条件下必填，且仅可选择`long`或`short`，其他情况下非必填，默认`net`；仅适用于`交割/永续`"
+                                    }
+                                }
+                            },
+                            "examples": {
+                                "1": {
+                                    "summary": "币对层面-设置逐仓杠杆倍数（币币杠杆）",
+                                    "value": {
+                                        "instId": "BTC-USDT",
+                                        "lever": "5",
+                                        "mgnMode": "isolated"
+                                    }
+                                },
+                                "2": {
+                                    "summary": "币对层面-设置单币种保证金模式下全仓杠杆倍数（币币杠杆）",
+                                    "value": {
+                                        "instId": "BTC-USDT",
+                                        "lever": "5",
+                                        "mgnMode": "cross"
+                                    }
+                                },
+                                "3": {
+                                    "summary": "币种层面-设置跨币种保证金模式下全仓杠杆倍数（币币杠杆）",
+                                    "value": {
+                                        "ccy": "BTC",
+                                        "lever": "5",
+                                        "mgnMode": "cross"
+                                    }
+                                },
+                                "4": {
+                                    "summary": "合约层面-设置合约多头逐仓杠杆倍数",
+                                    "value": {
+                                        "instId": "BTC-USDT-SWAP",
+                                        "lever": "5",
+                                        "posSide": "long",
+                                        "mgnMode": "isolated"
+                                    }
+                                },
+                                "5": {
+                                    "summary": "指数层面-设置合约的全仓杠杆倍数",
+                                    "value": {
+                                        "instId": "BTC-USDT-SWAP",
+                                        "lever": "5",
+                                        "mgnMode": "cross"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "object",
+                                        "properties": {}
+                                    },
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "lever": "30",
+                                                "mgnMode": "isolated",
+                                                "instId": "BTC-USDT-SWAP",
+                                                "posSide": "long"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/max-size": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取最大可买卖/开仓数量",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT`<br>支持多产品ID查询（不超过5个），半角逗号分隔",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "BTC-USDT"
+                    },
+                    {
+                        "name": "tdMode",
+                        "in": "query",
+                        "description": "交易模式<br>`cross`：全仓 `isolated`：逐仓 `cash`：非保证金",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "cash"
+                    },
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "保证金币种，仅适用于单币种保证金模式下的全仓杠杆订单",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "px",
+                        "in": "query",
+                        "description": "委托价格<br>当不填委托价时会按当前最新成交价计算<br>当指定多个`instId`查询时，忽略该参数，按当前最新成交价计算",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "ccy": "BTC",
+                                                "instId": "BTC-USDT",
+                                                "maxBuy": "0.0500695098559788",
+                                                "maxSell": "64.4798671570072269"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/max-avail-size": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取最大可用数量",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT`<br>支持多产品ID查询（不超过5个），半角逗号分隔",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "BTC-USDT"
+                    },
+                    {
+                        "name": "tdMode",
+                        "in": "query",
+                        "description": "交易模式<br>`cross`：全仓 `isolated`：逐仓 `cash`：非保证金",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "cash"
+                    },
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "保证金币种，仅适用于单币种保证金模式下的全仓杠杆订单",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "reduceOnly",
+                        "in": "query",
+                        "description": "是否为只减仓模式，仅适用于`币币杠杆`",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "availBuy": "1923.8381424923562261",
+                                                "availSell": "1.0153700035040838",
+                                                "instId": "BTC-USDT"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/position/margin-balance": {
+            "post": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "调整保证金",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "instId",
+                                    "posSide",
+                                    "type"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                    "instId": {
+                                        "type": "string",
+                                        "description": "必填<br>产品ID，如：`BTC-USDT-SWAP`",
+                                        "example": ""
+                                    },
+                                    "posSide": {
+                                        "type": "string",
+                                        "description": "必填<br>持仓方向，默认值是`net`<br>`long`：双向持仓多头<br>`short`：双向持仓空头<br>`net`：单向持仓",
+                                        "example": ""
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "description": "必填<br>增加/减少保证金<br>`add`：增加 `reduce`：减少",
+                                        "example": ""
+                                    },
+                                    "amt": {
+                                        "type": "string",
+                                        "description": "必填<br>增加或减少的保证金数量",
+                                        "example": ""
+                                    }
+                                }
+                            },
+                            "example": {
+                                "instId": "BTC-USDT-SWAP",
+                                "posSide": "long",
+                                "type": "add",
+                                "amt": "1"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "object",
+                                        "properties": {}
+                                    },
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instId": "BTC-USDT-SWAP",
+                                                "posSide": "long",
+                                                "amt": "1",
+                                                "type": "add"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/leverage-info": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取杠杆倍数",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT-SWAP`<br>支持多产品ID查询（不超过20个），半角逗号分隔",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "BTC-USDT-SWAP"
+                    },
+                    {
+                        "name": "mgnMode",
+                        "in": "query",
+                        "description": "保证金模式<br>`cross`：全仓 `isolated`：逐仓",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "cross"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instId": "BTC-USDT-SWAP",
+                                                "mgnMode": "cross",
+                                                "posSide": "long",
+                                                "lever": "10"
+                                            },
+                                            {
+                                                "instId": "BTC-USDT-SWAP",
+                                                "mgnMode": "cross",
+                                                "posSide": "short",
+                                                "lever": "10"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/max-loan": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取交易产品最大可借",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT`",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "BTC-USDT"
+                    },
+                    {
+                        "name": "mgnMode",
+                        "in": "query",
+                        "description": "仓位类型<br>`cross`：全仓 `isolated`：逐仓",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "isolated"
+                    },
+                    {
+                        "name": "mgnCcy",
+                        "in": "query",
+                        "description": "保证金币种，如：`BTC`<br>币币杠杆单币种全仓情况下必须指定保证金币种",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instId": "BTC-USDT",
+                                                "mgnMode": "isolated",
+                                                "mgnCcy": "",
+                                                "maxLoan": "0.1",
+                                                "ccy": "BTC",
+                                                "side": "sell"
+                                            },
+                                            {
+                                                "instId": "BTC-USDT",
+                                                "mgnMode": "isolated",
+                                                "mgnCcy": "",
+                                                "maxLoan": "0.2",
+                                                "ccy": "USDT",
+                                                "side": "buy"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/trade-fee": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取当前账户交易手续费费率",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`SPOT`：币币<br>`MARGIN`：币币杠杆<br>`SWAP`：永续合约<br>`FUTURES`：交割合约<br>`OPTION`：期权",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "SPOT"
+                    },
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT`<br>仅适用于instType为币币/币币杠杆",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USDT"
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数，如：`BTC-USD`<br>仅适用于`instType`为`交割`/`永续`/`期权`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "description": "币种手续费类别<br>1：第一类币种费率 2：第二类币种费率 3：第三类币种费率 4：第四类币种费率",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "category": "1",
+                                                "delivery": "",
+                                                "exercise": "",
+                                                "instType": "SPOT",
+                                                "level": "Lv1",
+                                                "maker": "-0.0008",
+                                                "taker": "-0.001",
+                                                "ts": "1631761650229"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/interest-accrued": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取计息记录",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT`",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USDT"
+                    },
+                    {
+                        "name": "mgnMode",
+                        "in": "query",
+                        "description": "保证金模式<br>`isolated`：逐仓 `cross`：全仓",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "cross"
+                    },
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，如：`BTC`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "description": "查询在此之前的内容，值为时间戳，Unix时间戳为毫秒数格式",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "description": "查询在此之后的内容，值为时间戳，Unix时间戳为毫秒数格式",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "分页返回的结果集数量，最大为100，不填默认返回100条",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instId": "BTC-USDT",
+                                                "ccy": "USDT",
+                                                "mgnMode": "cross",
+                                                "interestRate": "0.00001",
+                                                "liab": "2",
+                                                "interest": "0.02",
+                                                "ts": "1597026383085"
+                                            },
+                                            {
+                                                "instId": "BTC-USDT",
+                                                "ccy": "USDT",
+                                                "mgnMode": "cross",
+                                                "interestRate": "0.00001",
+                                                "liab": "2",
+                                                "interest": "0.02",
+                                                "ts": "1597026383085"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/interest-rate": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "获取用户当前杠杆借币利率",
+                "parameters": [
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，如：`BTC`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "ccy": "BTC",
+                                                "interestRate": "0.0001"
+                                            },
+                                            {
+                                                "ccy": "LTC",
+                                                "interestRate": "0.0003"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/set-greeks": {
+            "post": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "期权希腊字母PA/BS切换",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "greeksType"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                    "greeksType": {
+                                        "type": "string",
+                                        "description": "希腊字母展示方式<br>`PA`：币本位，`BS`：美元本位"
+                                    }
+                                }
+                            },
+                            "example": {
+                                "greeksType": "PA"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "object",
+                                        "properties": {}
+                                    },
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "greeksType": "PA"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/account/max-withdrawal": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "查看账户最大可转余额",
+                "parameters": [
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，如：`BTC`",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "ccy": "BTC",
+                                                "maxWd": "100"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
