@@ -12,6 +12,20 @@ import (
 	. "github.com/ztrade/trademodel"
 )
 
+var (
+	SkipStructs = map[string]bool{
+		"DepthInfo":  true,
+		"CandleList": true,
+		"Currency":   true,
+		"Symbol":     true,
+		"Candle":     true,
+		"Order":      true,
+		"Trade":      true,
+		"Balance":    true,
+		"Param":      true,
+	}
+)
+
 type Runner struct {
 	p    *fast.Interp
 	info *CallInfo
@@ -40,6 +54,9 @@ func NewRunner(file string) (r *Runner, err error) {
 func (r *Runner) extraScript() (err error) {
 	var info *CallInfo
 	for k, v := range r.p.Comp.Types {
+		if SkipStructs[k] {
+			continue
+		}
 		info, err = NewCallInfo(r.p, k, v)
 		if err != nil {
 			err = nil

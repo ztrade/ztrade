@@ -24,6 +24,7 @@ var (
 	balanceInit  float64
 	param        string
 	loadOnce     int
+	fee          float64
 )
 
 // backtestCmd represents the backtest command
@@ -42,6 +43,7 @@ func init() {
 	backtestCmd.PersistentFlags().Float64VarP(&balanceInit, "balance", "", 100000, "init total balance")
 	backtestCmd.PersistentFlags().StringVar(&param, "param", "", "param json string")
 	backtestCmd.PersistentFlags().IntVarP(&loadOnce, "load", "", 50000, "load db once limit")
+	backtestCmd.PersistentFlags().Float64VarP(&fee, "fee", "", 0.0001, "fee")
 	initTimerange(backtestCmd)
 }
 
@@ -62,6 +64,7 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	}
 
 	r := report.NewReportSimple()
+	r.SetFee(fee)
 	back, err := ctl.NewBacktest(db, exchangeName, symbol, param, startTime, endTime)
 	if err != nil {
 		log.Fatal("init backtest failed:", err.Error())
@@ -70,6 +73,7 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	back.SetReporter(r)
 	back.SetBalanceInit(balanceInit)
 	back.SetLoadDBOnce(loadOnce)
+
 	err = back.Run()
 
 	if err != nil {

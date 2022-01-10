@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -188,6 +189,7 @@ func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data c
 		}()
 		nStart := start.Unix() * 1000
 		nEnd := end.Unix() * 1000
+		tempEnd := nEnd
 		var nPrevStart int64
 		var resp *market.GetApiV5MarketHistoryCandlesResponse
 		var startStr, endStr string
@@ -195,8 +197,9 @@ func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data c
 		for {
 			ctx, cancel := context.WithTimeout(background, time.Second*3)
 			startStr = strconv.FormatInt(nStart, 10)
-			endStr = strconv.FormatInt(nEnd, 10)
-			var params = market.GetApiV5MarketHistoryCandlesParams{InstId: b.symbol, Bar: &bSize, After: &endStr, Before: &startStr}
+			tempEnd = nStart + 100*60*1000
+			endStr = strconv.FormatInt(tempEnd, 10)
+			var params = market.GetApiV5MarketHistoryCandlesParams{InstId: b.symbol, Bar: &bSize, Before: &startStr, After: &endStr}
 			resp, err = b.marketApi.GetApiV5MarketHistoryCandlesWithResponse(ctx, &params)
 			cancel()
 			if err != nil {
@@ -205,6 +208,10 @@ func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data c
 			}
 			klines, err := parseCandles(resp)
 			if err != nil {
+				if strings.Contains(err.Error(), "Requests too frequent.") {
+					time.Sleep(time.Second)
+					continue
+				}
 				errCh <- err
 				return
 			}
@@ -219,7 +226,10 @@ func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data c
 				data <- v
 				nStart = v.Start * 1000
 			}
-			if nStart >= nEnd || nStart <= nPrevStart || len(klines) == 0 {
+			if len(klines) == 0 {
+				nStart = tempEnd
+			}
+			if nStart >= nEnd || nStart <= nPrevStart {
 				fmt.Println(time.Unix(nStart/1000, 0), start, end)
 				break
 			}
@@ -607,6 +617,10 @@ func parseCandles(resp *market.GetApiV5MarketHistoryCandlesResponse) (candles []
 	var candleResp CandleResp
 	err = json.Unmarshal(resp.Body, &candleResp)
 	if err != nil {
+		return
+	}
+	if candleResp.Code != "0" {
+		err = errors.New(string(resp.Body))
 		return
 	}
 	for _, v := range candleResp.Data {

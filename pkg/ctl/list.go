@@ -34,6 +34,9 @@ func (l *LocalData) ListAll() (infos []LocalDataInfo, err error) {
 	}
 	var temp []LocalDataInfo
 	for _, v := range tbls {
+		if v.Exchange == "DCE" {
+			continue
+		}
 		temp, err = l.checkOne(v)
 		if err != nil {
 			log.Errorf("check table %s_%s_%s failed", v.Exchange, v.Symbol, v.BinSize)

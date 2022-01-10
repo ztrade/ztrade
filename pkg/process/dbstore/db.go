@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	tblRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)$`)
+	tblRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)_([A-Za-z0-9\-]+)_([A-Za-z0-9]+)$`)
 )
 
 type TableInfo struct {

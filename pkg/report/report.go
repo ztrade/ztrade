@@ -29,6 +29,7 @@ type Report struct {
 	totalAction      int
 	maxDrawdown      float64
 	maxDrawdownValue float64
+	fee              float64
 }
 
 type tmplAct struct {
@@ -48,6 +49,10 @@ func NewReport(trades []Trade, balanceInit float64) *Report {
 	rep.trades = trades
 	rep.balanceInit = balanceInit
 	return rep
+}
+
+func (r *Report) SetFee(fee float64) {
+	r.fee = fee
 }
 
 func (r *Report) Analyzer() (err error) {
@@ -72,6 +77,7 @@ func (r *Report) Analyzer() (err error) {
 	var profit float64
 	bal := common.NewVBalance()
 	bal.Set(r.balanceInit)
+	bal.SetFee(r.fee)
 	fmt.Println("balance init:", r.balanceInit)
 	startBalance := bal.Get()
 
