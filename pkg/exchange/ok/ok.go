@@ -134,13 +134,9 @@ func (b *OkexTrade) auth(ctx context.Context, req *http.Request) (err error) {
 		req.Body.Close()
 		buf := bytes.NewBuffer(temp)
 		req.Body = io.NopCloser(buf)
-		fmt.Println("req:", string(temp))
 	} else {
-		fmt.Println("query:", req.URL.RawQuery)
 		temp = []byte(fmt.Sprintf("?%s", req.URL.RawQuery))
 	}
-
-	fmt.Println(req.URL.Path, req.URL.RawPath)
 	var signStr string
 	tmStr := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	signStr = fmt.Sprintf("%s%s%s%s", tmStr, req.Method, req.URL.Path, string(temp))

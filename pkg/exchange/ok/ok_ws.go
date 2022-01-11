@@ -143,7 +143,6 @@ Out:
 			continue
 		}
 		lastMsgTime = time.Now()
-		// fmt.Println(string(message))
 		sj, err = simplejson.NewJson(message)
 		if err != nil {
 			log.Warnf("parse json error:%s", string(message))
@@ -191,7 +190,6 @@ Out:
 		}
 		switch channel {
 		case "orders":
-			fmt.Println("orders:", string(message))
 			orders, err = parseOkexOrder(sj.Get("data"))
 			if err != nil {
 				log.Warnf("parseOkexOrder error:%s, %s", orders, err.Error())
@@ -209,7 +207,6 @@ Out:
 			}
 
 		case "orders-algo":
-			fmt.Println("orders-algo:", string(message))
 			// 算法单最终还是会生成一个普通单子
 			algoOrders, err = parseOkexAlgoOrder(sj.Get("data"))
 			if err != nil {
