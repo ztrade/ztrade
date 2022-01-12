@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/base/common"
@@ -24,6 +25,10 @@ var tradeCmd = &cobra.Command{
 	Run:   runTrade,
 }
 
+var (
+	recentDay int
+)
+
 func init() {
 	rootCmd.AddCommand(tradeCmd)
 	tradeCmd.PersistentFlags().StringVar(&scriptFile, "script", "", "script file to backtest")
@@ -31,6 +36,7 @@ func init() {
 	tradeCmd.PersistentFlags().StringVarP(&binSize, "binSize", "b", "1m", "binSize: 1m,5m,15m,1h,1d")
 	tradeCmd.PersistentFlags().StringVar(&symbol, "symbol", "XBTUSD", "symbol")
 	tradeCmd.PersistentFlags().StringVar(&exchangeName, "exchange", "bitmex", "exchage name, only support bitmex current now")
+	tradeCmd.PersistentFlags().IntVarP(&recentDay, "recent", "r", 1, "load recent (n) day datas,default 1")
 	tradeCmd.PersistentFlags().StringVar(&param, "param", "", "param json string")
 }
 
@@ -39,11 +45,13 @@ func runTrade(cmd *cobra.Command, args []string) {
 		log.Fatal("strategy file can't be empty")
 		return
 	}
-	var err error
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
 	real, err := ctl.NewTrade(exchangeName, symbol)
+	if recentDay != 0 {
+		real.SetLoadRecent(time.Duration(recentDay) * time.Hour * 24)
+	}
 	r := report.NewReportSimple()
 	real.SetReporter(r)
 	paramData := make(map[string]interface{})
@@ -72,6 +80,5 @@ func runTrade(cmd *cobra.Command, args []string) {
 	}
 	fmt.Println("open report ", rptFile)
 	err = common.OpenURL(rptFile)
-
 	return
 }

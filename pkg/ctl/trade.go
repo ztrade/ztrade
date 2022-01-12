@@ -36,6 +36,7 @@ type Trade struct {
 	engine       Scripter
 	r            *rpt.Rpt
 	wg           sync.WaitGroup
+	loadRecent   time.Duration
 }
 
 // NewTrade constructor of Trade
@@ -49,8 +50,13 @@ func NewTrade(exchange, symbol string) (b *Trade, err error) {
 		return
 	}
 	b.engine = gEngine
+	b.loadRecent = time.Hour * 24
 	// fmt.Println("exchange type:", b.exchangeType, fmt.Sprintf("%s.type", b.exchangeName))
 	return
+}
+
+func (b *Trade) SetLoadRecent(recent time.Duration) {
+	b.loadRecent = recent
 }
 
 func (b *Trade) SetReporter(rpt rpt.Reporter) {
@@ -128,13 +134,12 @@ func (b *Trade) init() (err error) {
 		return
 	}
 	candleParam := CandleParam{
-		Start: time.Now(),
-		// End:     b.end,
+		Start:   time.Now().Add(-1 * b.loadRecent),
 		Symbol:  b.symbol,
 		BinSize: "1m",
 	}
 	log.Info("real trade candle param:", candleParam)
-	param.Send("trade", EventWatch, NewWatchCandle(&candleParam))
+	param.Send("candle", EventWatch, NewWatchCandle(&candleParam))
 
 	log.Info("real trade watch trade_market")
 	param.Send("trade", EventWatch, &WatchParam{Type: EventTradeMarket, Data: map[string]interface{}{"name": "market"}})

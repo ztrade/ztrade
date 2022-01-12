@@ -7,7 +7,6 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
-	"github.com/ztrade/base/common"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
@@ -33,9 +32,12 @@ type TradeExchange struct {
 
 	positionUpdate int64
 	exchangeName   string
+	symbol         string
+
+	candleParam CandleParam
 }
 
-func NewTradeExchange(exName string, impl Exchange) *TradeExchange {
+func NewTradeExchange(exName string, impl Exchange, symbol string) *TradeExchange {
 	te := new(TradeExchange)
 	te.exchangeName = exName
 	te.impl = impl
@@ -43,6 +45,7 @@ func NewTradeExchange(exName string, impl Exchange) *TradeExchange {
 	te.actChan = make(chan TradeAction, 10)
 	te.orders = make(map[string]*OrderInfo)
 	te.closeCh = make(chan bool)
+	te.symbol = symbol
 	return te
 }
 
@@ -70,11 +73,27 @@ func (b *TradeExchange) recvDatas() {
 	var posTime int64
 	var o *OrderInfo
 	var candle *Candle
+	bFirst := true
+	var err error
+	var tFirstLastStart int64
 Out:
 	for data := range b.datas {
 		switch data.GetType() {
 		case EventCandle:
 			candle = data.GetData().(*Candle)
+			if bFirst {
+				bFirst = false
+				param := b.candleParam
+				param.End = candle.Time().Add(-1 * time.Second)
+				tFirstLastStart, err = b.emitRecentCandles(param)
+				if err != nil {
+					log.Errorf("TradeExchange recv data:", err.Error())
+					panic(err.Error())
+				}
+				if candle.Start <= tFirstLastStart {
+					continue
+				}
+			}
 			b.Send(data.Name, data.GetType(), candle)
 		case EventBalance:
 			balance = data.GetData().(*Balance)
@@ -191,7 +210,7 @@ func (b *TradeExchange) emitCandles(param CandleParam) {
 		return
 	}
 	watchParam := WatchParam{Type: EventWatchCandle, Data: &param}
-
+	b.candleParam = param
 	err := b.impl.Watch(watchParam)
 	if err != nil {
 		log.Errorf("emitCandles wathKline failed:", err.Error())
@@ -199,15 +218,8 @@ func (b *TradeExchange) emitCandles(param CandleParam) {
 	}
 }
 
-func (b *TradeExchange) emitRecentCandles(param CandleParam, recent int) (tLast int64, err error) {
-	dur, err := common.GetBinSizeDuration(param.BinSize)
-	if err != nil {
-		log.Errorf("downCandles GetBinSizeDuration failed:", param.BinSize, err.Error())
-		return
-	}
-	tEnd := time.Now()
-	tStart := tEnd.Add(0 - (time.Duration(recent) * dur))
-	klines, errChan := b.impl.GetKline(param.Symbol, param.BinSize, tStart, tEnd)
+func (b *TradeExchange) emitRecentCandles(param CandleParam) (tLast int64, err error) {
+	klines, errChan := b.impl.GetKline(param.Symbol, param.BinSize, param.Start, param.End)
 	for v := range klines {
 		tLast = v.Start
 		b.Send(NewCandleName("recent", param.BinSize).String(), EventCandle, v)

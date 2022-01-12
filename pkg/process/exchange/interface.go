@@ -10,6 +10,6 @@ func GetTradeExchange(name string, cfg *viper.Viper, cltName, symbol string) (t 
 	if err != nil {
 		return
 	}
-	t = NewTradeExchange(name, ex)
+	t = NewTradeExchange(name, ex, symbol)
 	return
 }

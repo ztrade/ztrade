@@ -61,9 +61,10 @@ type OkexTrade struct {
 	apiSecret string
 	apiPwd    string
 
-	klineLimit int
-	wsUser     *websocket.Conn
-	wsPublic   *websocket.Conn
+	klineLimit    int
+	wsUser        *websocket.Conn
+	wsPublic      *websocket.Conn
+	wsPublicMutex sync.RWMutex
 
 	ordersCache     sync.Map
 	stopOrdersCache sync.Map
@@ -236,6 +237,13 @@ func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data c
 	return
 }
 
+func (b *OkexTrade) writePublic(v interface{}) (err error) {
+	b.wsPublicMutex.Lock()
+	err = b.wsPublic.WriteJSON(v)
+	b.wsPublicMutex.Unlock()
+	return
+}
+
 func (b *OkexTrade) Watch(param WatchParam) (err error) {
 	log.Info("okex watch:", param)
 	switch param.Type {
@@ -246,7 +254,7 @@ func (b *OkexTrade) Watch(param WatchParam) (err error) {
 				OPArg{Channel: "candle1m", InstType: "SWAP", InstID: b.symbol},
 			},
 		}
-		err = b.wsPublic.WriteJSON(p)
+		err = b.writePublic(p)
 	case EventDepth:
 		var p = OPParam{
 			OP: "subscribe",
@@ -254,7 +262,7 @@ func (b *OkexTrade) Watch(param WatchParam) (err error) {
 				OPArg{Channel: "books5", InstType: "SWAP", InstID: b.symbol},
 			},
 		}
-		err = b.wsPublic.WriteJSON(p)
+		err = b.writePublic(p)
 	case EventTradeMarket:
 		var p = OPParam{
 			OP: "subscribe",
@@ -262,7 +270,7 @@ func (b *OkexTrade) Watch(param WatchParam) (err error) {
 				OPArg{Channel: "trades", InstType: "SWAP", InstID: b.symbol},
 			},
 		}
-		err = b.wsPublic.WriteJSON(p)
+		err = b.writePublic(p)
 	default:
 		err = fmt.Errorf("unknown wath param: %s", param.Type)
 	}
@@ -366,7 +374,9 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	if act.Action.IsStop() {
 		ret, err = b.processStopOrder(act)
-		fmt.Println("store algo id:", ret.OrderID)
+		if err != nil {
+			return
+		}
 		b.stopOrdersCache.Store(ret.OrderID, ret)
 		return
 	}
