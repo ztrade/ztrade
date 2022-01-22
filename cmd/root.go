@@ -137,8 +137,8 @@ func initTimerange(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&startStr, "start", "s", "2019-01-01 10:00:00", "start time")
 	cmd.PersistentFlags().StringVarP(&endStr, "end", "e", "2019-01-01 10:00:00", "end time")
 	cmd.PersistentFlags().StringVarP(&binSize, "binSize", "b", "1m", "binSize: 1m,5m,15m,1h,1d")
-	cmd.PersistentFlags().StringVar(&symbol, "symbol", "XBTUSD", "symbol")
-	cmd.PersistentFlags().StringVar(&exchangeName, "exchange", "bitmex", "exchage name, only support bitmex current now")
+	cmd.PersistentFlags().StringVar(&symbol, "symbol", "BTCUSDT", "symbol")
+	cmd.PersistentFlags().StringVar(&exchangeName, "exchange", "binance", "exchage name, support binance,okex current now")
 }
 
 func parseTimerange() (startTime, endTime time.Time, err error) {

@@ -255,3 +255,30 @@ func (r *Report) GenRPT(fPath string) (err error) {
 	}
 	return
 }
+
+func (r *Report) GetResult() (ret ReportResult, err error) {
+	sort.Slice(r.trades, func(i int, j int) bool {
+		return r.trades[i].Time.Unix() < r.trades[j].Time.Unix()
+	})
+	err = r.Analyzer()
+	if err != nil {
+		return
+	}
+	ret.TotalAction = r.totalAction
+	ret.WinRate = r.WinRate()
+	ret.Profit = r.Profit()
+	ret.MaxLose = r.MaxLose()
+	ret.MaxDrawdown = r.MaxDrawdown()
+	ret.MaxDrawDownValue = r.MaxDrawdownValue()
+	return
+}
+
+type ReportResult struct {
+	TotalAction int
+	WinRate     float64
+	Profit      float64
+	MaxLose     float64
+	//    Actions int
+	MaxDrawdown      float64
+	MaxDrawDownValue float64
+}

@@ -111,6 +111,14 @@ func (b *OkexTrade) runPrivateLoop(c *websocket.Conn, closeCh chan bool) {
 	// 	var depths5 []model.OB
 	var pos []OKEXPos
 	var lastMsgTime time.Time
+	loopEnd := make(chan bool)
+	defer func() {
+		close(loopEnd)
+		err = b.runPrivate()
+		if err != nil {
+			log.Errorf("okex reconnect private failed:", err.Error())
+		}
+	}()
 	go func() {
 		ticker := time.NewTicker(time.Second * 5)
 		defer ticker.Stop()
@@ -121,6 +129,8 @@ func (b *OkexTrade) runPrivateLoop(c *websocket.Conn, closeCh chan bool) {
 				if dur > time.Second*5 {
 					c.WriteMessage(websocket.TextMessage, []byte("ping"))
 				}
+			case <-loopEnd:
+				return
 			case <-closeCh:
 				return
 			}
