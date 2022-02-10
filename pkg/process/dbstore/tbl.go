@@ -121,15 +121,31 @@ func (t *TimeTbl) DataChan(start, end time.Time, bSize string) (klines chan []in
 		return
 	}
 	klines = make(chan []interface{}, 10240)
+	key := fmt.Sprintf("%s-%s-%s-%d-%d-%s", t.exchange, t.symbol, t.binSize, start.UnixNano(), end.UnixNano(), bSize)
+	cacheDatas, ok := t.db.dataCache.Load(key)
+	if ok {
+		go func() {
+			datas := cacheDatas.([][]interface{})
+			for _, v := range datas {
+				klines <- v
+			}
+			close(klines)
+		}()
+		return
+	}
 	go func() {
 		nOffset := 0
 		once := t.loadOnce
 		var err1 error
 		var data []interface{}
+		var caches [][]interface{}
 		for {
 			data, err1 = t.getDatasWithParam(start, end, once, nOffset)
 			if err1 != nil {
 				break
+			}
+			if t.db.useCache {
+				caches = append(caches, data)
 			}
 			if len(data) == 0 {
 				break
@@ -139,6 +155,9 @@ func (t *TimeTbl) DataChan(start, end time.Time, bSize string) (klines chan []in
 			if len(data) < once {
 				break
 			}
+		}
+		if t.db.useCache {
+			t.db.dataCache.Store(key, caches)
 		}
 		if err1 != nil {
 			log.Error("TimeTbl DataChan getDatas failed:", err1.Error())

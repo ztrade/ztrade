@@ -32,6 +32,9 @@ type DBStore struct {
 	table  string
 	engine *xorm.Engine
 	tbls   sync.Map
+
+	useCache  bool
+	dataCache sync.Map
 }
 
 // NewDBStore support sqlite,mysql,pg
@@ -102,6 +105,15 @@ func (dr *DBStore) GetKlineTbl(exchange, symbol, binSize string) *KlineTbl {
 	t := NewKlineTbl(dr, exchange, symbol, binSize)
 	dr.tbls.Store(key, t)
 	return t
+}
+
+func (dr *DBStore) NewKlineTbl(exchange, symbol, binSize string) *KlineTbl {
+	t := NewKlineTbl(dr, exchange, symbol, binSize)
+	return t
+}
+
+func (d *DBStore) SetUseCache(useCache bool) {
+	d.useCache = useCache
 }
 
 // WriteKlines write klines
