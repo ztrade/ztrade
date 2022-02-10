@@ -1,15 +1,16 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/ztrade/base/common"
 	"github.com/ztrade/ztrade/pkg/ctl"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/ztrade/base/common"
 	"github.com/ztrade/ztrade/pkg/report"
 )
 
@@ -25,6 +26,7 @@ var (
 	param        string
 	loadOnce     int
 	fee          float64
+	simpleReport bool
 )
 
 // backtestCmd represents the backtest command
@@ -44,6 +46,7 @@ func init() {
 	backtestCmd.PersistentFlags().StringVar(&param, "param", "", "param json string")
 	backtestCmd.PersistentFlags().IntVarP(&loadOnce, "load", "", 50000, "load db once limit")
 	backtestCmd.PersistentFlags().Float64VarP(&fee, "fee", "", 0.0001, "fee")
+	backtestCmd.PersistentFlags().BoolVarP(&simpleReport, "console", "", false, "print report to console")
 	initTimerange(backtestCmd)
 }
 
@@ -79,6 +82,21 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println("run backtest error", err.Error())
 		log.Fatal("run backtest error", err.Error())
+	}
+	if simpleReport {
+		result, err := r.GetResult()
+		if err != nil {
+			return
+		}
+		//		for _, v := range result.Actions {
+		//			fmt.Println(v.Time, v.Action, v.Amount, v.Price, v.Profit, v.TotalProfit)
+		//		}
+		buf, err := json.Marshal(result)
+		if err != nil {
+			return
+		}
+		fmt.Println(string(buf))
+		return
 	}
 	err = r.GenRPT(rptFile)
 	if err != nil {

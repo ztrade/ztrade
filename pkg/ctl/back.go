@@ -85,7 +85,7 @@ func (b *Backtest) Run() (err error) {
 	closeCh := make(chan bool)
 	param := event.NewBaseProcesser("param")
 	bSize := "1m"
-	tbl := b.db.GetKlineTbl(b.exchange, b.symbol, bSize)
+	tbl := b.db.NewKlineTbl(b.exchange, b.symbol, bSize)
 	tbl.SetLoadOnce(b.loadDBOnce)
 	tbl.SetLoadDataMode(true)
 	tbl.SetCloseCh(closeCh)

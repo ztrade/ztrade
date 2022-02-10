@@ -25,14 +25,14 @@ type Report struct {
 	maxLose          float64
 	winRate          float64
 	profitHistory    []float64
-	tmplDatas        []*tmplAct
+	tmplDatas        []*RptAct
 	totalAction      int
 	maxDrawdown      float64
 	maxDrawdownValue float64
 	fee              float64
 }
 
-type tmplAct struct {
+type RptAct struct {
 	Trade
 	Total       float64
 	TotalProfit float64 // total profit,sum of all history profits,if action is open, total profit is zero
@@ -72,13 +72,13 @@ func (r *Report) Analyzer() (err error) {
 	var shortAmount, shortOnce float64
 	var actTotal, lose float64
 	var success, total int
-	var tmplData, lastTmplData *tmplAct
+	var tmplData, lastTmplData *RptAct
 	var lastMaxTotal, lastMinTotal, drawdown, drawdownValue float64
 	var profit float64
 	bal := common.NewVBalance()
 	bal.Set(r.balanceInit)
 	bal.SetFee(r.fee)
-	fmt.Println("balance init:", r.balanceInit)
+	//	fmt.Println("balance init:", r.balanceInit)
 	startBalance := bal.Get()
 
 	for _, v := range r.trades {
@@ -102,7 +102,7 @@ func (r *Report) Analyzer() (err error) {
 		}
 
 		r.totalAction++
-		tmplData = &tmplAct{Trade: v,
+		tmplData = &RptAct{Trade: v,
 			Total:  bal.Get(),
 			Profit: profit}
 		r.tmplDatas = append(r.tmplDatas, tmplData)
@@ -159,7 +159,6 @@ func (r *Report) Analyzer() (err error) {
 	if total > 0 {
 		r.winRate = common.FloatDiv(float64(success), float64(total))
 	}
-	fmt.Println("fee total:", bal.GetFeeTotal())
 	return
 }
 
@@ -265,6 +264,7 @@ func (r *Report) GetResult() (ret ReportResult, err error) {
 		return
 	}
 	ret.TotalAction = r.totalAction
+	ret.Actions = r.tmplDatas
 	ret.WinRate = r.WinRate()
 	ret.Profit = r.Profit()
 	ret.MaxLose = r.MaxLose()
@@ -274,11 +274,12 @@ func (r *Report) GetResult() (ret ReportResult, err error) {
 }
 
 type ReportResult struct {
-	TotalAction int
-	WinRate     float64
-	Profit      float64
-	MaxLose     float64
-	//    Actions int
+	TotalAction      int
+	WinRate          float64
+	Profit           float64
+	MaxLose          float64
 	MaxDrawdown      float64
 	MaxDrawDownValue float64
+	Actions          []*RptAct `json:"-"`
+	TotalFee         float64
 }
