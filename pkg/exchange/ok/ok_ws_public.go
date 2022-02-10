@@ -58,7 +58,7 @@ func (b *OkexTrade) runPublicLoop(c *websocket.Conn, closeCh chan bool) {
 		close(loopEnd)
 		err = b.runPublic()
 		if err != nil {
-			log.Errorf("okex reconnect public failed:", err.Error())
+			log.Error("okex reconnect public failed:", err.Error())
 		}
 	}()
 	go func() {

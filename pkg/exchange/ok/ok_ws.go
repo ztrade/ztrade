@@ -116,7 +116,7 @@ func (b *OkexTrade) runPrivateLoop(c *websocket.Conn, closeCh chan bool) {
 		close(loopEnd)
 		err = b.runPrivate()
 		if err != nil {
-			log.Errorf("okex reconnect private failed:", err.Error())
+			log.Error("okex reconnect private failed:", err.Error())
 		}
 	}()
 	go func() {

@@ -282,10 +282,10 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 	var side, posSide string
 	if act.Action.IsLong() {
 		side = "buy"
-		posSide = "long"
+		posSide = "short"
 	} else {
 		side = "sell"
-		posSide = "short"
+		posSide = "long"
 	}
 	reduceOnly := true
 	var orderPx = "-1"
