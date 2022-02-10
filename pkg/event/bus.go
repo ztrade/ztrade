@@ -3,6 +3,8 @@ package event
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -28,6 +30,9 @@ type Bus struct {
 	cache      int
 	procs      map[string]ProcessList
 	procsMutex sync.RWMutex
+
+	processEvent  int64
+	lastEventTime time.Time
 }
 
 func NewBus(cache int) *Bus {
@@ -65,6 +70,7 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 				continue
 			}
 		}
+		atomic.AddInt64(&b.processEvent, -1)
 	}
 	return
 }
@@ -90,10 +96,13 @@ func (b *Bus) Send(e *Event) (err error) {
 		log.Warnf("Send %s event,but no subscribers, skip", e.GetType())
 		return
 	}
+	atomic.AddInt64(&b.processEvent, 1)
 	if b.syncMode {
 		return b.sendSync(procs, e)
 	}
+
 	chs := b.chs[typ]
+	b.lastEventTime = time.Now()
 	chs <- e
 	return
 }
@@ -106,16 +115,33 @@ func (b *Bus) sendSync(procs ProcessList, e *Event) (err error) {
 			continue
 		}
 	}
+	atomic.AddInt64(&b.processEvent, -1)
 	return
 }
 
 func (b *Bus) WaitEmpty() {
-	// time.Sleep(time.Millisecond)
+	//	time.Sleep(time.Millisecond)
+	value := atomic.LoadInt64(&b.processEvent)
+	for value != 0 {
+		time.Sleep(time.Millisecond)
+		value = atomic.LoadInt64(&b.processEvent)
+	}
 }
 
 func (b *Bus) Close() {
-
+	var value int64
+	for {
+		time.Sleep(time.Nanosecond)
+		value = atomic.LoadInt64(&b.processEvent)
+		if value != 0 {
+			continue
+		}
+		if time.Since(b.lastEventTime) > time.Second*5 {
+			break
+		}
+	}
 }
+
 func (b *Bus) Start() {
 	if b.syncMode {
 		return
