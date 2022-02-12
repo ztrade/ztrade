@@ -454,15 +454,17 @@ type OKEXPos struct {
 
 func (ot *OKEXPos) GetPos() (pos *Position) {
 	var typ int
+	hold := parseFloat(ot.Pos)
 	if ot.PosSide == "long" {
 		typ = Long
 	} else {
 		typ = Short
+		hold = 0 - hold
 	}
 	pos = &Position{
 		Symbol:      ot.InstID,
 		Type:        typ,
-		Hold:        parseFloat(ot.Pos),
+		Hold:        hold,
 		ProfitRatio: parseFloat(ot.Upl),
 	}
 	return
