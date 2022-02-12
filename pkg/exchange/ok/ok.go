@@ -618,6 +618,9 @@ func transCandle(values [7]string) (ret *Candle) {
 }
 
 func parseFloat(str string) float64 {
+	if str == "" {
+		return 0
+	}
 	f, err := strconv.ParseFloat(str, 64)
 	if err != nil {
 		panic("okex parseFloat error:" + err.Error())
