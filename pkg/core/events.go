@@ -12,9 +12,8 @@ import (
 
 // Events
 const (
-	EventCandle         = "candle"
-	EventOrder          = "order"
-	EventOrderCancelAll = "order_cancel_all"
+	EventCandle = "candle"
+	EventOrder  = "order"
 	// own trades
 	EventTrade       = "trade"
 	EventPosition    = "position"

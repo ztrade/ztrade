@@ -471,6 +471,9 @@ func (b *OkexTrade) cancelAllNormal() (orders []*Order, err error) {
 		err = errors.New(string(resp.Body))
 		return
 	}
+	if len(orderResp.Data) == 0 {
+		return
+	}
 
 	var body trade.PostApiV5TradeCancelBatchOrdersJSONRequestBody
 	for _, v := range orderResp.Data {
@@ -517,6 +520,9 @@ func (b *OkexTrade) cancelAllAlgo() (orders []*Order, err error) {
 	}
 	if orderResp.Code != "0" {
 		err = errors.New(string(resp.Body))
+		return
+	}
+	if len(orderResp.Data) == 0 {
 		return
 	}
 

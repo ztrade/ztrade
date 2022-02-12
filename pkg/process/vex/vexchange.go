@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ztrade/base/common"
+	"github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 
@@ -43,7 +44,6 @@ func (b *VExchange) Init(bus *Bus) (err error) {
 	b.BaseProcesser.Init(bus)
 	b.Subscribe(EventCandle, b.onEventCandle)
 	b.Subscribe(EventOrder, b.onEventOrder)
-	b.Subscribe(EventOrderCancelAll, b.onEventOrderCancelAll)
 	b.Subscribe(EventBalanceInit, b.onEventBalanceInit)
 	return
 }
@@ -79,6 +79,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 				continue
 			}
 		}
+		// FIXME: stop order can't be filled when price not in low-high
 		// order can only be filled after next candle
 		if candle.High >= v.Price && candle.Low <= v.Price {
 			side := "buy"
@@ -157,18 +158,15 @@ func (ex *VExchange) onEventOrder(e Event) (err error) {
 		log.Errorf("decode tradeaction error: %##v", e.GetData())
 		return
 	}
+	if act.Action == trademodel.CancelAll {
+		ex.orders = list.New()
+		return
+	}
 	if ex.candle != nil {
 		act.Time = ex.candle.Time().Add(time.Second * time.Duration(ex.orderIndex))
 	}
 	ex.orderIndex++
 	ex.orders.PushBack(*act)
-	return
-}
-
-func (ex *VExchange) onEventOrderCancelAll(e Event) (err error) {
-	ex.orderMutex.Lock()
-	defer ex.orderMutex.Unlock()
-	ex.orders = list.New()
 	return
 }
 

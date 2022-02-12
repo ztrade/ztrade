@@ -47,7 +47,7 @@ func (e *EngineImpl) StopShort(price, amount float64) {
 	e.addOrder(price, amount, StopShort)
 }
 func (e *EngineImpl) CancelAllOrder() {
-	e.proc.Send(EventOrder, EventOrderCancelAll, nil)
+	e.proc.Send(EventOrder, EventOrder, TradeAction{Action: CancelAll})
 }
 
 func (e *EngineImpl) AddIndicator(name string, params ...int) (ind indicator.CommonIndicator) {

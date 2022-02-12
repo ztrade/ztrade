@@ -7,6 +7,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
+	"github.com/ztrade/trademodel"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
@@ -52,7 +53,6 @@ func NewTradeExchange(exName string, impl Exchange, symbol string) *TradeExchang
 func (b *TradeExchange) Init(bus *Bus) (err error) {
 	b.BaseProcesser.Init(bus)
 	b.Subscribe(EventOrder, b.onEventOrder)
-	b.Subscribe(EventOrderCancelAll, b.onEventOrderCancelAll)
 	b.Subscribe(EventWatch, b.onEventWatch)
 	return
 }
@@ -157,10 +157,6 @@ func (b *TradeExchange) onEventOrder(e Event) (err error) {
 	b.actChan <- act
 	return
 }
-func (b *TradeExchange) onEventOrderCancelAll(e Event) (err error) {
-	b.cancelAllOrder()
-	return
-}
 
 func (b *TradeExchange) onEventWatch(e Event) (err error) {
 	if e.Name == "candle" {
@@ -180,6 +176,10 @@ func (b *TradeExchange) orderRoutine() {
 	var err error
 	var ret interface{}
 	for v := range b.actChan {
+		if v.Action == trademodel.CancelAll {
+			b.cancelAllOrder()
+			continue
+		}
 		ret, err = doOrderWithRetry(10, func() (interface{}, error) {
 			order, e := b.impl.ProcessOrder(v)
 			return order, e

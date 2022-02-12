@@ -106,7 +106,7 @@ func (s *GoEngine) closeLong(price, amount float64) {
 
 func (s *GoEngine) cancelAllOrder() {
 	// e := TradeAction{Action: orderType, Amount: amount, Price: price, Time: time.Now()}
-	s.Send(EventOrder, EventOrderCancelAll, nil)
+	s.Send(EventOrder, EventOrder, TradeAction{Action: CancelAll})
 }
 
 func (s *GoEngine) closeShort(price, amount float64) {
