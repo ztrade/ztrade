@@ -390,6 +390,10 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		side = "sell"
 		posSide = "short"
 	}
+	var reduceOnly bool
+	if !act.Action.IsOpen() {
+		reduceOnly = true
+	}
 	ordType := "limit"
 	tag := "ztrade"
 	px = fmt.Sprintf("%f", act.Price)
@@ -407,7 +411,7 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		Px: &px,
 
 		// 非必填<br>是否只减仓，`true` 或 `false`，默认`false`<br>仅适用于币币杠杆订单
-		//	ReduceOnly *bool `json:"reduceOnly,omitempty"`
+		ReduceOnly: &reduceOnly,
 		// 必填<br>订单方向。买：`buy` 卖：`sell`
 		Side: side,
 		// 必填<br>委托数量
