@@ -129,6 +129,7 @@ func (b *Bus) WaitEmpty() {
 }
 
 func (b *Bus) Close() {
+	t := time.Now()
 	var value int64
 	for {
 		time.Sleep(time.Nanosecond)
@@ -136,7 +137,7 @@ func (b *Bus) Close() {
 		if value != 0 {
 			continue
 		}
-		if time.Since(b.lastEventTime) > time.Second*5 {
+		if time.Since(b.lastEventTime) > time.Second*5 || time.Since(t) > time.Second*5 {
 			break
 		}
 	}

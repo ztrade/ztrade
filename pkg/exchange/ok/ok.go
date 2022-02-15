@@ -68,6 +68,8 @@ type OkexTrade struct {
 
 	ordersCache     sync.Map
 	stopOrdersCache sync.Map
+
+	simpleMode bool
 }
 
 func NewOkexExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err error) {
@@ -82,6 +84,7 @@ func NewOkexExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err 
 func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTrade, err error) {
 	b = new(OkexTrade)
 	b.Name = "okex"
+	b.simpleMode = true
 	if cltName == "" {
 		cltName = "okex"
 	}
@@ -90,6 +93,10 @@ func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTr
 	b.apiKey = cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	b.apiSecret = cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
 	b.apiPwd = cfg.GetString(fmt.Sprintf("exchanges.%s.pwd", cltName))
+	simpleMode := cfg.GetString(fmt.Sprintf("exchange.%s.simple", cltName))
+	if simpleMode == "false" {
+		b.simpleMode = false
+	}
 
 	b.symbol = symbol
 	b.datas = make(chan *ExchangeData, 1024)
@@ -280,6 +287,7 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*2)
 	defer cancel()
 	var side, posSide string
+	// open: side = posSide, close: side!=posSide
 	if act.Action.IsLong() {
 		side = "buy"
 		posSide = "short"
@@ -352,12 +360,14 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 		// 非必填<br>计划委托触发价格<br>适用于`计划委托`
 		//	TriggerPx *string `json:"triggerPx,omitempty"`
 	}
+	if b.simpleMode {
+		params.PosSide = nil
+	}
 	resp, err := b.tradeApi.PostApiV5TradeOrderAlgoWithResponse(ctx, params, b.auth)
 	if err != nil {
 		return
 	}
 
-	fmt.Println(string(resp.Body))
 	orders, err := parsePostAlgoOrders(b.symbol, "open", side, act.Price, act.Amount, resp.Body)
 	if err != nil {
 		return
@@ -385,14 +395,18 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	var side, posSide, px string
 	if act.Action.IsLong() {
 		side = "buy"
-		posSide = "long"
+		if act.Action.IsOpen() {
+			posSide = "long"
+		} else {
+			posSide = "short"
+		}
 	} else {
 		side = "sell"
-		posSide = "short"
-	}
-	var reduceOnly bool
-	if !act.Action.IsOpen() {
-		reduceOnly = true
+		if act.Action.IsOpen() {
+			posSide = "short"
+		} else {
+			posSide = "long"
+		}
 	}
 	ordType := "limit"
 	tag := "ztrade"
@@ -411,7 +425,7 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		Px: &px,
 
 		// 非必填<br>是否只减仓，`true` 或 `false`，默认`false`<br>仅适用于币币杠杆订单
-		ReduceOnly: &reduceOnly,
+		//		ReduceOnly: &reduceOnly,
 		// 必填<br>订单方向。买：`buy` 卖：`sell`
 		Side: side,
 		// 必填<br>委托数量
@@ -423,11 +437,13 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		// 非必填<br>市价单委托数量的类型<br>交易货币：`base_ccy`<br>计价货币：`quote_ccy`<br>仅适用于币币订单
 		//	TgtCcy *string `json:"tgtCcy,omitempty"`
 	}
+	if b.simpleMode {
+		params.PosSide = nil
+	}
 	resp, err := b.tradeApi.PostApiV5TradeOrderWithResponse(ctx, params, b.auth)
 	if err != nil {
 		return
 	}
-
 	orders, err := parsePostOrders(b.symbol, "open", side, act.Price, act.Amount, resp.Body)
 	if err != nil {
 		return

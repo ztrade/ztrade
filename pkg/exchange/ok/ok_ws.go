@@ -457,9 +457,15 @@ func (ot *OKEXPos) GetPos() (pos *Position) {
 	hold := parseFloat(ot.Pos)
 	if ot.PosSide == "long" {
 		typ = Long
-	} else {
+	} else if ot.PosSide == "short" {
 		typ = Short
 		hold = 0 - hold
+	} else if ot.PosSide == "net" {
+		if hold > 0 {
+			typ = Long
+		} else {
+			typ = Short
+		}
 	}
 	pos = &Position{
 		Symbol:      ot.InstID,
