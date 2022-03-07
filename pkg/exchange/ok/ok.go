@@ -31,9 +31,9 @@ import (
 var (
 	background = context.Background()
 
-	ApiAddr       = "https://www.okex.com/"
-	WSOkexPUbilc  = "wss://wsaws.okex.com:8443/ws/v5/public"
-	WSOkexPrivate = "wss://wsaws.okex.com:8443/ws/v5/private"
+	ApiAddr       = "https://www.okx.com/"
+	WSOkexPUbilc  = "wss://wsaws.okx.com:8443/ws/v5/public"
+	WSOkexPrivate = "wss://wsaws.okx.com:8443/ws/v5/private"
 )
 
 var _ Exchange = &OkexTrade{}
