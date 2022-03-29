@@ -26,6 +26,13 @@ func (b *OkexTrade) runPublic() (err error) {
 		log.Fatal("dial public:", err)
 		return
 	}
+	// watch when reconnect
+	for _, v := range b.watchPublics {
+		err = b.wsPublic.WriteJSON(v)
+		if err != nil {
+			return
+		}
+	}
 	// var p = OPParam{
 	// 	OP: "subscribe",
 	// 	Args: []interface{}{

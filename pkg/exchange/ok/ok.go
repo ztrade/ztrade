@@ -70,6 +70,8 @@ type OkexTrade struct {
 	stopOrdersCache sync.Map
 
 	simpleMode bool
+
+	watchPublics []OPParam
 }
 
 func NewOkexExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err error) {
@@ -261,6 +263,7 @@ func (b *OkexTrade) Watch(param WatchParam) (err error) {
 				OPArg{Channel: "candle1m", InstType: "SWAP", InstID: b.symbol},
 			},
 		}
+		b.watchPublics = append(b.watchPublics, p)
 		err = b.writePublic(p)
 	case EventDepth:
 		var p = OPParam{
@@ -269,6 +272,7 @@ func (b *OkexTrade) Watch(param WatchParam) (err error) {
 				OPArg{Channel: "books5", InstType: "SWAP", InstID: b.symbol},
 			},
 		}
+		b.watchPublics = append(b.watchPublics, p)
 		err = b.writePublic(p)
 	case EventTradeMarket:
 		var p = OPParam{
@@ -277,6 +281,7 @@ func (b *OkexTrade) Watch(param WatchParam) (err error) {
 				OPArg{Channel: "trades", InstType: "SWAP", InstID: b.symbol},
 			},
 		}
+		b.watchPublics = append(b.watchPublics, p)
 		err = b.writePublic(p)
 	default:
 		err = fmt.Errorf("unknown wath param: %s", param.Type)
