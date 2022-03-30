@@ -194,13 +194,13 @@ func (s *GoEngine) onBalance(balance float64) {
 	s.engine.UpdateBalance(balance)
 }
 
-func (s *GoEngine) onCandle(name, binSize string, candle Candle) {
+func (s *GoEngine) onCandle(name, binSize string, candle *Candle) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, vm := range s.vms {
-		vm.OnCandle(candle)
+		vm.OnCandle(*candle)
 	}
-	s.engine.OnCandle(candle)
+	s.engine.OnCandle(*candle)
 }
 
 func (s *GoEngine) onTradeMarket(th Trade) {
@@ -225,11 +225,11 @@ func (s *GoEngine) onEventCandle(e Event) (err error) {
 		log.Errorf("onEventCandle type error: %##v", e.GetData())
 		return
 	}
-	cn := ParseCandleName(e.GetName())
-	if cn.Name == "recent" {
+	name, binSize := ParseCandleName(e.GetName())
+	if name == "recent" {
 		ret.ID = -1
 	}
-	s.onCandle(cn.Name, cn.BinSize, *ret)
+	s.onCandle(name, binSize, ret)
 	return
 }
 

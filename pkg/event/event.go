@@ -1,6 +1,7 @@
 package event
 
 import (
+	"sync"
 	"time"
 
 	"github.com/ztrade/ztrade/pkg/core"
@@ -8,6 +9,9 @@ import (
 
 var (
 	EventError string = "error"
+	eventPool         = sync.Pool{New: func() interface{} {
+		return new(Event)
+	}}
 )
 
 // Event base event
@@ -28,7 +32,8 @@ func NewErrorEvent(from, msg string) *Event {
 }
 
 func NewEvent(name, strType, from string, data interface{}) *Event {
-	e := new(Event)
+	e := eventPool.Get().(*Event)
+	// e := new(Event)
 	e.Name = name
 	e.Data.Type = strType
 	e.From = from

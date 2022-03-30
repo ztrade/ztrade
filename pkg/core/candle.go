@@ -9,29 +9,18 @@ import (
 	. "github.com/ztrade/trademodel"
 )
 
-// CandleName candle info
-type CandleName struct {
-	Name    string
-	BinSize string
-}
-
-// String return string
-func (c *CandleName) String() string {
-	return fmt.Sprintf("%s:%s", c.Name, c.BinSize)
-}
-
-// NewCandleName create CandleName with name and binSize
-func NewCandleName(name, binSize string) *CandleName {
-	return &CandleName{Name: name, BinSize: binSize}
+func FormatCandleName(name, binSize string) string {
+	return fmt.Sprintf("%s:%s", name, binSize)
 }
 
 // ParseCandleName parse string to CandleName
-func ParseCandleName(name string) *CandleName {
-	n := strings.Index(name, ":")
+func ParseCandleName(str string) (name, binSize string) {
+	n := strings.Index(str, ":")
 	if n == -1 {
-		return &CandleName{Name: name}
+		name = str
+		return
 	}
-	return &CandleName{Name: name[0:n], BinSize: name[n+1:]}
+	return str[0:n], str[n+1:]
 }
 
 // Map2Candle convert candle to map

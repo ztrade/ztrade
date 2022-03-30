@@ -69,7 +69,7 @@ func (tbl *KlineTbl) emitCandles(param CandleParam) {
 		for _, c := range v {
 			candle = c.(*Candle)
 			tbl.Bus.WaitEmpty()
-			tbl.Send(NewCandleName("candle", param.BinSize).String(), EventCandle, candle)
+			tbl.Send(FormatCandleName("candle", param.BinSize), EventCandle, candle)
 		}
 	}
 	if tbl.closeCh != nil {

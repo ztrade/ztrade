@@ -222,7 +222,7 @@ func (b *TradeExchange) emitRecentCandles(param CandleParam) (tLast int64, err e
 	klines, errChan := b.impl.GetKline(param.Symbol, param.BinSize, param.Start, param.End)
 	for v := range klines {
 		tLast = v.Start
-		b.Send(NewCandleName("recent", param.BinSize).String(), EventCandle, v)
+		b.Send(FormatCandleName("recent", param.BinSize), EventCandle, v)
 	}
 	err = <-errChan
 	return

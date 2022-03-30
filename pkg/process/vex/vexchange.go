@@ -139,8 +139,8 @@ func (ex *VExchange) onEventCandle(e Event) (err error) {
 		return
 	}
 	// fmt.Println("candle:", e.Name, e.GetType(), e.GetData())
-	cn := ParseCandleName(e.GetName())
-	if cn.BinSize != "1m" {
+	_, binSize := ParseCandleName(e.GetName())
+	if binSize != "1m" {
 		return
 	}
 

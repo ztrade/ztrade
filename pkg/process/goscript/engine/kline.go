@@ -20,13 +20,13 @@ func NewKlinePlugin(src, dst string, fn common.CandleFn) (kp *KlinePlugin) {
 	return
 }
 
-func (kp *KlinePlugin) Update(candle Candle) {
+func (kp *KlinePlugin) Update(candle *Candle) {
 	if candle.ID == -1 {
 		kp.bRecent = true
 	} else {
 		kp.bRecent = false
 	}
-	ret := kp.kl.Update(&candle)
+	ret := kp.kl.Update(candle)
 	if ret == nil {
 		return
 	}

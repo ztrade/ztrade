@@ -71,6 +71,7 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 			}
 		}
 		atomic.AddInt64(&b.processEvent, -1)
+		eventPool.Put(e)
 	}
 	return
 }
@@ -115,6 +116,7 @@ func (b *Bus) sendSync(procs ProcessList, e *Event) (err error) {
 			continue
 		}
 	}
+	eventPool.Put(e)
 	atomic.AddInt64(&b.processEvent, -1)
 	return
 }

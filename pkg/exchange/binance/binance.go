@@ -252,7 +252,7 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 				if candle.Start == tLast {
 					continue
 				}
-				b.datas <- NewExchangeData(NewCandleName("candle", cParam.BinSize).String(), EventCandle, candle)
+				b.datas <- NewExchangeData(FormatCandleName("candle", cParam.BinSize), EventCandle, candle)
 				tLast = candle.Start
 			}
 			if b.closeCh != nil {

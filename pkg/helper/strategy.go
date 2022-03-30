@@ -40,14 +40,14 @@ func (s *DemoStrategy) OnPosition(pos, price float64) {
 	return
 }
 
-// OnTrade call call every trade occurs
+// OnTrade call call you own trade occures
 func (s *DemoStrategy) OnTrade(trade Trade) {
 	fmt.Println("trade:", trade)
 	return
 }
 
-// OnTradeHistory call when you own trade occures
-func (s *DemoStrategy) OnTradeHistory(trade Trade) {
+// OnTradeMarket call when trade occures
+func (s *DemoStrategy) OnTradeMarket(trade Trade) {
 	fmt.Println("tradeHistory:", trade)
 	return
 }

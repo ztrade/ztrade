@@ -107,7 +107,7 @@ func (e *EngineImpl) Merge(src, dst string, fn common.CandleFn) {
 
 func (e *EngineImpl) OnCandle(candle Candle) {
 	for _, v := range e.merges {
-		v.Update(candle)
+		v.Update(&candle)
 	}
 }
 
