@@ -7,7 +7,7 @@ I hope ztrade is "The last trade app you need" !
 
 1. Develop/write strategy with only go language,no other script need
 2. Event base framework,easy to extend
-3. Support bitmex,binance
+3. Support binance,okx,ctp
 4. use [gomacro](https://github.com/cosmos72/gomacro) as script engine
 5. can build strategy to go golang plugin,best performance
 
@@ -76,7 +76,7 @@ func (s *DemoStrategy) Init(engine *Engine, params ParamData) {
 }
 
 // OnCandle call when 1m candle reached
-func (s *DemoStrategy) OnCandle(candle Candle) {
+func (s *DemoStrategy) OnCandle(candle *Candle) {
 	var param Param
 	param.Name = "hello"
 	fmt.Println("candle:", candle, param)
@@ -96,13 +96,13 @@ func (s *DemoStrategy) OnTradeMarket(trade Trade) {
 }
 
 // OnTrade call when you own trade occures
-func (s *DemoStrategy) OnTrade(trade Trade) {
+func (s *DemoStrategy) OnTrade(trade *Trade) {
 	fmt.Println("tradeHistory:", trade)
 	return
 }
 
 // OnDepth call when orderbook updated
-func (s *DemoStrategy) OnDepth(depth Depth) {
+func (s *DemoStrategy) OnDepth(depth *Depth) {
 	fmt.Println("depth:", depth)
 	return
 }

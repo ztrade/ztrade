@@ -27,7 +27,7 @@ func (s *DemoStrategy) Init(engine Engine, params ParamData) {
 }
 
 // OnCandle call when 1m candle reached
-func (s *DemoStrategy) OnCandle(candle Candle) {
+func (s *DemoStrategy) OnCandle(candle *Candle) {
 	var param Param
 	param.Name = "hello"
 	fmt.Println("candle:", candle, param)
@@ -41,19 +41,19 @@ func (s *DemoStrategy) OnPosition(pos, price float64) {
 }
 
 // OnTrade call call you own trade occures
-func (s *DemoStrategy) OnTrade(trade Trade) {
+func (s *DemoStrategy) OnTrade(trade *Trade) {
 	fmt.Println("trade:", trade)
 	return
 }
 
 // OnTradeMarket call when trade occures
-func (s *DemoStrategy) OnTradeMarket(trade Trade) {
+func (s *DemoStrategy) OnTradeMarket(trade *Trade) {
 	fmt.Println("tradeHistory:", trade)
 	return
 }
 
 // OnDepth call when orderbook updated
-func (s *DemoStrategy) OnDepth(depth Depth) {
+func (s *DemoStrategy) OnDepth(depth *Depth) {
 	fmt.Println("depth:", depth)
 	return
 }

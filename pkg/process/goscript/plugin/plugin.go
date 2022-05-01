@@ -66,7 +66,7 @@ func (sp *StrategyPlugin) Init(engine bengine.Engine, params common.ParamData) (
 	sp.Runner.Init(engine, params)
 	return
 }
-func (sp *StrategyPlugin) OnCandle(candle Candle) (err error) {
+func (sp *StrategyPlugin) OnCandle(candle *Candle) (err error) {
 	sp.Runner.OnCandle(candle)
 	return
 }
@@ -74,18 +74,18 @@ func (sp *StrategyPlugin) OnPosition(pos, price float64) (err error) {
 	sp.Runner.OnPosition(pos, price)
 	return
 }
-func (sp *StrategyPlugin) OnTrade(trade Trade) (err error) {
+func (sp *StrategyPlugin) OnTrade(trade *Trade) (err error) {
 	sp.Runner.OnTrade(trade)
 	return
 }
-func (sp *StrategyPlugin) OnTradeMarket(trade Trade) (err error) {
+func (sp *StrategyPlugin) OnTradeMarket(trade *Trade) (err error) {
 	sp.Runner.OnTradeMarket(trade)
 	return
 }
-func (sp *StrategyPlugin) OnDepth(depth Depth) (err error) {
+func (sp *StrategyPlugin) OnDepth(depth *Depth) (err error) {
 	sp.Runner.OnDepth(depth)
 	return
 }
-func (sp *StrategyPlugin) OnEvent(e Event) (err error) {
+func (sp *StrategyPlugin) OnEvent(e *Event) (err error) {
 	return
 }

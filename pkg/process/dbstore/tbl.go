@@ -115,6 +115,49 @@ func (t *TimeTbl) DataRecent(recent int32, bSize string) (klines []interface{}, 
 	return
 }
 
+// CacheData load datas and store to cache
+func (t *TimeTbl) CacheData(start, end time.Time, bSize string) (err error) {
+	if !t.db.useCache {
+		err = errors.New("db not enable cache")
+		return
+	}
+	if bSize != t.binSize {
+		err = fmt.Errorf("kline tbl %s binsize error: %s", t.table, bSize)
+		return
+	}
+	key := fmt.Sprintf("%s-%s-%s-%d-%d-%s", t.exchange, t.symbol, t.binSize, start.UnixNano(), end.UnixNano(), bSize)
+	_, ok := t.db.dataCache.Load(key)
+	if ok {
+		return
+	}
+	nOffset := 0
+	once := t.loadOnce
+	var data []interface{}
+	var caches [][]interface{}
+	for {
+		data, err = t.getDatasWithParam(start, end, once, nOffset)
+		if err != nil {
+			break
+		}
+		if t.db.useCache {
+			caches = append(caches, data)
+		}
+		if len(data) == 0 {
+			break
+		}
+		nOffset += len(data)
+		if len(data) < once {
+			break
+		}
+	}
+	if err != nil {
+		err = fmt.Errorf("TimeTbl DataChan getDatas failed:", err.Error())
+	} else {
+		t.db.dataCache.Store(key, caches)
+	}
+	return
+}
+
 func (t *TimeTbl) DataChan(start, end time.Time, bSize string) (klines chan []interface{}, err error) {
 	if bSize != t.binSize {
 		err = fmt.Errorf("kline tbl %s binsize error: %s", t.table, bSize)

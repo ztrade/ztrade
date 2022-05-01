@@ -81,8 +81,9 @@ func (r RiskLimit) Key() string {
 }
 
 type EventData struct {
-	Type string      `json:"type"`
-	Data interface{} `json:"data"`
+	Type  string      `json:"type"`
+	Data  interface{} `json:"data"`
+	Extra interface{} `json:"extra"`
 }
 
 // UnmarshalJSON EventData can't be used as Embed

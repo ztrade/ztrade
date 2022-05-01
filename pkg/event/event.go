@@ -31,7 +31,7 @@ func NewErrorEvent(from, msg string) *Event {
 	return e
 }
 
-func NewEvent(name, strType, from string, data interface{}) *Event {
+func NewEvent(name, strType, from string, data interface{}, extra interface{}) *Event {
 	e := eventPool.Get().(*Event)
 	// e := new(Event)
 	e.Name = name
@@ -39,7 +39,14 @@ func NewEvent(name, strType, from string, data interface{}) *Event {
 	e.From = from
 	e.Data.Data = data
 	e.Time = time.Now()
+	e.Data.Extra = extra
 	return e
+}
+
+func releaseEvent(e *Event) {
+	e.Data.Data = nil
+	e.Data.Extra = nil
+	eventPool.Put(e)
 }
 
 func (e *Event) GetName() string {
@@ -60,4 +67,7 @@ func (e *Event) GetFrom() string {
 
 func (e *Event) GetData() interface{} {
 	return e.Data.Data
+}
+func (e *Event) GetExtra() interface{} {
+	return e.Data.Extra
 }

@@ -30,7 +30,12 @@ func (b *BaseProcesser) Subscribe(sub string, cb ProcessCall) (err error) {
 
 // Send send event
 func (b *BaseProcesser) Send(name, strType string, data interface{}) {
-	b.Bus.Send(NewEvent(name, strType, b.Name, data))
+	b.Bus.Send(NewEvent(name, strType, b.Name, data, nil))
+}
+
+// SendExtra send event with extra info
+func (b *BaseProcesser) SendWithExtra(name, strType string, data, extra interface{}) {
+	b.Bus.Send(NewEvent(name, strType, b.Name, data, extra))
 }
 
 // Init call before start
@@ -56,5 +61,5 @@ func (b *BaseProcesser) GetName() string {
 
 // CreateEvent create new event
 func (b *BaseProcesser) CreateEvent(name, strType string, data interface{}) *Event {
-	return NewEvent(name, strType, b.Name, data)
+	return NewEvent(name, strType, b.Name, data, nil)
 }

@@ -5,7 +5,7 @@
 
 1. 使用go语言来开发/运行策略，不需要其他脚本语言
 2. 基于事件模型，方便扩展
-3. 支持bitmex，币安
+3. 支持币安,okx,ctp
 4. 使用[gomacro](https://github.com/cosmos72/gomacro)作为脚本引擎
 5. 可以将策略编译为go plugin,执行效率高
 
@@ -74,7 +74,7 @@ func (s *DemoStrategy) Init(engine *Engine, params ParamData) {
 }
 
 // OnCandle call when 1m candle reached
-func (s *DemoStrategy) OnCandle(candle Candle) {
+func (s *DemoStrategy) OnCandle(candle *Candle) {
 	var param Param
 	param.Name = "hello"
 	fmt.Println("candle:", candle, param)
@@ -94,13 +94,13 @@ func (s *DemoStrategy) OnTradeMarket(trade Trade) {
 }
 
 // OnTrade call when you own trade occures
-func (s *DemoStrategy) OnTrade(trade Trade) {
+func (s *DemoStrategy) OnTrade(trade *Trade) {
 	fmt.Println("tradeHistory:", trade)
 	return
 }
 
 // OnDepth call when orderbook updated
-func (s *DemoStrategy) OnDepth(depth Depth) {
+func (s *DemoStrategy) OnDepth(depth *Depth) {
 	fmt.Println("depth:", depth)
 	return
 }

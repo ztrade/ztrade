@@ -128,18 +128,16 @@ func (ex *VExchange) processCandle(candle Candle) {
 		ex.Send(ex.symbol, EventPosition, &pos)
 		ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
 	}
-
-	return
 }
 
-func (ex *VExchange) onEventCandle(e Event) (err error) {
+func (ex *VExchange) onEventCandle(e *Event) (err error) {
 	candle, ok := e.GetData().(*Candle)
 	if !ok {
 		err = fmt.Errorf("VExchange candle type error:%s", reflect.TypeOf(e.GetData()))
 		return
 	}
 	// fmt.Println("candle:", e.Name, e.GetType(), e.GetData())
-	_, binSize := ParseCandleName(e.GetName())
+	binSize := e.GetExtra().(string)
 	if binSize != "1m" {
 		return
 	}
@@ -150,7 +148,7 @@ func (ex *VExchange) onEventCandle(e Event) (err error) {
 	return
 }
 
-func (ex *VExchange) onEventOrder(e Event) (err error) {
+func (ex *VExchange) onEventOrder(e *Event) (err error) {
 	ex.orderMutex.Lock()
 	defer ex.orderMutex.Unlock()
 	act := e.GetData().(*TradeAction)
@@ -170,7 +168,7 @@ func (ex *VExchange) onEventOrder(e Event) (err error) {
 	return
 }
 
-func (ex *VExchange) onEventBalanceInit(e Event) (err error) {
+func (ex *VExchange) onEventBalanceInit(e *Event) (err error) {
 	balance := e.GetData().(*BalanceInfo)
 	ex.balance.Set(balance.Balance)
 	ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})

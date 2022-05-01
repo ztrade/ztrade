@@ -14,7 +14,7 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // ProcessCall callback to process event
-type ProcessCall func(e Event) error
+type ProcessCall func(e *Event) error
 
 type ProcessCallInfo struct {
 	Cb   ProcessCall
@@ -61,9 +61,8 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 	procs := b.procs[sub]
 	b.procsMutex.RUnlock()
 	for e := range ch {
-		event := *e
 		for _, p := range procs {
-			err = p.Cb(event)
+			err = p.Cb(e)
 			if err != nil {
 				// b.Send(NewErrorEvent(err.Error(), p.Name))
 				log.Errorf("subscribe %s process error: %s", sub, err.Error())
@@ -71,7 +70,7 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 			}
 		}
 		atomic.AddInt64(&b.processEvent, -1)
-		eventPool.Put(e)
+		releaseEvent(e)
 	}
 	return
 }
@@ -108,15 +107,14 @@ func (b *Bus) Send(e *Event) (err error) {
 	return
 }
 func (b *Bus) sendSync(procs ProcessList, e *Event) (err error) {
-	event := *e
 	for _, p := range procs {
-		err = p.Cb(event)
+		err = p.Cb(e)
 		if err != nil {
 			log.Errorf("subscribe %s process error: %s", e.GetType(), err.Error())
 			continue
 		}
 	}
-	eventPool.Put(e)
+	releaseEvent(e)
 	atomic.AddInt64(&b.processEvent, -1)
 	return
 }

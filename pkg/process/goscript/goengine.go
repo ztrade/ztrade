@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/ztrade/base/common"
 	bengine "github.com/ztrade/base/engine"
@@ -13,25 +12,21 @@ import (
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/ztrade/indicator"
 	. "github.com/ztrade/trademodel"
 )
 
 type scriptInfo struct {
 	engine.Runner
-	params   common.ParamData
-	binSizes []string
+	params common.ParamData
 }
 
 type GoEngine struct {
 	BaseProcesser
-	engine      bengine.Engine
-	vms         map[string]*scriptInfo
-	scriptMutex sync.Mutex
-	mutex       sync.Mutex
-	pos         float64
-	binSizes    []string
-	started     int32
+	engine   bengine.Engine
+	vms      map[string]*scriptInfo
+	mutex    sync.Mutex
+	binSizes []string
+	started  int32
 }
 
 func NewDefaultGoEngine() (s *GoEngine, err error) {
@@ -67,58 +62,6 @@ func (s *GoEngine) Start() (err error) {
 
 func (s *GoEngine) Stop() (err error) {
 	return
-}
-
-func (s *GoEngine) addOrder(price, amount float64, orderType TradeType) {
-	// FixMe: in backtest, time may be the time of candle
-	e := TradeAction{Action: orderType, Amount: amount, Price: price, Time: time.Now()}
-	s.Send(EventOrder, EventOrder, &e)
-}
-
-func (s *GoEngine) sendNotify(content, contentType string) {
-	if contentType == "" {
-		contentType = "text"
-	}
-	data := NotifyEvent{Type: contentType, Content: content}
-	s.Send("notify", EventNotify, &data)
-}
-
-func (s *GoEngine) addIndicator(name string, params ...int) (ind indicator.CommonIndicator) {
-	var err error
-	ind, err = indicator.NewCommonIndicator(name, params...)
-	if err != nil {
-		log.Errorf("GoEngine addIndicator failed %s %v", name, params)
-		return nil
-	}
-	return
-}
-
-func (s *GoEngine) openLong(price, amount float64) {
-	s.addOrder(price, amount, OpenLong)
-}
-
-func (s *GoEngine) openShort(price, amount float64) {
-	s.addOrder(price, amount, OpenShort)
-}
-func (s *GoEngine) closeLong(price, amount float64) {
-	s.addOrder(price, amount, CloseLong)
-}
-
-func (s *GoEngine) cancelAllOrder() {
-	// e := TradeAction{Action: orderType, Amount: amount, Price: price, Time: time.Now()}
-	s.Send(EventOrder, EventOrder, TradeAction{Action: CancelAll})
-}
-
-func (s *GoEngine) closeShort(price, amount float64) {
-	s.addOrder(price, amount, CloseShort)
-}
-
-func (s *GoEngine) stopShort(price, amount float64) {
-	s.addOrder(price, amount, StopShort)
-}
-
-func (s *GoEngine) stopLong(price, amount float64) {
-	s.addOrder(price, amount, StopLong)
 }
 
 func (s *GoEngine) RemoveScript(name string) (err error) {
@@ -161,17 +104,16 @@ func (s *GoEngine) doAddScript(name, src string, param map[string]interface{}) (
 	return
 }
 
-func (s *GoEngine) onTrades(trades []Trade) {
+func (s *GoEngine) onTrade(trade *Trade) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	for _, v := range trades {
-		for _, vm := range s.vms {
-			vm.OnTrade(v)
-		}
+	for _, vm := range s.vms {
+		vm.OnTrade(trade)
 	}
+
 }
 
-func (s *GoEngine) onPosition(pos Position) {
+func (s *GoEngine) onPosition(pos *Position) {
 	log.Debug("on position:", pos.Hold)
 	posHold, _ := s.engine.Position()
 	if posHold == pos.Hold {
@@ -198,12 +140,12 @@ func (s *GoEngine) onCandle(name, binSize string, candle *Candle) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, vm := range s.vms {
-		vm.OnCandle(*candle)
+		vm.OnCandle(candle)
 	}
-	s.engine.OnCandle(*candle)
+	s.engine.OnCandle(candle)
 }
 
-func (s *GoEngine) onTradeMarket(th Trade) {
+func (s *GoEngine) onTradeMarket(th *Trade) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, vm := range s.vms {
@@ -211,7 +153,7 @@ func (s *GoEngine) onTradeMarket(th Trade) {
 	}
 }
 
-func (s *GoEngine) onDepth(depth Depth) {
+func (s *GoEngine) onDepth(depth *Depth) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, vm := range s.vms {
@@ -219,13 +161,15 @@ func (s *GoEngine) onDepth(depth Depth) {
 	}
 }
 
-func (s *GoEngine) onEventCandle(e Event) (err error) {
+func (s *GoEngine) onEventCandle(e *Event) (err error) {
 	ret, ok := e.GetData().(*Candle)
 	if !ok {
 		log.Errorf("onEventCandle type error: %##v", e.GetData())
 		return
 	}
-	name, binSize := ParseCandleName(e.GetName())
+
+	name := e.GetName()
+	binSize := e.GetExtra().(string)
 	if name == "recent" {
 		ret.ID = -1
 	}
@@ -233,46 +177,46 @@ func (s *GoEngine) onEventCandle(e Event) (err error) {
 	return
 }
 
-func (s *GoEngine) onEventTrade(e Event) (err error) {
+func (s *GoEngine) onEventTrade(e *Event) (err error) {
 	tr, ok := e.GetData().(*Trade)
 	if !ok {
 		log.Errorf("onEventTrade type error: %##v", e.GetData())
 		return
 	}
-	s.onTrades([]Trade{*tr})
+	s.onTrade(tr)
 	return
 }
 
-func (s *GoEngine) onEventPosition(e Event) (err error) {
+func (s *GoEngine) onEventPosition(e *Event) (err error) {
 	pos, ok := e.GetData().(*Position)
 	if !ok {
 		log.Errorf("onEventPosition type error: %##v", e.GetData())
 		return
 	}
-	s.onPosition(*pos)
+	s.onPosition(pos)
 	return
 }
-func (s *GoEngine) onEventTradeMarket(e Event) (err error) {
+func (s *GoEngine) onEventTradeMarket(e *Event) (err error) {
 	th, ok := e.GetData().(*Trade)
 	if !ok {
 		log.Errorf("onEventTradeMarket type error: %##v", e.GetData())
 		return
 	}
-	s.onTradeMarket(*th)
+	s.onTradeMarket(th)
 	return
 }
 
-func (s *GoEngine) onEventDepth(e Event) (err error) {
+func (s *GoEngine) onEventDepth(e *Event) (err error) {
 	depth, ok := e.GetData().(*Depth)
 	if !ok {
 		log.Errorf("onEventDepth type error: %##v", e.GetData())
 		return
 	}
-	s.onDepth(*depth)
+	s.onDepth(depth)
 	return
 }
 
-func (s *GoEngine) onEventBalance(e Event) (err error) {
+func (s *GoEngine) onEventBalance(e *Event) (err error) {
 	balance, ok := e.GetData().(*Balance)
 	if !ok {
 		log.Errorf("onEventBalance type error: %##v", e.GetData())

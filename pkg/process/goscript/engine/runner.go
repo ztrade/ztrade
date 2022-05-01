@@ -23,12 +23,12 @@ func Register(ext string, fn NewRunnerFn) {
 type Runner interface {
 	Param() (paramInfo []common.Param, err error)
 	Init(engine engine.Engine, params common.ParamData) (err error)
-	OnCandle(candle Candle) (err error)
+	OnCandle(candle *Candle) (err error)
 	OnPosition(pos, price float64) (err error)
-	OnTrade(trade Trade) (err error)
-	OnTradeMarket(trade Trade) (err error)
-	OnDepth(depth Depth) (err error)
-	OnEvent(e Event) (err error)
+	OnTrade(trade *Trade) (err error)
+	OnTradeMarket(trade *Trade) (err error)
+	OnDepth(depth *Depth) (err error)
+	OnEvent(e *Event) (err error)
 	GetName() string
 }
 

@@ -42,7 +42,7 @@ func (rpt *Rpt) Stop() (err error) {
 	return
 }
 
-func (rpt *Rpt) OnEventTrade(e Event) (err error) {
+func (rpt *Rpt) OnEventTrade(e *Event) (err error) {
 	t := e.GetData().(*Trade)
 	if t == nil {
 		err = fmt.Errorf("rpt OnEventTrade type error:%#v", e.GetData())
@@ -55,7 +55,7 @@ func (rpt *Rpt) OnEventTrade(e Event) (err error) {
 	return
 }
 
-func (rpt *Rpt) OnEventBalanceInit(e Event) (err error) {
+func (rpt *Rpt) OnEventBalanceInit(e *Event) (err error) {
 	balance := e.GetData().(*BalanceInfo)
 	if balance == nil {
 		err = fmt.Errorf("Rpt onEventBalanceInit error %w", err)

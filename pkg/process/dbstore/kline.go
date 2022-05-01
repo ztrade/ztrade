@@ -69,7 +69,7 @@ func (tbl *KlineTbl) emitCandles(param CandleParam) {
 		for _, c := range v {
 			candle = c.(*Candle)
 			tbl.Bus.WaitEmpty()
-			tbl.Send(FormatCandleName("candle", param.BinSize), EventCandle, candle)
+			tbl.SendWithExtra("candle", EventCandle, candle, param.BinSize)
 		}
 	}
 	if tbl.closeCh != nil {
@@ -78,9 +78,8 @@ func (tbl *KlineTbl) emitCandles(param CandleParam) {
 	}
 }
 
-func (tbl *KlineTbl) onEventCandle(e Event) (err error) {
-	var candle *Candle
-	candle = Map2Candle(e.GetData())
+func (tbl *KlineTbl) onEventCandle(e *Event) (err error) {
+	candle := e.GetData().(*Candle)
 	err = tbl.WriteData(candle)
 	if err != nil {
 		return
@@ -88,7 +87,7 @@ func (tbl *KlineTbl) onEventCandle(e Event) (err error) {
 	return
 }
 
-func (tbl *KlineTbl) onEventCandleParam(e Event) (err error) {
+func (tbl *KlineTbl) onEventCandleParam(e *Event) (err error) {
 	wParam, ok := e.GetData().(*WatchParam)
 	if !ok {
 		err = fmt.Errorf("event not watch %s %#v", e.Name, e.Data)

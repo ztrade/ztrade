@@ -167,7 +167,9 @@ Out:
 				prev = candles[0]
 				continue
 			}
-			b.datas <- NewExchangeData(FormatCandleName("candle", "1m"), EventCandle, prev)
+			d := NewExchangeData("candle", EventCandle, prev)
+			d.Data.Extra = "1m"
+			b.datas <- d
 			prev = candles[0]
 		default:
 		}

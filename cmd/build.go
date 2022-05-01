@@ -16,17 +16,20 @@ var buildCmd = &cobra.Command{
 }
 
 var (
-	output string
+	output   string
+	keepTemp bool
 )
 
 func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.PersistentFlags().StringVar(&scriptFile, "script", "", "script file to backtest")
 	buildCmd.PersistentFlags().StringVar(&output, "output", "", "plugin output file")
+	buildCmd.PersistentFlags().BoolVarP(&keepTemp, "keep", "k", false, "keep temp dir")
 }
 
 func runBuild(cmd *cobra.Command, args []string) {
 	b := ctl.NewBuilder(scriptFile, output)
+	b.SetKeepTemp(keepTemp)
 	err := b.Build()
 	if err != nil {
 		fmt.Println("build failed:", err.Error())

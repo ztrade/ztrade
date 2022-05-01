@@ -81,7 +81,6 @@ func (e *EngineImpl) addOrder(price, amount float64, orderType TradeType) {
 func (e *EngineImpl) Watch(watchType string) {
 	param := WatchParam{Type: watchType}
 	e.proc.Send(EventWatch, EventWatch, &param)
-	return
 }
 
 func (e *EngineImpl) SendNotify(content, contentType string) {
@@ -102,12 +101,11 @@ func (e *EngineImpl) Balance() (balance float64) {
 
 func (e *EngineImpl) Merge(src, dst string, fn common.CandleFn) {
 	e.merges = append(e.merges, NewKlinePlugin(src, dst, fn))
-	return
 }
 
-func (e *EngineImpl) OnCandle(candle Candle) {
+func (e *EngineImpl) OnCandle(candle *Candle) {
 	for _, v := range e.merges {
-		v.Update(&candle)
+		v.Update(candle)
 	}
 }
 

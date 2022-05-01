@@ -9,11 +9,11 @@ import (
 type Runner interface {
 	Param() (paramInfo []common.Param)
 	Init(engine Engine, params common.ParamData)
-	OnCandle(candle Candle)
+	OnCandle(candle *Candle)
 	OnPosition(pos, price float64)
-	OnTrade(trade Trade)
-	OnTradeMarket(trade Trade)
-	OnDepth(depth Depth)
+	OnTrade(trade *Trade)
+	OnTradeMarket(trade *Trade)
+	OnDepth(depth *Depth)
 	// OnEvent(e Event)
 }
 

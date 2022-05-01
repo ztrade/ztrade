@@ -94,7 +94,7 @@ Out:
 					continue
 				}
 			}
-			b.Send(data.Name, data.GetType(), candle)
+			b.SendWithExtra(data.Name, data.GetType(), candle, data.Data.Extra)
 		case EventBalance:
 			balance = data.GetData().(*Balance)
 			b.Send(b.exchangeName, EventBalance, balance)
@@ -132,7 +132,7 @@ Out:
 	}
 }
 
-func (b *TradeExchange) onEventCandleParam(e Event) (err error) {
+func (b *TradeExchange) onEventCandleParam(e *Event) (err error) {
 	wParam, ok := e.GetData().(*WatchParam)
 	if !ok {
 		err = fmt.Errorf("event not watch %s %#v", e.Name, e.Data)
@@ -147,7 +147,7 @@ func (b *TradeExchange) onEventCandleParam(e Event) (err error) {
 	return
 }
 
-func (b *TradeExchange) onEventOrder(e Event) (err error) {
+func (b *TradeExchange) onEventOrder(e *Event) (err error) {
 	var act TradeAction
 	err = mapstructure.Decode(e.GetData(), &act)
 	if err != nil {
@@ -158,7 +158,7 @@ func (b *TradeExchange) onEventOrder(e Event) (err error) {
 	return
 }
 
-func (b *TradeExchange) onEventWatch(e Event) (err error) {
+func (b *TradeExchange) onEventWatch(e *Event) (err error) {
 	if e.Name == "candle" {
 		return b.onEventCandleParam(e)
 	}
@@ -222,7 +222,7 @@ func (b *TradeExchange) emitRecentCandles(param CandleParam) (tLast int64, err e
 	klines, errChan := b.impl.GetKline(param.Symbol, param.BinSize, param.Start, param.End)
 	for v := range klines {
 		tLast = v.Start
-		b.Send(FormatCandleName("recent", param.BinSize), EventCandle, v)
+		b.SendWithExtra("recent", EventCandle, v, param.BinSize)
 	}
 	err = <-errChan
 	return

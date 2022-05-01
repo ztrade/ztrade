@@ -78,7 +78,7 @@ func (r *Runner) Param() (paramInfo []common.Param, err error) {
 func (r *Runner) Init(engine bengine.Engine, params common.ParamData) (err error) {
 	return r.info.Init(engine, params)
 }
-func (r *Runner) OnCandle(candle Candle) (err error) {
+func (r *Runner) OnCandle(candle *Candle) (err error) {
 	return r.info.OnCandle(candle)
 }
 
@@ -86,17 +86,17 @@ func (r *Runner) OnPosition(pos, price float64) (err error) {
 	return r.info.OnPosition(pos, price)
 }
 
-func (r *Runner) OnTrade(trade Trade) (err error) {
+func (r *Runner) OnTrade(trade *Trade) (err error) {
 	return r.info.OnTrade(trade)
 }
-func (r *Runner) OnTradeMarket(trade Trade) (err error) {
+func (r *Runner) OnTradeMarket(trade *Trade) (err error) {
 	return r.info.OnTradeMarket(trade)
 }
-func (r *Runner) OnDepth(depth Depth) (err error) {
+func (r *Runner) OnDepth(depth *Depth) (err error) {
 	return r.info.OnDepth(depth)
 }
 
-func (r *Runner) OnEvent(e Event) (err error) {
+func (r *Runner) OnEvent(e *Event) (err error) {
 	return r.info.OnEvent(e)
 }
 

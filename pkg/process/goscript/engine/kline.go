@@ -39,5 +39,5 @@ func (kp *KlinePlugin) Update(candle *Candle) {
 		temp.ID = -1
 	}
 	newCandle := ret.(*Candle)
-	kp.cb(*newCandle)
+	kp.cb(newCandle)
 }

@@ -54,10 +54,12 @@ func NewCallInfo(p *fast.Interp, name string, t xreflect.Type) (ci *CallInfo, er
 	if err != nil {
 		return
 	}
-	ci.onCandle, err = ci.extraFunc(t, "OnCandle")
+	value, err := ci.extraFunc(t, "OnCandle")
 	if err != nil {
 		return
 	}
+	ci.onCandle = value.Interface().(OnCandleFn)
+
 	ci.onPosition, _ = ci.extraFunc(t, "OnPosition")
 	ci.onTrade, _ = ci.extraFunc(t, "OnTrade")
 	ci.onTradeMarket, _ = ci.extraFunc(t, "OnTradeMarket")
@@ -101,12 +103,13 @@ func (ci *CallInfo) Init(engine bengine.Engine, data common.ParamData) (err erro
 	ci.init.Call([]reflect.Value{ci.instance, reflect.ValueOf(engine), reflect.ValueOf(data)})
 	return
 }
-func (ci *CallInfo) OnCandle(candle Candle) (err error) {
-	if !ci.onCandle.IsValid() {
+func (ci *CallInfo) OnCandle(candle *Candle) (err error) {
+	if ci.onCandle == nil {
 		err = fmt.Errorf("%w onCandle", ErrNoMethod)
 		return
 	}
-	ci.onCandle.Call([]reflect.Value{ci.instance, reflect.ValueOf(candle)})
+	ci.onCandle(candle)
+	// ci.onCandle.Call([]reflect.Value{ci.instance, reflect.ValueOf(candle)})
 	return
 }
 
@@ -119,7 +122,7 @@ func (ci *CallInfo) OnPosition(pos, price float64) (err error) {
 	return
 }
 
-func (ci *CallInfo) OnTrade(trade Trade) (err error) {
+func (ci *CallInfo) OnTrade(trade *Trade) (err error) {
 	if !ci.onTrade.IsValid() {
 		err = fmt.Errorf("%w onTrade", ErrNoMethod)
 		return
@@ -127,7 +130,7 @@ func (ci *CallInfo) OnTrade(trade Trade) (err error) {
 	ci.onTrade.Call([]reflect.Value{ci.instance, reflect.ValueOf(trade)})
 	return
 }
-func (ci *CallInfo) OnTradeMarket(trade Trade) (err error) {
+func (ci *CallInfo) OnTradeMarket(trade *Trade) (err error) {
 	if !ci.onTradeMarket.IsValid() {
 		err = fmt.Errorf("%w onTradeMarket", ErrNoMethod)
 		return
@@ -135,7 +138,7 @@ func (ci *CallInfo) OnTradeMarket(trade Trade) (err error) {
 	ci.onTradeMarket.Call([]reflect.Value{ci.instance, reflect.ValueOf(trade)})
 	return
 }
-func (ci *CallInfo) OnDepth(depth Depth) (err error) {
+func (ci *CallInfo) OnDepth(depth *Depth) (err error) {
 	if !ci.onDepth.IsValid() {
 		err = fmt.Errorf("%w onDepth", ErrNoMethod)
 		return
@@ -144,7 +147,7 @@ func (ci *CallInfo) OnDepth(depth Depth) (err error) {
 	return
 }
 
-func (ci *CallInfo) OnEvent(e Event) (err error) {
+func (ci *CallInfo) OnEvent(e *Event) (err error) {
 	if !ci.onEvent.IsValid() {
 		err = fmt.Errorf("%w onEvent", ErrNoMethod)
 		return
