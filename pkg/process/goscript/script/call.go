@@ -54,12 +54,10 @@ func NewCallInfo(p *fast.Interp, name string, t xreflect.Type) (ci *CallInfo, er
 	if err != nil {
 		return
 	}
-	value, err := ci.extraFunc(t, "OnCandle")
+	ci.onCandle, err = ci.extraFunc(t, "OnCandle")
 	if err != nil {
 		return
 	}
-	ci.onCandle = value.Interface().(OnCandleFn)
-
 	ci.onPosition, _ = ci.extraFunc(t, "OnPosition")
 	ci.onTrade, _ = ci.extraFunc(t, "OnTrade")
 	ci.onTradeMarket, _ = ci.extraFunc(t, "OnTradeMarket")
@@ -104,12 +102,11 @@ func (ci *CallInfo) Init(engine bengine.Engine, data common.ParamData) (err erro
 	return
 }
 func (ci *CallInfo) OnCandle(candle *Candle) (err error) {
-	if ci.onCandle == nil {
+	if !ci.onCandle.IsValid() {
 		err = fmt.Errorf("%w onCandle", ErrNoMethod)
 		return
 	}
-	ci.onCandle(candle)
-	// ci.onCandle.Call([]reflect.Value{ci.instance, reflect.ValueOf(candle)})
+	ci.onCandle.Call([]reflect.Value{ci.instance, reflect.ValueOf(candle)})
 	return
 }
 
