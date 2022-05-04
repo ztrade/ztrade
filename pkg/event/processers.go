@@ -69,7 +69,6 @@ func (h *Processers) Stop() (err error) {
 			return
 		}
 	}
-	h.bus.Close()
 	return
 }
 

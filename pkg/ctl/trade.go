@@ -68,6 +68,10 @@ func (b *Trade) AddScript(name, scriptFile string, param map[string]interface{})
 	return
 }
 
+func (b *Trade) ScriptCount() int {
+	return b.engine.ScriptCount()
+}
+
 func (b *Trade) RemoveScript(name string) (err error) {
 	if !b.running {
 		err = errors.New("Trade is not working,must start it first")

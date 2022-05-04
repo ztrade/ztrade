@@ -8,6 +8,25 @@ import (
 	"github.com/ztrade/trademodel"
 )
 
+func TestSymbols(t *testing.T) {
+	viper.SetConfigFile("../../../dist/configs/ztrade.yaml")
+	err := viper.ReadInConfig()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	api, err := NewOkexExchange(viper.GetViper(), "okex", "ETH-USDT-SWAP")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	symbols, err := api.GetSymbols()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, v := range symbols {
+		t.Log(v.Symbol, v.Pricescale)
+	}
+}
+
 func TestOrder(t *testing.T) {
 	viper.SetConfigFile("../../../dist/configs/ztrade.yaml")
 	err := viper.ReadInConfig()

@@ -418,6 +418,10 @@ func (c *CtpExchange) cancelOrder(ref string, o *Order) (err error) {
 	return
 }
 
+func (b *CtpExchange) GetSymbols() (symbols []SymbolInfo, err error) {
+	return
+}
+
 // GetBalanceChan
 func (c *CtpExchange) GetDataChan() chan *core.ExchangeData {
 	return c.datas

@@ -40,6 +40,7 @@ type TradeExchange struct {
 
 func NewTradeExchange(exName string, impl Exchange, symbol string) *TradeExchange {
 	te := new(TradeExchange)
+	te.Name = fmt.Sprintf("exchange-%s", exName)
 	te.exchangeName = exName
 	te.impl = impl
 	te.datas = impl.GetDataChan()
@@ -60,6 +61,12 @@ func (b *TradeExchange) Init(bus *Bus) (err error) {
 func (b *TradeExchange) Start() (err error) {
 	go b.recvDatas()
 	go b.orderRoutine()
+	return
+}
+
+func (b *TradeExchange) Stop() (err error) {
+	err = b.impl.Stop()
+	close(b.actChan)
 	return
 }
 

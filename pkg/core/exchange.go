@@ -61,4 +61,5 @@ type Exchange interface {
 
 	// GetBalanceChan
 	GetDataChan() chan *ExchangeData
+	GetSymbols() ([]SymbolInfo, error)
 }

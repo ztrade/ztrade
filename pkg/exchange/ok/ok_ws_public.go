@@ -62,7 +62,14 @@ func (b *OkexTrade) runPublicLoop(c *websocket.Conn, closeCh chan bool) {
 	var lastMsgTime time.Time
 	loopEnd := make(chan bool)
 	defer func() {
+		fmt.Println("runPublic finished")
 		close(loopEnd)
+		select {
+		case <-closeCh:
+			b.wg.Done()
+			return
+		default:
+		}
 		err = b.runPublic()
 		if err != nil {
 			log.Error("okex reconnect public failed:", err.Error())

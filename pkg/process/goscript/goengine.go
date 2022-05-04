@@ -60,6 +60,10 @@ func (s *GoEngine) Start() (err error) {
 	return
 }
 
+func (s *GoEngine) ScriptCount() int {
+	return len(s.vms)
+}
+
 func (s *GoEngine) Stop() (err error) {
 	return
 }

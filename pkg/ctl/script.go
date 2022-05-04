@@ -11,6 +11,7 @@ type Scripter interface {
 	event.Processer
 	AddScript(name, src string, param map[string]interface{}) (err error)
 	RemoveScript(name string) error
+	ScriptCount() int
 }
 
 func NewScript(file string, param map[string]interface{}) (s Scripter, err error) {

@@ -182,11 +182,11 @@ func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
 	trade.ID = fmt.Sprintf("%d", evt.AggregateTradeID)
 	trade.Amount, err = strconv.ParseFloat(evt.Quantity, 64)
 	if err != nil {
-		log.Errorf("AggTradeEvent parse amount failed:", evt.Quantity)
+		log.Errorf("AggTradeEvent parse amount failed: %s", evt.Quantity)
 	}
 	trade.Price, err = strconv.ParseFloat(evt.Price, 64)
 	if err != nil {
-		log.Errorf("AggTradeEvent parse amount failed:", evt.Quantity)
+		log.Errorf("AggTradeEvent parse amount failed: %s", evt.Quantity)
 	}
 	trade.Time = time.Unix(evt.Time/1000, (evt.Time%1000)*int64(time.Millisecond))
 	b.datas <- NewExchangeData(b.Name, EventTradeMarket, &trade)
@@ -237,7 +237,7 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 		var datas chan *CandleInfo
 		datas, _, err = b.WatchKline(symbolInfo)
 		if err != nil {
-			log.Errorf("emitCandles wathKline failed:", err.Error())
+			log.Errorf("emitCandles wathKline failed: %s", err.Error())
 			return
 		}
 		go func() {
@@ -308,6 +308,7 @@ func (b *BinanceTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	ret = transCreateOrder(resp)
 	return
 }
+
 func (b *BinanceTrade) CancelAllOrders() (orders []*Order, err error) {
 	ctx := context.Background()
 	ret, err := b.api.NewListOrdersService().Symbol(b.symbol).Do(ctx)
@@ -320,6 +321,26 @@ func (b *BinanceTrade) CancelAllOrders() (orders []*Order, err error) {
 		orders = append(orders, transOrder(v))
 	}
 	err = b.cancelService.Symbol(b.symbol).Do(context.Background())
+	return
+}
+
+func (b *BinanceTrade) GetSymbols() (symbols []SymbolInfo, err error) {
+	ctx, cancel := context.WithTimeout(background, time.Second*5)
+	defer cancel()
+	resp, err := b.api.NewExchangeInfoService().Do(ctx)
+	if err != nil {
+		return
+	}
+	symbols = make([]SymbolInfo, len(resp.Symbols))
+	for i, v := range resp.Symbols {
+		symbols[i] = SymbolInfo{
+			Exchange:    "binance",
+			Symbol:      v.Symbol,
+			Resolutions: "1m,5m,15m,30m,1h,4h,1d,1w",
+			Pricescale:  v.QuantityPrecision,
+		}
+	}
+
 	return
 }
 

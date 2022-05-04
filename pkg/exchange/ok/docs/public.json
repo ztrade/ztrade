@@ -1,0 +1,1125 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "REST API",
+        "version": "1.0",
+        "description": "# 使用说明 \n <b>接口只会请求模拟环境<b><br><br>*Parameters* 面板中点击`Try it out`按钮，编辑请求参数，点击`Execute`按钮发送请求。*Responses* 面板中查看请求结果。<br>"
+    },
+    "tags": [
+        {
+            "name": "Public Data",
+            "description": "公共数据"
+        }
+    ],
+    "paths": {
+        "/api/v5/public/instruments": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取所有产品行情信息",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`SPOT`：币币；`MARGIN`：币币杠杆；`SWAP`：永续合约 `FUTURES`：交割合约；`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "SPOT"
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数，如：`BTC-USD`<br>仅适用于`交割/永续/期权`，`期权`必填",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如 `BTC-USDT`",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USDT"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instType": "SWAP",
+                                                "instId": "LTC-USD-SWAP",
+                                                "uly": "LTC-USD",
+                                                "category": "1",
+                                                "baseCcy": "",
+                                                "quoteCcy": "",
+                                                "settleCcy": "LTC",
+                                                "ctVal": "10",
+                                                "ctMult": "1",
+                                                "ctValCcy": "USD",
+                                                "optType": "C",
+                                                "stk": "",
+                                                "listTime": "1597026383085",
+                                                "expTime": "1597026383085",
+                                                "lever": "10",
+                                                "tickSz": "0.01",
+                                                "lotSz": "1",
+                                                "minSz": "1",
+                                                "ctType": "linear",
+                                                "alias": "this_week",
+                                                "state": "live"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/delivery-exercise-history": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取交割和行权记录",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`FUTURES`：交割合约，`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "FUTURES"
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数，如：`BTC-USD`<br>仅适用于`交割/期权`",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "BTC-USD"
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "description": "请求此时间戳之前（更旧的数据）的分页内容，传的值为对应接口的`ts`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "description": "请求此时间戳之后（更新的数据）的分页内容，传的值为对应接口的`ts`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "分页返回的结果集数量，最大为100，不填默认返回100条",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "ts": "1597026383085",
+                                                "details": [
+                                                    {
+                                                        "type": "delivery",
+                                                        "instId": "BTC-USD-190927",
+                                                        "px": "0.016"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "ts": "1597026383085",
+                                                "details": [
+                                                    {
+                                                        "instId": "BTC-USD-200529-6000-C",
+                                                        "type": "exercised",
+                                                        "px": "0.016"
+                                                    },
+                                                    {
+                                                        "instId": "BTC-USD-200529-8000-C",
+                                                        "type": "exercised",
+                                                        "px": "0.016"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/open-interest": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取持仓总量",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`FUTURES`：交割合约，`SWAP`：永续合约，`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "SWAP"
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数，如：`BTC-USD`<br>仅适用于`交割/永续/期权`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USD-SWAP`<br>仅适用于`交割/永续/期权`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instType": "SWAP",
+                                                "instId": "BTC-USDT-SWAP",
+                                                "oi": "5000",
+                                                "oiCcy": "555.55",
+                                                "ts": "1597026383085"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/funding-rate": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取永续合约当前资金费率",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT-SWAP`<br>仅适用于`永续`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "data": [
+                                            {
+                                                "fundingRate": "0.0001515",
+                                                "fundingTime": "1622822400000",
+                                                "instId": "BTC-USD-SWAP",
+                                                "instType": "SWAP",
+                                                "nextFundingRate": "0.00029",
+                                                "nextFundingTime": "1622851200000"
+                                            }
+                                        ],
+                                        "msg": ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/funding-rate-history": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取永续合约历史资金费率",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT-SWAP`<br>仅适用于`永续`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "description": "请求此时间戳之前（更旧的数据）的分页内容，传的值为对应接口的`fundingTime`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "description": "请求此时间戳之后（更新的数据）的分页内容，传的值为对应接口的`fundingTime`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "分页返回的结果集数量，最大为100，不填默认返回100条",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "data": [
+                                            {
+                                                "fundingRate": "0.0001515",
+                                                "fundingTime": "1622822400000",
+                                                "instId": "BTC-USD-SWAP",
+                                                "instType": "SWAP",
+                                                "nextFundingRate": "0.00029",
+                                                "nextFundingTime": "1622851200000"
+                                            }
+                                        ],
+                                        "msg": ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/price-limit": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取限价",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT-SWAP`<br>适用于`交割/永续/期权`",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USDT-SWAP"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instType": "SWAP",
+                                                "instId": "BTC-USDT-SWAP",
+                                                "buyLmt": "200",
+                                                "sellLmt": "300",
+                                                "ts": "1597026383085"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/opt-summary": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取期权定价",
+                "parameters": [
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数，如：`BTC-USD-200103-5500-C`<br>仅适用于`期权`",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USD-200103-5500-C"
+                    },
+                    {
+                        "name": "expTime",
+                        "in": "query",
+                        "description": "合约到期日，格式为`YYMMDD`，如 `200527`",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instType": "OPTION",
+                                                "instId": "BTC-USD-200103-5500-C",
+                                                "uly": "BTC-USD",
+                                                "delta": "0.7494223636",
+                                                "gamma": "-0.6765419039",
+                                                "theta": "-0.0000809873",
+                                                "vega": "0.0000077307",
+                                                "deltaBS": "0.7494223636",
+                                                "gammaBS": "-0.6765419039",
+                                                "thetaBS": "-0.0000809873",
+                                                "vegaBS": "0.0000077307",
+                                                "realVol": "0",
+                                                "bidVol": "",
+                                                "askVol": "1.5625",
+                                                "markVol": "0.9987",
+                                                "lever": "4.0342",
+                                                "ts": "1597026383085"
+                                            },
+                                            {
+                                                "instType": "OPTION",
+                                                "instId": "BTC-USD-200103-6500-C",
+                                                "uly": "BTC-USD",
+                                                "delta": "0.7494223636",
+                                                "gamma": "-0.6765419039",
+                                                "theta": "-0.0000809873",
+                                                "vega": "0.0000077307",
+                                                "deltaBS": "0.7494223636",
+                                                "gammaBS": "-0.6765419039",
+                                                "thetaBS": "-0.0000809873",
+                                                "vegaBS": "0.0000077307",
+                                                "realVol": "0",
+                                                "bidVol": "",
+                                                "askVol": "1.5625",
+                                                "markVol": "0.9987",
+                                                "lever": "4.0342",
+                                                "ts": "1597026383085"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/estimated-price": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取预估交割/行权价格",
+                "parameters": [
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USD-200214`<br>适用于`交割/期权`",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USD-200214"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instType": "FUTURES",
+                                                "instId": "BTC-USD-200214",
+                                                "settlePx": "200",
+                                                "ts": "1597026383085"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/discount-rate-interest-free-quota": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取免息额度和币种折算率等级",
+                "parameters": [
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，如：`BTC`",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC"
+                    },
+                    {
+                        "name": "discountLv",
+                        "in": "query",
+                        "description": "折算率等级<br>`1`:第一档，`2`:第二档，`3`:第三档，`4`:第四档，`5`:第五档",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "amt": "1",
+                                                "ccy": "LTC",
+                                                "discountInfo": [
+                                                    {
+                                                        "discountRate": "0.95",
+                                                        "maxAmt": "2000000",
+                                                        "minAmt": "0"
+                                                    },
+                                                    {
+                                                        "discountRate": "0.85",
+                                                        "maxAmt": "4000000",
+                                                        "minAmt": "2000000"
+                                                    },
+                                                    {
+                                                        "discountRate": "0.5",
+                                                        "maxAmt": "8000000",
+                                                        "minAmt": "4000000"
+                                                    },
+                                                    {
+                                                        "discountRate": "0",
+                                                        "maxAmt": "",
+                                                        "minAmt": "8000000"
+                                                    }
+                                                ],
+                                                "discountLv": "2"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/time": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取系统时间",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "ts": "1597026383085"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/liquidation-orders": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取平台公共爆仓单信息",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`MARGIN`：币币杠杆，`SWAP`：永续合约，`FUTURES`：交割合约，`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "MARGIN"
+                    },
+                    {
+                        "name": "mgnMode",
+                        "in": "query",
+                        "description": "保证金模式<br>`cross`：全仓，`isolated`：逐仓",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，仅适用于`币币杠杆`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，仅适用于全仓`币币杠杆`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数<br>`交割/永续/期权`合约情况下，该参数必填",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "alias",
+                        "in": "query",
+                        "description": "`this_week`：本周，`next_week`：次周，`quarter`：季度，`next_quarter`：次季度<br>`交割`合约情况下，该参数必填",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "状态<br>`unfilled`：未成交，`filled`：已成交<br>默认为`unfilled`<br>`交割/永续`合约情况下，该参数必填",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "description": "请求此时间戳之前（更旧的数据）的分页内容，传的值为对应接口的`ts`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "description": "请求此时间戳之后（更新的数据）的分页内容，传的值为对应接口的`ts`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "分页返回的结果集数量，最大为100，不填默认返回100条",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "data": [
+                                            {
+                                                "details": [
+                                                    {
+                                                        "bkLoss": "0",
+                                                        "bkPx": "",
+                                                        "ccy": "USDT",
+                                                        "posSide": "",
+                                                        "side": "",
+                                                        "sz": "989.9123170781309932",
+                                                        "ts": "1629962347000"
+                                                    },
+                                                    {
+                                                        "bkLoss": "0",
+                                                        "bkPx": "",
+                                                        "ccy": "USDT",
+                                                        "posSide": "",
+                                                        "side": "",
+                                                        "sz": "10.1066764750370217",
+                                                        "ts": "1629961447000"
+                                                    }
+                                                ],
+                                                "instId": "BTC-USDT",
+                                                "instType": "MARGIN",
+                                                "totalLoss": "0",
+                                                "uly": ""
+                                            }
+                                        ],
+                                        "msg": ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/mark-price": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取标记价格",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`MARGIN`：币币杠杆，`SWAP`：永续合约，`FUTURES`：交割合约，`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "SWAP"
+                    },
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT-SWAP`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数，如：`BTC-USD`",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USDT"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "instType": "SWAP",
+                                                "instId": "BTC-USDT-SWAP",
+                                                "markPx": "200",
+                                                "ts": "1597026383085"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/position-tiers": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取衍生品仓位档位",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`MARGIN`：币币杠杆，`SWAP`：永续合约，`FUTURES`：交割合约，`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "MARGIN"
+                    },
+                    {
+                        "name": "tdMode",
+                        "in": "query",
+                        "description": "交易模式<br>`isolated`：逐仓，`cross`：全仓",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "example": "cross"
+                    },
+                    {
+                        "name": "instId",
+                        "in": "query",
+                        "description": "产品ID，如：`BTC-USDT`<br>仅适用`币币杠杆`，且必填",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USDT"
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "合约标的指数，如：`BTC-USD`<br>仅适用于`交割/永续/期权`，且必填",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "tier",
+                        "in": "query",
+                        "description": "指定档位",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            {
+                                                "baseMaxLoan": "50",
+                                                "imr": "0.1",
+                                                "instId": "BTC-USDT",
+                                                "maxLever": "10",
+                                                "maxSz": "50",
+                                                "minSz": "0",
+                                                "mmr": "0.03",
+                                                "optMgnFactor": "0",
+                                                "quoteMaxLoan": "500000",
+                                                "tier": "1",
+                                                "uly": ""
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/interest-rate-loan-quota": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取杠杆利率和借币限额",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "data": [
+                                            {
+                                                "basic": [
+                                                    {
+                                                        "ccy": "USDT",
+                                                        "quota": "300000",
+                                                        "rate": "0.00024984"
+                                                    }
+                                                ],
+                                                "vip": [
+                                                    {
+                                                        "irDiscount": "0.7",
+                                                        "loanQuotaCoef": 6,
+                                                        "level": "VIP1"
+                                                    },
+                                                    {
+                                                        "irDiscount": "0.65",
+                                                        "loanQuotaCoef": 7,
+                                                        "level": "VIP2"
+                                                    }
+                                                ],
+                                                "regular": [
+                                                    {
+                                                        "irDiscount": "1",
+                                                        "loanQuotaCoef": 1,
+                                                        "level": "Lv1"
+                                                    },
+                                                    {
+                                                        "irDiscount": "0.95",
+                                                        "loanQuotaCoef": 2,
+                                                        "level": "Lv2"
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        "msg": ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/underlying": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取衍生品标的指数",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`SWAP`：永续合约，`FUTURES`：交割合约，`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "SWAP"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "msg": "",
+                                        "data": [
+                                            [
+                                                "LTC-USDT",
+                                                "BTC-USDT",
+                                                "ETC-USDT"
+                                            ]
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v5/public/insurance-fund": {
+            "get": {
+                "tags": [
+                    "Public Data"
+                ],
+                "summary": "获取风险准备金余额",
+                "parameters": [
+                    {
+                        "name": "instType",
+                        "in": "query",
+                        "description": "产品类型<br>`MARGIN`：币币杠杆，`SWAP`：永续合约，`FUTURES`：交割合约，`OPTION`：期权",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "SWAP"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "产品类型<br>`liquidation_balance_deposit`：强平注入，`bankruptcy_loss`：穿仓亏损，`platform_revenue`：平台收入注入",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "uly",
+                        "in": "query",
+                        "description": "标的指数<br>仅适用于`交割/永续/期权`，且必填写",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "BTC-USDT"
+                    },
+                    {
+                        "name": "ccy",
+                        "in": "query",
+                        "description": "币种，仅适用`币币杠杆`，且必填写",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "description": "请求此时间戳之后（更新的数据）的分页内容，传的值为对应接口的`ts`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "description": "请求此时间戳之前（更旧的数据）的分页内容，传的值为对应接口的`ts`",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "分页返回的结果集数量，最大为100，不填默认返回100条",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "code": "0",
+                                        "data": [
+                                            {
+                                                "details": [
+                                                    {
+                                                        "amt": "0.2465",
+                                                        "balance": "3228.0732",
+                                                        "ccy": "BTC",
+                                                        "ts": "1646726421082",
+                                                        "type": "liquidation_balance_deposit"
+                                                    }
+                                                ],
+                                                "total": "883110357.6581"
+                                            }
+                                        ],
+                                        "msg": ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    },
+    "components": {}
+}

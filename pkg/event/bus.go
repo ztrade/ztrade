@@ -141,6 +141,10 @@ func (b *Bus) Close() {
 			break
 		}
 	}
+
+	for _, v := range b.chs {
+		close(v)
+	}
 }
 
 func (b *Bus) Start() {

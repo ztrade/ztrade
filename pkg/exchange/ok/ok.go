@@ -25,6 +25,7 @@ import (
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/exchange/ok/api/market"
+	"github.com/ztrade/ztrade/pkg/exchange/ok/api/public"
 	"github.com/ztrade/ztrade/pkg/exchange/ok/api/trade"
 )
 
@@ -52,6 +53,7 @@ type OkexTrade struct {
 	Name      string
 	tradeApi  *trade.ClientWithResponses
 	marketApi *market.ClientWithResponses
+	publicApi *public.ClientWithResponses
 	symbol    string
 
 	datas   chan *ExchangeData
@@ -72,6 +74,7 @@ type OkexTrade struct {
 	simpleMode bool
 
 	watchPublics []OPParam
+	wg           sync.WaitGroup
 }
 
 func NewOkexExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err error) {
@@ -109,6 +112,10 @@ func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTr
 		return
 	}
 	b.marketApi, err = market.NewClientWithResponses(ApiAddr)
+	if err != nil {
+		return
+	}
+	b.publicApi, err = public.NewClientWithResponses(ApiAddr)
 	if err != nil {
 		return
 	}
@@ -173,14 +180,18 @@ func (b *OkexTrade) Start(param map[string]interface{}) (err error) {
 	if err != nil {
 		return
 	}
+	b.wg.Add(1)
 	err = b.runPrivate()
 	if err != nil {
 		return
 	}
+	b.wg.Add(1)
 	return
 }
 func (b *OkexTrade) Stop() (err error) {
 	close(b.closeCh)
+	b.wg.Wait()
+	close(b.datas)
 	return
 }
 
@@ -583,39 +594,36 @@ func (b *OkexTrade) CancelAllOrders() (orders []*Order, err error) {
 		return
 	}
 	orders = append(temp, orders...)
-	// b.ordersCache.Range(func(key, value interface{}) bool {
-	// 	orderId := key.(string)
-	// 	ctx, cancel := context.WithTimeout(background, time.Second*3)
-	// 	var body = trade.PostApiV5TradeCancelOrderJSONRequestBody{
-	// 		InstId: b.symbol,
-	// 		OrdId:  &orderId,
-	// 	}
-	// 	resp, err := b.tradeApi.PostApiV5TradeCancelOrderWithResponse(ctx, body, b.auth)
-	// 	cancel()
-	// 	if err != nil {
-	// 		return false
-	// 	}
-	// 	fmt.Println(string(resp.Body))
-	// 	return true
-	// })
-	// b.stopOrdersCache.Range(func(key, value interface{}) bool {
-	// 	orderId := key.(string)
-	// 	ctx, cancel := context.WithTimeout(background, time.Second*3)
-	// 	var body = trade.PostApiV5TradeCancelAlgosJSONRequestBody{
-	// 		AlgoId: orderId,
-	// 		InstId: b.symbol,
-	// 	}
-	// 	fmt.Println("body:", body)
-	// 	resp, err := b.tradeApi.PostApiV5TradeCancelAlgosWithResponse(ctx, body, b.auth)
-	// 	cancel()
-	// 	if err != nil {
-	// 		return false
-	// 	}
-	// 	fmt.Println("algo:", string(resp.Body))
-	// 	return true
-	// })
+	return
+}
 
-	//	orders, err = parsePostOrders(b.symbol, "cancel", "", 0, 0, resp.Body)
+func (b *OkexTrade) GetSymbols() (symbols []SymbolInfo, err error) {
+	ctx, cancel := context.WithTimeout(background, time.Second*3)
+	defer cancel()
+	resp, err := b.publicApi.GetApiV5PublicInstrumentsWithResponse(ctx, &public.GetApiV5PublicInstrumentsParams{InstType: "SWAP"})
+	if err != nil {
+		return
+	}
+	var instruments InstrumentResp
+	err = json.Unmarshal(resp.Body, &instruments)
+	if instruments.Code != "0" {
+		err = errors.New(string(resp.Body))
+		return
+	}
+	var value float64
+	symbols = make([]SymbolInfo, len(instruments.Data))
+	for i, v := range instruments.Data {
+		value, err = strconv.ParseFloat(v.TickSz, 64)
+		if err != nil {
+			return
+		}
+		symbols[i] = SymbolInfo{
+			Exchange:    "okx",
+			Symbol:      v.InstID,
+			Resolutions: "1m,5m,15m,30m,1h,4h,1d,1w",
+			Pricescale:  int(float64(1) / value),
+		}
+	}
 	return
 }
 
@@ -759,4 +767,34 @@ type OKEXAlgoOrder struct {
 		SCode  string `json:"sCode"`
 		SMsg   string `json:"sMsg"`
 	} `json:"data"`
+}
+
+type InstrumentResp struct {
+	Code string       `json:"code"`
+	Msg  string       `json:"msg"`
+	Data []Instrument `json:"data"`
+}
+
+type Instrument struct {
+	InstType  string `json:"instType"`  // 产品类型
+	InstID    string `json:"instId"`    // 产品id， 如 BTC-USD-SWAP
+	Uly       string `json:"uly"`       // 标的指数，如 BTC-USD，仅适用于交割/永续/期权
+	Category  string `json:"category"`  // 手续费档位，每个交易产品属于哪个档位手续费
+	BaseCcy   string `json:"baseCcy"`   // 交易货币币种，如 BTC-USDT 中的 BTC ，仅适用于币币
+	QuoteCcy  string `json:"quoteCcy"`  // 计价货币币种，如 BTC-USDT 中的USDT ，仅适用于币币
+	SettleCcy string `json:"settleCcy"` // 盈亏结算和保证金币种，如 BTC 仅适用于交割/永续/期权
+	CtVal     string `json:"ctVal"`     // 合约面值，仅适用于交割/永续/期权
+	CtMult    string `json:"ctMult"`    // 合约乘数，仅适用于交割/永续/期权
+	CtValCcy  string `json:"ctValCcy"`  // 合约面值计价币种，仅适用于交割/永续/期权
+	OptType   string `json:"optType"`   // 期权类型，C或P 仅适用于期权
+	Stk       string `json:"stk"`       // 行权价格，仅适用于期权
+	ListTime  string `json:"listTime"`  // 上线日期 Unix时间戳的毫秒数格式，如 1597026383085
+	ExpTime   string `json:"expTime"`   // 交割/行权日期，仅适用于交割 和 期权 Unix时间戳的毫秒数格式，如 1597026383085
+	Lever     string `json:"lever"`     // 该instId支持的最大杠杆倍数，不适用于币币、期权
+	TickSz    string `json:"tickSz"`    // 下单价格精度，如 0.0001
+	LotSz     string `json:"lotSz"`     // 下单数量精度，如 BTC-USDT-SWAP：1
+	MinSz     string `json:"minSz"`     // 最小下单数量
+	CtType    string `json:"ctType"`    // linear：正向合约 inverse：反向合约 仅适用于交割/永续
+	Alias     string `json:"alias"`     // 合约日期别名 this_week：本周 next_week：次周 quarter：季度 next_quarter：次季度 仅适用于交割
+	State     string `json:"state"`     // 产品状态 live：交易中 suspend：暂停中 preopen：预上线settlement：资金费结算
 }

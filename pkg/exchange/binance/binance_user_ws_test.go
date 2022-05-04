@@ -17,10 +17,8 @@ func TestUserWS(t *testing.T) {
 Out:
 	for {
 		select {
-		case o, ok := <-datas.OrderChan:
-			fmt.Println("order change:", o, ok)
-		case p, ok := <-datas.PosChan:
-			fmt.Println("pos change:", p, ok)
+		case o, ok := <-datas:
+			fmt.Println("datas:", o, ok)
 		case <-tm:
 			break Out
 		}

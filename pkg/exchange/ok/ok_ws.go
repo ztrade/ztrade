@@ -113,7 +113,14 @@ func (b *OkexTrade) runPrivateLoop(c *websocket.Conn, closeCh chan bool) {
 	var lastMsgTime time.Time
 	loopEnd := make(chan bool)
 	defer func() {
+		fmt.Println("runPrivate finished")
 		close(loopEnd)
+		select {
+		case <-closeCh:
+			b.wg.Done()
+			return
+		default:
+		}
 		err = b.runPrivate()
 		if err != nil {
 			log.Error("okex reconnect private failed:", err.Error())

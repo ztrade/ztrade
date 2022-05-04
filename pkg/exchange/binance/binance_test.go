@@ -3,7 +3,6 @@ package binance
 import (
 	"fmt"
 	"log"
-	"os/user"
 	"testing"
 	"time"
 
@@ -17,14 +16,10 @@ var (
 )
 
 func getTestClt() *BinanceTrade {
-	u, err := user.Current()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	cfgFile := u.HomeDir + "/.config/exchange.json"
+	cfgFile := "../../../dist/configs/ztrade.yaml"
 	cfg := viper.New()
 	cfg.SetConfigFile(cfgFile)
-	err = cfg.ReadInConfig()
+	err := cfg.ReadInConfig()
 	if err != nil {
 		log.Fatal("ReadInConfig failed:" + err.Error())
 	}
@@ -43,7 +38,7 @@ func TestMain(m *testing.M) {
 func TestKlineChan(t *testing.T) {
 	end := time.Now()
 	start := end.Add(0 - time.Hour)
-	datas, errCh := testClt.KlineChan(start, end, "BTCUSDT", "1m")
+	datas, errCh := testClt.GetKline("BTCUSDT", "1m", start, end)
 	var n int
 	for v := range datas {
 		n++
@@ -104,4 +99,14 @@ func TestWatchKline(t *testing.T) {
 	}
 	t.Log("total:", n)
 
+}
+
+func TestSymbols(t *testing.T) {
+	symbols, err := testClt.GetSymbols()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, v := range symbols {
+		t.Log(v.Symbol, v.Pricescale)
+	}
 }
