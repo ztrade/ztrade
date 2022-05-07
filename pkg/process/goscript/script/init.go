@@ -1,6 +1,7 @@
 package script
 
 import (
+	"fmt"
 	"path/filepath"
 	"reflect"
 	. "reflect"
@@ -14,8 +15,8 @@ import (
 )
 
 func init() {
-	eng := engine.NewEngine(nil)
-
+	eng := engine.NewEngineWrapper(nil, nil)
+	fmt.Println(TypeOf(eng))
 	paths.GoSrcDir = filepath.Join(common.GetExecDir(), "plugins")
 	imports.Packages["github.com/ztrade/trademodel"] = imports.Package{
 		Types: map[string]Type{

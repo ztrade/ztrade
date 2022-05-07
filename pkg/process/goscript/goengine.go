@@ -20,13 +20,16 @@ type scriptInfo struct {
 	params common.ParamData
 }
 
+type UpdateStatusFn func(name string, status int, msg string)
+
 type GoEngine struct {
 	BaseProcesser
-	engine   bengine.Engine
-	vms      map[string]*scriptInfo
-	mutex    sync.Mutex
-	binSizes []string
-	started  int32
+	engine         *engine.EngineWrapper
+	vms            map[string]*scriptInfo
+	mutex          sync.Mutex
+	binSizes       []string
+	started        int32
+	updateStatusFn UpdateStatusFn
 }
 
 func NewDefaultGoEngine() (s *GoEngine, err error) {
@@ -37,8 +40,12 @@ func NewGoEngine(binSizes string) (s *GoEngine, err error) {
 	s.binSizes = common.ParseBinStrs(binSizes)
 	s.Name = "multi_script"
 	s.vms = make(map[string]*scriptInfo)
-	s.engine = engine.NewEngine(&s.BaseProcesser)
+	s.engine = engine.NewEngineWrapper(&s.BaseProcesser, nil)
 	return
+}
+
+func (s *GoEngine) SetUpdateStatusFn(fn UpdateStatusFn) {
+	s.updateStatusFn = fn
 }
 
 func (s *GoEngine) Init(bus *Bus) (err error) {
@@ -54,8 +61,13 @@ func (s *GoEngine) Init(bus *Bus) (err error) {
 
 func (s *GoEngine) Start() (err error) {
 	atomic.StoreInt32(&s.started, 1)
-	for _, v := range s.vms {
-		v.Init(s.engine, v.params)
+	for k, v := range s.vms {
+		temp := k
+		tempEng := *s.engine
+		tempEng.Cb = func(status int, msg string) {
+			s.updateScriptStatus(temp, status, msg)
+		}
+		v.Init(&tempEng, v.params)
 	}
 	return
 }
@@ -228,4 +240,23 @@ func (s *GoEngine) onEventBalance(e *Event) (err error) {
 	}
 	s.onBalance(balance.Balance)
 	return
+}
+
+func (s *GoEngine) updateScriptStatus(name string, status int, msg string) {
+	// call in script, no need lock
+	_, ok := s.vms[name]
+	if !ok {
+		log.Errorf("GoEngine updateScriptStatus failed,no script %s found", name)
+		return
+	}
+	switch status {
+	case bengine.StatusRunning:
+	case bengine.StatusSuccess, bengine.StatusFail:
+		delete(s.vms, name)
+	default:
+		log.Errorf("GoEngine updateScriptStatus script %s unknown status: %d,", name, status)
+	}
+	if s.updateStatusFn != nil {
+		s.updateStatusFn(name, status, msg)
+	}
 }

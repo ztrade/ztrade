@@ -87,6 +87,9 @@ func NewOkexExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err 
 }
 
 func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTrade, err error) {
+	if symbol == "" {
+		symbol = "BTC-USDT-SWAP"
+	}
 	b = new(OkexTrade)
 	b.Name = "okex"
 	b.simpleMode = true

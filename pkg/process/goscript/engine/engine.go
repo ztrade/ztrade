@@ -22,7 +22,25 @@ type EngineImpl struct {
 	merges   []*KlinePlugin
 }
 
+type UpdateStatusFn func(status int, msg string)
+type EngineWrapper struct {
+	*EngineImpl
+	Cb UpdateStatusFn
+}
+
+func (e *EngineWrapper) UpdateStatus(status int, msg string) {
+	e.Cb(status, msg)
+}
+
+func NewEngineWrapper(proc *BaseProcesser, cb UpdateStatusFn) *EngineWrapper {
+	return &EngineWrapper{EngineImpl: NewEngineImpl(proc), Cb: cb}
+}
+
 func NewEngine(proc *BaseProcesser) engine.Engine {
+	return NewEngineWrapper(proc, nil)
+}
+
+func NewEngineImpl(proc *BaseProcesser) *EngineImpl {
 	e := new(EngineImpl)
 	e.proc = proc
 	return e
@@ -111,4 +129,8 @@ func (e *EngineImpl) OnCandle(candle *Candle) {
 
 func (e *EngineImpl) UpdateBalance(balance float64) {
 	e.balance = balance
+}
+
+func (e *EngineImpl) UpdateStatus(status int, msg string) {
+	log.Error("EngineImpl UpdateStatus, never called")
 }
