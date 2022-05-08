@@ -397,6 +397,76 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 		return
 	}
 	ret = orders[0]
+	ret.Remark = "stop"
+	return
+}
+func (b *OkexTrade) CancelOrder(old *Order) (order *Order, err error) {
+	_, ok := b.ordersCache.Load(old.OrderID)
+	if ok {
+		order, err = b.cancelNormalOrder(old)
+		if err != nil {
+			return
+		}
+		b.ordersCache.Delete(old.OrderID)
+	}
+	_, ok = b.stopOrdersCache.Load(old.OrderID)
+	if ok {
+		order, err = b.cancelAlgoOrder(old)
+		b.stopOrdersCache.Delete(old.OrderID)
+	}
+	return
+}
+
+func (b *OkexTrade) cancelNormalOrder(old *Order) (order *Order, err error) {
+	ctx, cancel := context.WithTimeout(background, time.Second*2)
+	defer cancel()
+
+	var body trade.PostApiV5TradeCancelOrderJSONRequestBody
+	body.InstId = b.symbol
+	body.OrdId = &old.OrderID
+
+	cancelResp, err := b.tradeApi.PostApiV5TradeCancelOrderWithResponse(ctx, body, b.auth)
+	if err != nil {
+		return
+	}
+	temp := OKEXOrder{}
+	err = json.Unmarshal(cancelResp.Body, &temp)
+	if err != nil {
+		return
+	}
+	if temp.Code != "0" {
+		err = errors.New(string(cancelResp.Body))
+	}
+	order = old
+	if len(temp.Data) > 0 {
+		order.OrderID = temp.Data[0].OrdID
+	}
+	return
+}
+
+func (b *OkexTrade) cancelAlgoOrder(old *Order) (order *Order, err error) {
+	ctx, cancel := context.WithTimeout(background, time.Second*2)
+	defer cancel()
+
+	var body = make(trade.PostApiV5TradeCancelAlgosJSONBody, 1)
+	body[0] = trade.CancelAlgoOrder{AlgoId: old.OrderID, InstId: b.symbol}
+
+	cancelResp, err := b.tradeApi.PostApiV5TradeCancelAlgosWithResponse(ctx, body, b.auth)
+	if err != nil {
+		return
+	}
+	temp := OKEXAlgoOrder{}
+	err = json.Unmarshal(cancelResp.Body, &temp)
+	if err != nil {
+		return
+	}
+	if temp.Code != "0" {
+		err = errors.New(string(cancelResp.Body))
+	}
+	order = old
+	if len(temp.Data) > 0 {
+		order.OrderID = temp.Data[0].AlgoID
+	}
 	return
 }
 

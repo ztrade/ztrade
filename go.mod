@@ -21,10 +21,10 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.11.0
 	github.com/tidwall/gjson v1.14.1
-	github.com/ztrade/base v0.0.5
+	github.com/ztrade/base v0.0.6
 	github.com/ztrade/ctp v0.0.2
 	github.com/ztrade/indicator v1.1.1
-	github.com/ztrade/trademodel v1.1.2
+	github.com/ztrade/trademodel v1.1.3
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3
 )
 

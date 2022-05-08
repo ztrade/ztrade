@@ -20,16 +20,20 @@ type scriptInfo struct {
 	params common.ParamData
 }
 
-type UpdateStatusFn func(name string, status int, msg string)
+type Status struct {
+	Name   string
+	Status int
+	Msg    string
+}
 
 type GoEngine struct {
 	BaseProcesser
-	engine         *engine.EngineWrapper
-	vms            map[string]*scriptInfo
-	mutex          sync.Mutex
-	binSizes       []string
-	started        int32
-	updateStatusFn UpdateStatusFn
+	engine   *engine.EngineWrapper
+	vms      map[string]*scriptInfo
+	mutex    sync.Mutex
+	binSizes []string
+	started  int32
+	statusCh chan *Status
 }
 
 func NewDefaultGoEngine() (s *GoEngine, err error) {
@@ -44,8 +48,8 @@ func NewGoEngine(binSizes string) (s *GoEngine, err error) {
 	return
 }
 
-func (s *GoEngine) SetUpdateStatusFn(fn UpdateStatusFn) {
-	s.updateStatusFn = fn
+func (s *GoEngine) SetStatusCh(ch chan *Status) {
+	s.statusCh = ch
 }
 
 func (s *GoEngine) Init(bus *Bus) (err error) {
@@ -244,6 +248,9 @@ func (s *GoEngine) onEventBalance(e *Event) (err error) {
 
 func (s *GoEngine) updateScriptStatus(name string, status int, msg string) {
 	// call in script, no need lock
+	if s.mutex.TryLock() {
+		defer s.mutex.Unlock()
+	}
 	_, ok := s.vms[name]
 	if !ok {
 		log.Errorf("GoEngine updateScriptStatus failed,no script %s found", name)
@@ -256,7 +263,7 @@ func (s *GoEngine) updateScriptStatus(name string, status int, msg string) {
 	default:
 		log.Errorf("GoEngine updateScriptStatus script %s unknown status: %d,", name, status)
 	}
-	if s.updateStatusFn != nil {
-		s.updateStatusFn(name, status, msg)
+	if s.statusCh != nil {
+		s.statusCh <- &Status{Name: name, Status: status, Msg: msg}
 	}
 }

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/ztrade/base/common"
@@ -13,6 +14,24 @@ import (
 	"github.com/ztrade/indicator"
 	. "github.com/ztrade/trademodel"
 )
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyz123456789"
+
+func randStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+func init() {
+	rand.Seed(time.Now().Unix())
+}
+
+func getActionID() string {
+	return randStringBytes(8)
+}
 
 type EngineImpl struct {
 	proc     *BaseProcesser
@@ -46,26 +65,30 @@ func NewEngineImpl(proc *BaseProcesser) *EngineImpl {
 	return e
 }
 
-func (e *EngineImpl) OpenLong(price, amount float64) {
-	e.addOrder(price, amount, OpenLong)
+func (e *EngineImpl) OpenLong(price, amount float64) string {
+	return e.addOrder(price, amount, OpenLong)
 }
-func (e *EngineImpl) CloseLong(price, amount float64) {
-	e.addOrder(price, amount, CloseLong)
+func (e *EngineImpl) CloseLong(price, amount float64) string {
+	return e.addOrder(price, amount, CloseLong)
 }
-func (e *EngineImpl) OpenShort(price, amount float64) {
-	e.addOrder(price, amount, OpenShort)
+func (e *EngineImpl) OpenShort(price, amount float64) string {
+	return e.addOrder(price, amount, OpenShort)
 }
-func (e *EngineImpl) CloseShort(price, amount float64) {
-	e.addOrder(price, amount, CloseShort)
+func (e *EngineImpl) CloseShort(price, amount float64) string {
+	return e.addOrder(price, amount, CloseShort)
 }
-func (e *EngineImpl) StopLong(price, amount float64) {
-	e.addOrder(price, amount, StopLong)
+func (e *EngineImpl) StopLong(price, amount float64) string {
+	return e.addOrder(price, amount, StopLong)
 }
-func (e *EngineImpl) StopShort(price, amount float64) {
-	e.addOrder(price, amount, StopShort)
+func (e *EngineImpl) StopShort(price, amount float64) string {
+	return e.addOrder(price, amount, StopShort)
 }
 func (e *EngineImpl) CancelAllOrder() {
 	e.proc.Send(EventOrder, EventOrder, &TradeAction{Action: CancelAll})
+}
+
+func (e *EngineImpl) CancelOrder(id string) {
+	e.proc.Send(EventOrder, EventOrder, &TradeAction{Action: CancelOne, ID: id})
 }
 
 func (e *EngineImpl) AddIndicator(name string, params ...int) (ind indicator.CommonIndicator) {
@@ -90,10 +113,12 @@ func (e *EngineImpl) Log(v ...interface{}) {
 	fmt.Println(v...)
 }
 
-func (e *EngineImpl) addOrder(price, amount float64, orderType TradeType) {
+func (e *EngineImpl) addOrder(price, amount float64, orderType TradeType) (id string) {
 	// FixMe: in backtest, time may be the time of candle
-	act := TradeAction{Action: orderType, Amount: amount, Price: price, Time: time.Now()}
+	id = getActionID()
+	act := TradeAction{ID: id, Action: orderType, Amount: amount, Price: price, Time: time.Now()}
 	e.proc.Send(EventOrder, EventOrder, &act)
+	return
 }
 
 func (e *EngineImpl) Watch(watchType string) {

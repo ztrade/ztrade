@@ -4,21 +4,37 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/ztrade/trademodel"
 )
 
+var (
+	testClt *OkexTrade
+)
+
+func getTestClt() *OkexTrade {
+	cfgFile := "../../../dist/configs/ztrade.yaml"
+	cfg := viper.New()
+	cfg.SetConfigFile(cfgFile)
+	err := cfg.ReadInConfig()
+	if err != nil {
+		log.Fatal("ReadInConfig failed:" + err.Error())
+	}
+	testClt, err = NewOkexTradeWithSymbol(cfg, "okex", "ETH-USDT-SWAP")
+	if err != nil {
+		log.Fatal("create client failed:" + err.Error())
+	}
+	return testClt
+}
+
+func TestMain(m *testing.M) {
+	testClt = getTestClt()
+	m.Run()
+}
+
 func TestSymbols(t *testing.T) {
-	viper.SetConfigFile("../../../dist/configs/ztrade.yaml")
-	err := viper.ReadInConfig()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	api, err := NewOkexExchange(viper.GetViper(), "okex", "ETH-USDT-SWAP")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	symbols, err := api.GetSymbols()
+	symbols, err := testClt.GetSymbols()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -28,16 +44,7 @@ func TestSymbols(t *testing.T) {
 }
 
 func TestOrder(t *testing.T) {
-	viper.SetConfigFile("../../../dist/configs/ztrade.yaml")
-	err := viper.ReadInConfig()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	api, err := NewOkexExchange(viper.GetViper(), "okex", "ETH-USDT-SWAP")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	order, err := api.ProcessOrder(trademodel.TradeAction{
+	order, err := testClt.ProcessOrder(trademodel.TradeAction{
 		Action: trademodel.OpenShort,
 		Amount: 1,
 		Price:  3100,
@@ -48,7 +55,7 @@ func TestOrder(t *testing.T) {
 	}
 	t.Log(*order)
 
-	order, err = api.ProcessOrder(trademodel.TradeAction{
+	order, err = testClt.ProcessOrder(trademodel.TradeAction{
 		Action: trademodel.StopShort,
 		Amount: 1,
 		Price:  3080,
@@ -59,8 +66,55 @@ func TestOrder(t *testing.T) {
 	}
 	t.Log(*order)
 	time.Sleep(time.Second)
-	_, err = api.CancelAllOrders()
+	_, err = testClt.CancelAllOrders()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+}
+
+func TestCancelAllOrder(t *testing.T) {
+	_, err := testClt.CancelAllOrders()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func TestCancelOrder(t *testing.T) {
+	act := trademodel.TradeAction{
+		Action: trademodel.OpenLong,
+		Amount: 1,
+		Price:  2000,
+		Time:   time.Now(),
+	}
+	order, err := testClt.ProcessOrder(act)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Log(*order)
+	time.Sleep(time.Second * 5)
+	ret, err := testClt.CancelOrder(order)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Log("ret:", *ret)
+}
+
+func TestCancelStopOrder(t *testing.T) {
+	act := trademodel.TradeAction{
+		Action: trademodel.StopLong,
+		Amount: 1,
+		Price:  2000,
+		Time:   time.Now(),
+	}
+	order, err := testClt.ProcessOrder(act)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Log(*order)
+	time.Sleep(time.Second * 5)
+	ret, err := testClt.CancelOrder(order)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Log("ret:", *ret)
 }

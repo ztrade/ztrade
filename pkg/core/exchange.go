@@ -58,7 +58,7 @@ type Exchange interface {
 	// ProcessOrder process order
 	ProcessOrder(act TradeAction) (ret *Order, err error)
 	CancelAllOrders() (orders []*Order, err error)
-
+	CancelOrder(old *Order) (orders *Order, err error)
 	// GetBalanceChan
 	GetDataChan() chan *ExchangeData
 	GetSymbols() ([]SymbolInfo, error)

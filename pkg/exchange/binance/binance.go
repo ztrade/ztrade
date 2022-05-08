@@ -46,10 +46,11 @@ type BinanceTrade struct {
 	datas   chan *ExchangeData
 	closeCh chan bool
 
-	cancelService   *futures.CancelAllOpenOrdersService
-	klineLimit      int
-	wsUserListenKey string
-	wsUser          *websocket.Conn
+	cancelService    *futures.CancelAllOpenOrdersService
+	cancelOneService *futures.CancelOrderService
+	klineLimit       int
+	wsUserListenKey  string
+	wsUser           *websocket.Conn
 }
 
 func NewBinanceExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err error) {
@@ -92,6 +93,7 @@ func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *Bin
 		websocket.DefaultDialer.HandshakeTimeout = time.Second * 60
 	}
 	b.cancelService = b.api.NewCancelAllOpenOrdersService().Symbol(b.symbol)
+	b.cancelOneService = b.api.NewCancelOrderService().Symbol(b.symbol)
 	return
 }
 
@@ -280,6 +282,33 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 		<-b.closeCh
 		close(stopC)
 	}()
+	return
+}
+
+func (b *BinanceTrade) CancelOrder(old *Order) (order *Order, err error) {
+	resp, err := b.cancelOneService.Symbol(b.symbol).Do(context.Background())
+	if err != nil {
+		return
+	}
+	price, err := strconv.ParseFloat(resp.Price, 64)
+	if err != nil {
+		panic(fmt.Sprintf("CancelOrder parse price %s error: %s", resp.Price, err.Error()))
+	}
+	amount, err := strconv.ParseFloat(resp.OrigQuantity, 64)
+	if err != nil {
+		panic(fmt.Sprintf("CancelOrder parse damount %s error: %s", resp.OrigQuantity, err.Error()))
+	}
+	order = &Order{
+		OrderID:  strconv.FormatInt(resp.OrderID, 10),
+		Symbol:   resp.Symbol,
+		Currency: resp.Symbol,
+		Amount:   amount,
+		Price:    price,
+		Status:   strings.ToUpper(string(resp.Status)),
+		Side:     strings.ToLower(string(resp.Side)),
+		Time:     time.Unix(resp.UpdateTime/1000, 0),
+	}
+
 	return
 }
 

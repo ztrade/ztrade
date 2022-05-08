@@ -276,6 +276,10 @@ func (c *CtpExchange) Watch(core.WatchParam) error {
 	return nil
 }
 
+func (c *CtpExchange) CancelOrder(old *Order) (order *Order, err error) {
+	return
+}
+
 // for trade
 // ProcessOrder process order
 func (c *CtpExchange) ProcessOrder(act TradeAction) (ret *Order, err error) {

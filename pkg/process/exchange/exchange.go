@@ -14,6 +14,7 @@ import (
 )
 
 type OrderInfo struct {
+	LocalID string
 	Order
 	Action TradeType
 	Filled bool
@@ -27,7 +28,8 @@ type TradeExchange struct {
 	datas   chan *ExchangeData
 	actChan chan TradeAction
 
-	orders map[string]*OrderInfo
+	orders          map[string]*OrderInfo
+	localOrderIndex map[string]*OrderInfo
 
 	closeCh chan bool
 
@@ -46,6 +48,7 @@ func NewTradeExchange(exName string, impl Exchange, symbol string) *TradeExchang
 	te.datas = impl.GetDataChan()
 	te.actChan = make(chan TradeAction, 10)
 	te.orders = make(map[string]*OrderInfo)
+	te.localOrderIndex = make(map[string]*OrderInfo)
 	te.closeCh = make(chan bool)
 	te.symbol = symbol
 	return te
@@ -119,13 +122,13 @@ Out:
 				continue Out
 			}
 			o.Filled = true
-			tr := Trade{ID: o.OrderID,
+			tr := Trade{ID: o.LocalID,
 				Action: o.Action,
 				Time:   o.Time,
 				Price:  o.Price,
 				Amount: o.Amount,
 				Side:   o.Side,
-				Remark: ""}
+				Remark: o.OrderID}
 			b.Send(o.OrderID, EventTrade, &tr)
 		case EventPosition:
 			pos = data.GetData().(*Position)
@@ -186,6 +189,19 @@ func (b *TradeExchange) orderRoutine() {
 		if v.Action == trademodel.CancelAll {
 			b.cancelAllOrder()
 			continue
+		} else if v.Action == trademodel.CancelOne {
+			oi, ok := b.localOrderIndex[v.ID]
+			if !ok {
+				log.Errorf("local order: %s not found", v.ID)
+				continue
+			}
+			_, err = doOrderWithRetry(10, func() (interface{}, error) {
+				return b.impl.CancelOrder(&oi.Order)
+			})
+			if err != nil {
+				log.Errorf("cancel order local %s, id %s failed: %s", oi.LocalID, oi.OrderID, err.Error())
+			}
+			continue
 		}
 		ret, err = doOrderWithRetry(10, func() (interface{}, error) {
 			order, e := b.impl.ProcessOrder(v)
@@ -193,7 +209,18 @@ func (b *TradeExchange) orderRoutine() {
 		})
 		if err == nil {
 			od := ret.(*Order)
-			b.orders[od.OrderID] = &OrderInfo{Order: *od, Action: v.Action}
+			oi := &OrderInfo{Order: *od, Action: v.Action, LocalID: v.ID}
+			b.orders[od.OrderID] = oi
+			b.localOrderIndex[v.ID] = oi
+		} else {
+			tr := Trade{ID: v.ID,
+				Action: v.Action,
+				Time:   v.Time,
+				Price:  v.Price,
+				Amount: v.Amount,
+				// Side:   v.Action,
+				Remark: "failed"}
+			b.Send(v.ID, EventTrade, &tr)
 		}
 
 	}
