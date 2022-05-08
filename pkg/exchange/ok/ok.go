@@ -62,6 +62,7 @@ type OkexTrade struct {
 	apiKey    string
 	apiSecret string
 	apiPwd    string
+	tdMode    string
 
 	klineLimit    int
 	wsUser        *websocket.Conn
@@ -101,10 +102,15 @@ func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTr
 	b.apiKey = cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	b.apiSecret = cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
 	b.apiPwd = cfg.GetString(fmt.Sprintf("exchanges.%s.pwd", cltName))
-	simpleMode := cfg.GetString(fmt.Sprintf("exchange.%s.simple", cltName))
+	b.tdMode = cfg.GetString(fmt.Sprintf("exchanges.%s.tdmode", cltName))
+	if b.tdMode == "" {
+		b.tdMode = "isolated"
+	}
+	simpleMode := cfg.GetString(fmt.Sprintf("exchanges.%s.simple", cltName))
 	if simpleMode == "false" {
 		b.simpleMode = false
 	}
+	log.Infof("okex %s simpleMode %t, tdMode: %s:", cltName, b.simpleMode, b.tdMode)
 
 	b.symbol = symbol
 	b.datas = make(chan *ExchangeData, 1024)
@@ -362,7 +368,7 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 		//	SzLimit *string `json:"szLimit,omitempty"`
 
 		// 必填<br>交易模式<br>保证金模式：`isolated`：逐仓 ；`cross`<br>全仓非保证金模式：`cash`：非保证金
-		TdMode: "isolated",
+		TdMode: b.tdMode,
 
 		// 非必填<br>市价单委托数量的类型<br>交易货币：`base_ccy`<br>计价货币：`quote_ccy`<br>仅适用于币币订单
 		//	TgtCcy *string `json:"tgtCcy,omitempty"`
@@ -522,7 +528,7 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		// 非必填<br>订单标签<br>字母（区分大小写）与数字的组合，可以是纯字母、纯数字，且长度在1-8位之间。
 		Tag: &tag,
 		// 必填<br>交易模式<br>保证金模式：`isolated`：逐仓 ；`cross`<br>全仓非保证金模式：`cash`：非保证金
-		TdMode: "isolated",
+		TdMode: b.tdMode,
 		// 非必填<br>市价单委托数量的类型<br>交易货币：`base_ccy`<br>计价货币：`quote_ccy`<br>仅适用于币币订单
 		//	TgtCcy *string `json:"tgtCcy,omitempty"`
 	}
@@ -587,7 +593,6 @@ func (b *OkexTrade) cancelAllNormal() (orders []*Order, err error) {
 	var body trade.PostApiV5TradeCancelBatchOrdersJSONRequestBody
 	for _, v := range orderResp.Data {
 		temp := v.OrdID
-		fmt.Println("order:", v.OrdID)
 		body = append(body, trade.CancelBatchOrder{
 			InstId: b.symbol,
 			OrdId:  &temp,
@@ -761,7 +766,6 @@ func parsePostOrders(symbol, status, side string, amount, price float64, body []
 		err = fmt.Errorf("error resp: %s", string(body))
 		return
 	}
-	fmt.Println("data:", temp.Data)
 	for _, v := range temp.Data {
 		if v.SCode != "0" {
 			err = fmt.Errorf("%s %s", v.SCode, v.SMsg)

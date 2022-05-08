@@ -33,10 +33,11 @@ type Trade struct {
 	stop         chan bool
 	rpt          rpt.Reporter
 	proc         *event.Processers
-	engine       Scripter
+	engine       *goscript.GoEngine
 	r            *rpt.Rpt
 	wg           sync.WaitGroup
 	loadRecent   time.Duration
+	statusCh     chan *goscript.Status
 }
 
 // NewTrade constructor of Trade
@@ -51,12 +52,15 @@ func NewTrade(exchange, symbol string) (b *Trade, err error) {
 	}
 	b.engine = gEngine
 	b.loadRecent = time.Hour * 24
-	// fmt.Println("exchange type:", b.exchangeType, fmt.Sprintf("%s.type", b.exchangeName))
 	return
 }
 
 func (b *Trade) SetLoadRecent(recent time.Duration) {
 	b.loadRecent = recent
+}
+
+func (b *Trade) SetStatusCh(ch chan *goscript.Status) {
+	b.engine.SetStatusCh(ch)
 }
 
 func (b *Trade) SetReporter(rpt rpt.Reporter) {
@@ -107,7 +111,7 @@ func (b *Trade) Stop() (err error) {
 func (b *Trade) init() (err error) {
 	b.stop = make(chan bool)
 	param := event.NewBaseProcesser("param")
-	ex, err := exchange.GetTradeExchange(b.exchangeName, cfg, b.exchangeName, b.symbol)
+	ex, err := exchange.GetTradeExchange(b.exchangeType, cfg, b.exchangeName, b.symbol)
 	if err != nil {
 		err = fmt.Errorf("creat exchange trade %s failed:%s", b.exchangeName, err.Error())
 		return

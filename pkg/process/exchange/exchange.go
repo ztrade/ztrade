@@ -219,7 +219,7 @@ func (b *TradeExchange) orderRoutine() {
 				Price:  v.Price,
 				Amount: v.Amount,
 				// Side:   v.Action,
-				Remark: "failed"}
+				Remark: "failed:" + err.Error()}
 			b.Send(v.ID, EventTrade, &tr)
 		}
 

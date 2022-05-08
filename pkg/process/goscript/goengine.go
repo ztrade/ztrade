@@ -18,6 +18,7 @@ import (
 type scriptInfo struct {
 	engine.Runner
 	params common.ParamData
+	wrap   *engine.EngineWrapper
 }
 
 type Status struct {
@@ -67,10 +68,11 @@ func (s *GoEngine) Start() (err error) {
 	atomic.StoreInt32(&s.started, 1)
 	for k, v := range s.vms {
 		temp := k
-		tempEng := *s.engine
+		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl}
 		tempEng.Cb = func(status int, msg string) {
 			s.updateScriptStatus(temp, status, msg)
 		}
+		v.wrap = &tempEng
 		v.Init(&tempEng, v.params)
 	}
 	return
@@ -119,7 +121,13 @@ func (s *GoEngine) doAddScript(name, src string, param map[string]interface{}) (
 	s.vms[name] = &si
 	isStart := atomic.LoadInt32(&s.started)
 	if isStart == 1 {
-		si.Runner.Init(s.engine, paramData)
+		temp := name
+		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl}
+		tempEng.Cb = func(status int, msg string) {
+			s.updateScriptStatus(temp, status, msg)
+		}
+		si.wrap = &tempEng
+		si.Runner.Init(&tempEng, paramData)
 	}
 	return
 }

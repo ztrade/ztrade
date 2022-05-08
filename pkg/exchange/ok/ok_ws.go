@@ -474,10 +474,12 @@ func (ot *OKEXPos) GetPos() (pos *Position) {
 			typ = Short
 		}
 	}
+	price := parseFloat(ot.AvgPx)
 	pos = &Position{
 		Symbol:      ot.InstID,
 		Type:        typ,
 		Hold:        hold,
+		Price:       price,
 		ProfitRatio: parseFloat(ot.Upl),
 	}
 	return
