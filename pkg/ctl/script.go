@@ -14,7 +14,7 @@ type Scripter interface {
 	ScriptCount() int
 }
 
-func NewScript(file string, param map[string]interface{}) (s Scripter, err error) {
+func NewScript(file string, param map[string]interface{}, symbol string) (s Scripter, err error) {
 	var gEngine *goscript.GoEngine
 	gEngine, err = goscript.NewDefaultGoEngine()
 	if err != nil {

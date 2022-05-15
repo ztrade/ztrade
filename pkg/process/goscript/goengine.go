@@ -32,20 +32,18 @@ type GoEngine struct {
 	engine   *engine.EngineWrapper
 	vms      map[string]*scriptInfo
 	mutex    sync.Mutex
-	binSizes []string
 	started  int32
 	statusCh chan *Status
 }
 
 func NewDefaultGoEngine() (s *GoEngine, err error) {
-	return NewGoEngine(common.DefaultBinSizes)
+	return NewGoEngine("")
 }
-func NewGoEngine(binSizes string) (s *GoEngine, err error) {
+func NewGoEngine(symbol string) (s *GoEngine, err error) {
 	s = new(GoEngine)
-	s.binSizes = common.ParseBinStrs(binSizes)
 	s.Name = "multi_script"
 	s.vms = make(map[string]*scriptInfo)
-	s.engine = engine.NewEngineWrapper(&s.BaseProcesser, nil)
+	s.engine = engine.NewEngineWrapper(&s.BaseProcesser, nil, symbol)
 	return
 }
 

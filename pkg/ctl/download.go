@@ -101,7 +101,7 @@ func (d *DataDownload) Run() (err error) {
 
 func (d *DataDownload) download(start, end time.Time) (err error) {
 	log.Info("begin download candle:", start, end, d.symbol, d.binSize)
-	ex, err := core.NewExchange(d.exchange, d.cfg, d.exchange, d.symbol)
+	ex, err := core.NewExchange(d.exchange, d.cfg, d.exchange)
 	if err != nil {
 		return
 	}

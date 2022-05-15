@@ -46,7 +46,7 @@ func NewTrade(exchange, symbol string) (b *Trade, err error) {
 	b.exchangeName = exchange
 	b.symbol = symbol
 	b.exchangeType = cfg.GetString(fmt.Sprintf("exchanges.%s.type", b.exchangeName))
-	gEngine, err := goscript.NewDefaultGoEngine()
+	gEngine, err := goscript.NewGoEngine(symbol)
 	if err != nil {
 		return
 	}
@@ -150,9 +150,9 @@ func (b *Trade) init() (err error) {
 	param.Send("candle", EventWatch, NewWatchCandle(&candleParam))
 
 	log.Info("real trade watch trade_market")
-	param.Send("trade", EventWatch, &WatchParam{Type: EventTradeMarket, Data: map[string]interface{}{"name": "market"}})
+	param.Send("trade", EventWatch, &WatchParam{Type: EventTradeMarket, Extra: b.symbol, Data: map[string]interface{}{"name": "market"}})
 	log.Info("real trade watch depth")
-	param.Send("trade", EventWatch, &WatchParam{Type: EventDepth, Data: map[string]interface{}{"name": "depth"}})
+	param.Send("trade", EventWatch, &WatchParam{Type: EventDepth, Extra: b.symbol, Data: map[string]interface{}{"name": "depth"}})
 	return
 }
 

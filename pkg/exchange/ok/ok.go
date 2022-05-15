@@ -35,9 +35,15 @@ var (
 	ApiAddr       = "https://www.okx.com/"
 	WSOkexPUbilc  = "wss://wsaws.okx.com:8443/ws/v5/public"
 	WSOkexPrivate = "wss://wsaws.okx.com:8443/ws/v5/private"
+
+	TypeSPOT    = "SPOT"    //币币
+	TypeMARGIN  = "MARGIN"  // 币币杠杆
+	TypeSWAP    = "SWAP"    //永续合约
+	TypeFUTURES = "FUTURES" //交割合约
+	TypeOption  = "OPTION"  //期权
 )
 
-var _ Exchange = &OkexTrade{}
+var _ Exchange = &OkexTrader{}
 
 func init() {
 	RegisterExchange("okex", NewOkexExchange)
@@ -49,12 +55,11 @@ type OrderInfo struct {
 	Filled bool
 }
 
-type OkexTrade struct {
+type OkexTrader struct {
 	Name      string
 	tradeApi  *trade.ClientWithResponses
 	marketApi *market.ClientWithResponses
 	publicApi *public.ClientWithResponses
-	symbol    string
 
 	datas   chan *ExchangeData
 	closeCh chan bool
@@ -64,10 +69,9 @@ type OkexTrade struct {
 	apiPwd    string
 	tdMode    string
 
-	klineLimit    int
-	wsUser        *websocket.Conn
-	wsPublic      *websocket.Conn
-	wsPublicMutex sync.RWMutex
+	klineLimit int
+	wsUser     *WSConn
+	wsPublic   *WSConn
 
 	ordersCache     sync.Map
 	stopOrdersCache sync.Map
@@ -75,11 +79,14 @@ type OkexTrade struct {
 	simpleMode bool
 
 	watchPublics []OPParam
-	wg           sync.WaitGroup
+
+	prevCandleMutex sync.Mutex
+	prevCandle      map[string]*Candle
+	instType        string
 }
 
-func NewOkexExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err error) {
-	b, err := NewOkexTradeWithSymbol(cfg, cltName, symbol)
+func NewOkexExchange(cfg *viper.Viper, cltName string) (e Exchange, err error) {
+	b, err := NewOkexTrader(cfg, cltName)
 	if err != nil {
 		return
 	}
@@ -87,12 +94,11 @@ func NewOkexExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err 
 	return
 }
 
-func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTrade, err error) {
-	if symbol == "" {
-		symbol = "BTC-USDT-SWAP"
-	}
-	b = new(OkexTrade)
+func NewOkexTrader(cfg *viper.Viper, cltName string) (b *OkexTrader, err error) {
+	b = new(OkexTrader)
 	b.Name = "okex"
+	b.instType = "SWAP"
+	b.prevCandle = make(map[string]*Candle)
 	b.simpleMode = true
 	if cltName == "" {
 		cltName = "okex"
@@ -112,7 +118,6 @@ func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTr
 	}
 	log.Infof("okex %s simpleMode %t, tdMode: %s:", cltName, b.simpleMode, b.tdMode)
 
-	b.symbol = symbol
 	b.datas = make(chan *ExchangeData, 1024)
 	b.closeCh = make(chan bool)
 
@@ -146,11 +151,11 @@ func NewOkexTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *OkexTr
 	return
 }
 
-func NewOkexTrade(cfg *viper.Viper, cltName string) (b *OkexTrade, err error) {
-	return NewOkexTradeWithSymbol(cfg, cltName, "BTCUSDT")
+func (b *OkexTrader) SetInstType(instType string) {
+	b.instType = instType
 }
 
-func (b *OkexTrade) auth(ctx context.Context, req *http.Request) (err error) {
+func (b *OkexTrader) auth(ctx context.Context, req *http.Request) (err error) {
 	var temp []byte
 	if req.Method != "GET" {
 		temp, err = ioutil.ReadAll(req.Body)
@@ -184,28 +189,27 @@ func (b *OkexTrade) auth(ctx context.Context, req *http.Request) (err error) {
 	return
 }
 
-func (b *OkexTrade) Start(param map[string]interface{}) (err error) {
+func (b *OkexTrader) Start(param map[string]interface{}) (err error) {
 	err = b.runPublic()
 	if err != nil {
 		return
 	}
-	b.wg.Add(1)
 	err = b.runPrivate()
 	if err != nil {
 		return
 	}
-	b.wg.Add(1)
 	return
 }
-func (b *OkexTrade) Stop() (err error) {
+func (b *OkexTrader) Stop() (err error) {
+	b.wsPublic.Close()
+	b.wsUser.Close()
 	close(b.closeCh)
-	b.wg.Wait()
 	close(b.datas)
 	return
 }
 
 // KlineChan get klines
-func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, errCh chan error) {
+func (b *OkexTrader) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, errCh chan error) {
 	data = make(chan *Candle, 1024*10)
 	errCh = make(chan error, 1)
 	go func() {
@@ -225,7 +229,7 @@ func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data c
 			startStr = strconv.FormatInt(nStart, 10)
 			tempEnd = nStart + 100*60*1000
 			endStr = strconv.FormatInt(tempEnd, 10)
-			var params = market.GetApiV5MarketHistoryCandlesParams{InstId: b.symbol, Bar: &bSize, Before: &startStr, After: &endStr}
+			var params = market.GetApiV5MarketHistoryCandlesParams{InstId: symbol, Bar: &bSize, Before: &startStr, After: &endStr}
 			resp, err = b.marketApi.GetApiV5MarketHistoryCandlesWithResponse(ctx, &params)
 			cancel()
 			if err != nil {
@@ -266,49 +270,43 @@ func (b *OkexTrade) GetKline(symbol, bSize string, start, end time.Time) (data c
 	return
 }
 
-func (b *OkexTrade) writePublic(v interface{}) (err error) {
-	b.wsPublicMutex.Lock()
-	err = b.wsPublic.WriteJSON(v)
-	b.wsPublicMutex.Unlock()
-	return
-}
-
-func (b *OkexTrade) Watch(param WatchParam) (err error) {
+func (b *OkexTrader) Watch(param WatchParam) (err error) {
+	symbol := param.Extra.(string)
 	log.Info("okex watch:", param)
 	switch param.Type {
 	case EventWatchCandle:
 		var p = OPParam{
 			OP: "subscribe",
 			Args: []interface{}{
-				OPArg{Channel: "candle1m", InstType: "SWAP", InstID: b.symbol},
+				OPArg{Channel: "candle1m", InstType: b.instType, InstID: symbol},
 			},
 		}
 		b.watchPublics = append(b.watchPublics, p)
-		err = b.writePublic(p)
+		err = b.wsPublic.WriteMsg(p)
 	case EventDepth:
 		var p = OPParam{
 			OP: "subscribe",
 			Args: []interface{}{
-				OPArg{Channel: "books5", InstType: "SWAP", InstID: b.symbol},
+				OPArg{Channel: "books5", InstType: b.instType, InstID: symbol},
 			},
 		}
 		b.watchPublics = append(b.watchPublics, p)
-		err = b.writePublic(p)
+		err = b.wsPublic.WriteMsg(p)
 	case EventTradeMarket:
 		var p = OPParam{
 			OP: "subscribe",
 			Args: []interface{}{
-				OPArg{Channel: "trades", InstType: "SWAP", InstID: b.symbol},
+				OPArg{Channel: "trades", InstType: b.instType, InstID: symbol},
 			},
 		}
 		b.watchPublics = append(b.watchPublics, p)
-		err = b.writePublic(p)
+		err = b.wsPublic.WriteMsg(p)
 	default:
 		err = fmt.Errorf("unknown wath param: %s", param.Type)
 	}
 	return
 }
-func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
+func (b *OkexTrader) processStopOrder(act TradeAction) (ret *Order, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*2)
 	defer cancel()
 	var side, posSide string
@@ -329,7 +327,7 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 		//	Ccy *string `json:"ccy,omitempty"`
 
 		// 必填<br>产品ID，如：`BTC-USDT`
-		InstId: b.symbol,
+		InstId: act.Symbol,
 
 		// 必填<br>订单类型。<br>`conditional`：单向止盈止损<br>`oco`：双向止盈止损<br>`trigger`：计划委托<br>`iceberg`：冰山委托<br>`twap`：时间加权委托
 		OrdType: "conditional",
@@ -393,7 +391,7 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 		return
 	}
 
-	orders, err := parsePostAlgoOrders(b.symbol, "open", side, act.Price, act.Amount, resp.Body)
+	orders, err := parsePostAlgoOrders(act.Symbol, "open", side, act.Price, act.Amount, resp.Body)
 	if err != nil {
 		return
 	}
@@ -406,7 +404,7 @@ func (b *OkexTrade) processStopOrder(act TradeAction) (ret *Order, err error) {
 	ret.Remark = "stop"
 	return
 }
-func (b *OkexTrade) CancelOrder(old *Order) (order *Order, err error) {
+func (b *OkexTrader) CancelOrder(old *Order) (order *Order, err error) {
 	_, ok := b.ordersCache.Load(old.OrderID)
 	if ok {
 		order, err = b.cancelNormalOrder(old)
@@ -423,12 +421,12 @@ func (b *OkexTrade) CancelOrder(old *Order) (order *Order, err error) {
 	return
 }
 
-func (b *OkexTrade) cancelNormalOrder(old *Order) (order *Order, err error) {
+func (b *OkexTrader) cancelNormalOrder(old *Order) (order *Order, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*2)
 	defer cancel()
 
 	var body trade.PostApiV5TradeCancelOrderJSONRequestBody
-	body.InstId = b.symbol
+	body.InstId = old.Symbol
 	body.OrdId = &old.OrderID
 
 	cancelResp, err := b.tradeApi.PostApiV5TradeCancelOrderWithResponse(ctx, body, b.auth)
@@ -450,12 +448,12 @@ func (b *OkexTrade) cancelNormalOrder(old *Order) (order *Order, err error) {
 	return
 }
 
-func (b *OkexTrade) cancelAlgoOrder(old *Order) (order *Order, err error) {
+func (b *OkexTrader) cancelAlgoOrder(old *Order) (order *Order, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*2)
 	defer cancel()
 
 	var body = make(trade.PostApiV5TradeCancelAlgosJSONBody, 1)
-	body[0] = trade.CancelAlgoOrder{AlgoId: old.OrderID, InstId: b.symbol}
+	body[0] = trade.CancelAlgoOrder{AlgoId: old.OrderID, InstId: old.Symbol}
 
 	cancelResp, err := b.tradeApi.PostApiV5TradeCancelAlgosWithResponse(ctx, body, b.auth)
 	if err != nil {
@@ -476,7 +474,7 @@ func (b *OkexTrade) cancelAlgoOrder(old *Order) (order *Order, err error) {
 	return
 }
 
-func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
+func (b *OkexTrader) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	if act.Action.IsStop() {
 		ret, err = b.processStopOrder(act)
 		if err != nil {
@@ -509,7 +507,7 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	params := trade.PostApiV5TradeOrderJSONRequestBody{
 		//ClOrdId *string `json:"clOrdId,omitempty"`
 		// 必填<br>产品ID，如：`BTC-USDT`
-		InstId: b.symbol,
+		InstId: act.Symbol,
 		// 必填<br>订单类型。<br>市价单：`market`<br>限价单：`limit`<br>只做maker单：`post_only`<br>全部成交或立即取消：`fok`<br>立即成交并取消剩余：`ioc`<br>市价委托立即成交并取消剩余：`optimal_limit_ioc`（仅适用交割、永续）
 		OrdType: ordType,
 
@@ -539,7 +537,7 @@ func (b *OkexTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	if err != nil {
 		return
 	}
-	orders, err := parsePostOrders(b.symbol, "open", side, act.Price, act.Amount, resp.Body)
+	orders, err := parsePostOrders(act.Symbol, "open", side, act.Price, act.Amount, resp.Body)
 	if err != nil {
 		return
 	}
@@ -565,12 +563,12 @@ type CancelAlgoResp struct {
 	Data []AlgoOrder `json:"data"`
 }
 
-func (b *OkexTrade) cancelAllNormal() (orders []*Order, err error) {
+func (b *OkexTrader) cancelAllNormal() (orders []*Order, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*3)
 	defer cancel()
-	instType := "SWAP"
+	instType := b.instType
 	var params = trade.GetApiV5TradeOrdersPendingParams{
-		InstId:   &b.symbol,
+		// InstId:   &b.symbol,
 		InstType: &instType,
 	}
 	resp, err := b.tradeApi.GetApiV5TradeOrdersPendingWithResponse(ctx, &params, b.auth)
@@ -594,7 +592,7 @@ func (b *OkexTrade) cancelAllNormal() (orders []*Order, err error) {
 	for _, v := range orderResp.Data {
 		temp := v.OrdID
 		body = append(body, trade.CancelBatchOrder{
-			InstId: b.symbol,
+			InstId: v.InstID,
 			OrdId:  &temp,
 		})
 	}
@@ -614,13 +612,13 @@ func (b *OkexTrade) cancelAllNormal() (orders []*Order, err error) {
 	return
 }
 
-func (b *OkexTrade) cancelAllAlgo() (orders []*Order, err error) {
+func (b *OkexTrader) cancelAllAlgo() (orders []*Order, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*3)
 	defer cancel()
-	instType := "SWAP"
+	instType := b.instType
 	var params = trade.GetApiV5TradeOrdersAlgoPendingParams{
-		OrdType:  "conditional",
-		InstId:   &b.symbol,
+		OrdType: "conditional",
+		// InstId:   &b.symbol,
 		InstType: &instType,
 	}
 	resp, err := b.tradeApi.GetApiV5TradeOrdersAlgoPendingWithResponse(ctx, &params, b.auth)
@@ -643,7 +641,7 @@ func (b *OkexTrade) cancelAllAlgo() (orders []*Order, err error) {
 	var body trade.PostApiV5TradeCancelAlgosJSONRequestBody
 	for _, v := range orderResp.Data {
 		body = append(body, trade.CancelAlgoOrder{
-			InstId: b.symbol,
+			InstId: v.InstID,
 			AlgoId: v.AlgoID,
 		})
 	}
@@ -662,7 +660,7 @@ func (b *OkexTrade) cancelAllAlgo() (orders []*Order, err error) {
 	}
 	return
 }
-func (b *OkexTrade) CancelAllOrders() (orders []*Order, err error) {
+func (b *OkexTrader) CancelAllOrders() (orders []*Order, err error) {
 	temp, err := b.cancelAllNormal()
 	if err != nil {
 		return
@@ -675,10 +673,10 @@ func (b *OkexTrade) CancelAllOrders() (orders []*Order, err error) {
 	return
 }
 
-func (b *OkexTrade) GetSymbols() (symbols []SymbolInfo, err error) {
+func (b *OkexTrader) GetSymbols() (symbols []SymbolInfo, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*3)
 	defer cancel()
-	resp, err := b.publicApi.GetApiV5PublicInstrumentsWithResponse(ctx, &public.GetApiV5PublicInstrumentsParams{InstType: "SWAP"})
+	resp, err := b.publicApi.GetApiV5PublicInstrumentsWithResponse(ctx, &public.GetApiV5PublicInstrumentsParams{InstType: b.instType})
 	if err != nil {
 		return
 	}
@@ -705,7 +703,7 @@ func (b *OkexTrade) GetSymbols() (symbols []SymbolInfo, err error) {
 	return
 }
 
-func (b *OkexTrade) GetDataChan() chan *ExchangeData {
+func (b *OkexTrader) GetDataChan() chan *ExchangeData {
 	return b.datas
 }
 

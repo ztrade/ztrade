@@ -39,6 +39,7 @@ type EngineImpl struct {
 	posPrice float64
 	balance  float64
 	merges   []*KlinePlugin
+	symbol   string
 }
 
 type UpdateStatusFn func(status int, msg string)
@@ -51,16 +52,17 @@ func (e *EngineWrapper) UpdateStatus(status int, msg string) {
 	e.Cb(status, msg)
 }
 
-func NewEngineWrapper(proc *BaseProcesser, cb UpdateStatusFn) *EngineWrapper {
-	return &EngineWrapper{EngineImpl: NewEngineImpl(proc), Cb: cb}
+func NewEngineWrapper(proc *BaseProcesser, cb UpdateStatusFn, symbol string) *EngineWrapper {
+	return &EngineWrapper{EngineImpl: NewEngineImpl(proc, symbol), Cb: cb}
 }
 
-func NewEngine(proc *BaseProcesser) engine.Engine {
-	return NewEngineWrapper(proc, nil)
+func NewEngine(proc *BaseProcesser, symbol string) engine.Engine {
+	return NewEngineWrapper(proc, nil, symbol)
 }
 
-func NewEngineImpl(proc *BaseProcesser) *EngineImpl {
+func NewEngineImpl(proc *BaseProcesser, symbol string) *EngineImpl {
 	e := new(EngineImpl)
+	e.symbol = symbol
 	e.proc = proc
 	return e
 }

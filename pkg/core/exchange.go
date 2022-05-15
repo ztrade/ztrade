@@ -12,25 +12,26 @@ var (
 	exchangeFactory = map[string]NewExchangeFn{}
 )
 
-type NewExchangeFn func(cfg *viper.Viper, cltName, symbol string) (t Exchange, err error)
+type NewExchangeFn func(cfg *viper.Viper, cltName string) (t Exchange, err error)
 
 func RegisterExchange(name string, fn NewExchangeFn) {
 	exchangeFactory[name] = fn
 }
 
-func NewExchange(name string, cfg *viper.Viper, cltName, symbol string) (ex Exchange, err error) {
+func NewExchange(name string, cfg *viper.Viper, cltName string) (ex Exchange, err error) {
 	fn, ok := exchangeFactory[name]
 	if !ok {
 		err = fmt.Errorf("no such exchange %s", name)
 		return
 	}
-	ex, err = fn(cfg, cltName, symbol)
+	ex, err = fn(cfg, cltName)
 	return
 }
 
 type ExchangeData struct {
-	Data EventData `json:"data"`
-	Name string
+	Data   EventData `json:"data"`
+	Name   string
+	Symbol string
 }
 
 func (e *ExchangeData) GetType() string {

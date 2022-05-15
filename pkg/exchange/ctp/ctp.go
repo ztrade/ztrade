@@ -46,8 +46,6 @@ type CtpExchange struct {
 	tdApi         *ctp.CThostFtdcTraderApi
 	tdSpi         *TdSpi
 	cfg           *Config
-	symbol        string
-	exchangeID    string
 	datas         chan *core.ExchangeData
 	prevVolume    float64
 	orderID       uint64
@@ -60,8 +58,8 @@ type CtpExchange struct {
 	positionCache []Position
 }
 
-func NewCtp(cfg *viper.Viper, cltName, symbol string) (e core.Exchange, err error) {
-	b, err := NewCtpExchange(cfg, cltName, symbol)
+func NewCtp(cfg *viper.Viper, cltName string) (e core.Exchange, err error) {
+	b, err := NewCtpExchange(cfg, cltName)
 	if err != nil {
 		return
 	}
@@ -73,18 +71,27 @@ func init() {
 	core.RegisterExchange("ctp", NewCtp)
 }
 
-func NewCtpExchange(cfg *viper.Viper, cltName, symbol string) (c *CtpExchange, err error) {
+func parseSymbol(str string) (exchange, symbol string, err error) {
+	strs := strings.Split(str, ".")
+	if len(strs) != 2 {
+		err = errors.New("symbol format error {EXCHANGE}.{SYMBOL}")
+		return
+	}
+	exchange, symbol = strs[0], strs[1]
+	return
+}
+
+func formatSymbol(exchange, symbol string) string {
+	return fmt.Sprintf("%s.%s", exchange, symbol)
+}
+
+func NewCtpExchange(cfg *viper.Viper, cltName string) (c *CtpExchange, err error) {
 	var ctpConfig Config
 	err = cfg.UnmarshalKey("exchanges.ctp", &ctpConfig)
 	if err != nil {
 		return
 	}
-	strs := strings.Split(symbol, ".")
-	if len(strs) != 2 {
-		err = errors.New("symbol format error {EXCHANGE}.{SYMBOL}")
-		return
-	}
-	c = &CtpExchange{name: cltName, cfg: &ctpConfig, exchangeID: strs[0], symbol: strs[1]}
+	c = &CtpExchange{name: cltName, cfg: &ctpConfig}
 	t := time.Now()
 	c.strStart = t.Format("01021504")
 	c.stopChan = make(chan bool)
@@ -195,7 +202,8 @@ func (c *CtpExchange) initMdApi() (err error) {
 	if err != nil {
 		return
 	}
-	c.mdApi.SubscribeMarketData([]string{c.symbol})
+	// TODO: default watch all
+	// c.mdApi.SubscribeMarketData([]string{c.symbol})
 	return
 }
 
@@ -283,6 +291,10 @@ func (c *CtpExchange) CancelOrder(old *Order) (order *Order, err error) {
 // for trade
 // ProcessOrder process order
 func (c *CtpExchange) ProcessOrder(act TradeAction) (ret *Order, err error) {
+	exchangeID, symbol, err := parseSymbol(act.Symbol)
+	if err != nil {
+		return
+	}
 	orderID := atomic.AddUint64(&c.orderID, 1)
 	strOrderID := fmt.Sprintf("%s%d", c.strStart, orderID)
 	var action ctp.CThostFtdcInputOrderField
@@ -291,9 +303,9 @@ func (c *CtpExchange) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	///投资者代码
 	action.InvestorID = c.cfg.User
 	///交易所代码
-	action.ExchangeID = c.exchangeID
+	action.ExchangeID = exchangeID
 	///合约代码
-	action.InstrumentID = c.symbol
+	action.InstrumentID = symbol
 	///报单价格条件 THOST_FTDC_OPT_LimitPrice
 	action.OrderPriceType = '2'
 	if act.Action.IsLong() {
@@ -364,7 +376,7 @@ func (c *CtpExchange) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	}
 	ret = &Order{
 		OrderID:  strconv.FormatUint(orderID, 10),
-		Symbol:   c.symbol,
+		Symbol:   act.Symbol,
 		Currency: "cny",
 		Amount:   act.Amount,
 		Price:    act.Price,
@@ -395,6 +407,10 @@ func (c *CtpExchange) CancelAllOrders() (orders []*Order, err error) {
 }
 
 func (c *CtpExchange) cancelOrder(ref string, o *Order) (err error) {
+	exchangeID, _, err := parseSymbol(o.Symbol)
+	if err != nil {
+		return
+	}
 	rID := getReqID()
 	pInputOrderAction := &ctp.CThostFtdcInputOrderActionField{
 		BrokerID:   c.cfg.BrokerID,
@@ -404,7 +420,7 @@ func (c *CtpExchange) cancelOrder(ref string, o *Order) (err error) {
 		RequestID:  rID,
 		FrontID:    c.tdSpi.frontID,
 		SessionID:  c.tdSpi.sessionID,
-		ExchangeID: c.exchangeID,
+		ExchangeID: exchangeID,
 		OrderSysID: o.OrderID,
 		ActionFlag: byte(0),
 		// LimitPrice     float64
@@ -422,7 +438,7 @@ func (c *CtpExchange) cancelOrder(ref string, o *Order) (err error) {
 	return
 }
 
-func (b *CtpExchange) GetSymbols() (symbols []SymbolInfo, err error) {
+func (b *CtpExchange) GetSymbols() (symbols []core.SymbolInfo, err error) {
 	return
 }
 
@@ -456,14 +472,18 @@ func (c *CtpExchange) onDepthData(pDepthMarketData *ctp.CThostFtdcDepthMarketDat
 	depth.Sells = append(depth.Sells, DepthInfo{
 		Price:  pDepthMarketData.AskPrice1,
 		Amount: float64(pDepthMarketData.AskVolume1)})
-	c.datas <- core.NewExchangeData(c.name, core.EventDepth, &depth)
+	temp := core.NewExchangeData(c.name, core.EventDepth, &depth)
+	temp.Symbol = pDepthMarketData.InstrumentID
+	c.datas <- temp
 	var trade Trade
 	trade.Time = tm
 	// pDepthMarketData.UpdateTime
 	trade.Amount = float64(pDepthMarketData.Volume) - c.prevVolume
 	c.prevVolume = float64(pDepthMarketData.Volume)
 	trade.Price = pDepthMarketData.LastPrice
-	c.datas <- core.NewExchangeData(c.name, core.EventTradeMarket, &trade)
+	tempMarket := core.NewExchangeData(c.name, core.EventTradeMarket, &trade)
+	tempMarket.Symbol = pDepthMarketData.InstrumentID
+	c.datas <- temp
 }
 
 func (c *CtpExchange) onTrade(pTrade *ctp.CThostFtdcTradeField) {
@@ -485,8 +505,9 @@ func (c *CtpExchange) onTrade(pTrade *ctp.CThostFtdcTradeField) {
 	trade.Remark = pTrade.OrderRef
 	buf, err := json.Marshal(pTrade)
 	logrus.Println("trade:", string(buf), err)
-
-	c.datas <- core.NewExchangeData(c.name, core.EventTrade, &trade)
+	temp := core.NewExchangeData(c.name, core.EventTrade, &trade)
+	temp.Symbol = pTrade.InstrumentID
+	c.datas <- temp
 
 }
 
@@ -505,17 +526,15 @@ func (c *CtpExchange) updatePosition(pInvestorPosition *ctp.CThostFtdcInvestorPo
 		logrus.Errorf("updatePosition error, reqID notmatch: %d %d", c.positionReqID, reqID)
 		return
 	}
+	symbol := formatSymbol(pInvestorPosition.ExchangeID, pInvestorPosition.InstrumentID)
 	buf, _ := json.Marshal(pInvestorPosition)
 	logrus.Warn("updatePosition:", string(buf))
-	if pInvestorPosition.InstrumentID != c.symbol {
-		return
-	}
 	var pos Position
 	pos.Hold = float64(pInvestorPosition.Volume)
 	if pInvestorPosition.Direction == '1' {
 		pos.Hold = 0 - pos.Hold
 	}
-	pos.Symbol = c.symbol
+	pos.Symbol = symbol
 	pos.Price = pInvestorPosition.OpenPrice
 	c.positionCache = append(c.positionCache, pos)
 	if isLast {
@@ -528,8 +547,10 @@ func (c *CtpExchange) updatePosition(pInvestorPosition *ctp.CThostFtdcInvestorPo
 			posMerge.Hold += v.Hold
 		}
 		posMerge.Price = common.FloatMul(totalPrice, posMerge.Hold)
-		posMerge.Symbol = c.symbol
-		c.datas <- core.NewExchangeData(c.symbol, core.EventPosition, &posMerge)
+		posMerge.Symbol = symbol
+		temp := core.NewExchangeData(pInvestorPosition.InstrumentID, core.EventPosition, &posMerge)
+		temp.Symbol = symbol
+		c.datas <- temp
 		c.positionCache = []Position{}
 	}
 }

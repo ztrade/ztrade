@@ -90,7 +90,7 @@ func (b *Backtest) Run() (err error) {
 	tbl.SetLoadDataMode(true)
 	tbl.SetCloseCh(closeCh)
 	ex := vex.NewVExchange(b.symbol)
-	engine, err := NewScript(b.scriptFile, b.paramData)
+	engine, err := NewScript(b.scriptFile, b.paramData, b.symbol)
 	if err != nil {
 		return
 	}

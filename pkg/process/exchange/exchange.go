@@ -88,6 +88,10 @@ func (b *TradeExchange) recvDatas() {
 	var tFirstLastStart int64
 Out:
 	for data := range b.datas {
+		if data.Symbol != b.symbol {
+			log.Infof("TradeExchange ignore event: %#v, exchange symbol: %s, data symbol: %s", data, b.symbol, data.Symbol)
+			continue
+		}
 		switch data.GetType() {
 		case EventCandle:
 			candle = data.GetData().(*Candle)
@@ -172,12 +176,8 @@ func (b *TradeExchange) onEventWatch(e *Event) (err error) {
 	if e.Name == "candle" {
 		return b.onEventCandleParam(e)
 	}
-	var param WatchParam
-	err = mapstructure.Decode(e.GetData(), &param)
-	if err != nil {
-		return
-	}
-	err = b.impl.Watch(param)
+	param := e.GetData().(*WatchParam)
+	err = b.impl.Watch(*param)
 	return
 }
 
@@ -243,7 +243,7 @@ func (b *TradeExchange) emitCandles(param CandleParam) {
 		log.Info("TradeExchange emit candle binsize not 1m:", param)
 		return
 	}
-	watchParam := WatchParam{Type: EventWatchCandle, Data: &param}
+	watchParam := WatchParam{Type: EventWatchCandle, Data: &param, Extra: b.symbol}
 	b.candleParam = param
 	err := b.impl.Watch(watchParam)
 	if err != nil {

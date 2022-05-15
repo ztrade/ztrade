@@ -1,186 +1,122 @@
 package ok
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 	"time"
 
 	"github.com/bitly/go-simplejson"
-	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 )
 
-func (b *OkexTrade) runPublic() (err error) {
-	u, err := url.Parse(WSOkexPUbilc)
-	if err != nil {
-		return
-	}
-
-	b.wsPublic, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		log.Fatal("dial public:", err)
-		return
-	}
-	// watch when reconnect
-	for _, v := range b.watchPublics {
-		err = b.wsPublic.WriteJSON(v)
-		if err != nil {
-			return
+func (b *OkexTrader) runPublic() (err error) {
+	b.wsPublic, err = NewWSConn(WSOkexPUbilc, func(ws *WSConn) error {
+		// watch when reconnect
+		for _, v := range b.watchPublics {
+			err1 := ws.WriteMsg(v)
+			if err1 != nil {
+				return err1
+			}
 		}
-	}
-	// var p = OPParam{
-	// 	OP: "subscribe",
-	// 	Args: []interface{}{
-	// 		OPArg{Channel: "candle1m", InstType: "SWAP", InstID: b.symbol},
-	// 		// OPArg{Channel: "trades", InstType: "SWAP", InstID: b.symbol},
-	// 		// OPArg{Channel: "books5", InstType: "SWAP", InstID: b.symbol},
-	// 	},
-	// }
-	// err = b.wsPublic.WriteJSON(p)
-	// if err != nil {
-	// 	return
-	// }
-	go b.runPublicLoop(b.wsPublic, b.closeCh)
+		return nil
+	}, b.parsePublicMsg)
 	return
 }
-
-func (b *OkexTrade) runPublicLoop(c *websocket.Conn, closeCh chan bool) {
-	var err error
-	var sj *simplejson.Json
-	var message []byte
-	var channel string
-	var depths5 []*Depth
-
-	var trades []*Trade
-	var candles []*Candle
-	var prev *Candle
-	var lastMsgTime time.Time
-	loopEnd := make(chan bool)
-	defer func() {
-		fmt.Println("runPublic finished")
-		close(loopEnd)
-		select {
-		case <-closeCh:
-			b.wg.Done()
-			return
-		default:
-		}
-		err = b.runPublic()
-		if err != nil {
-			log.Error("okex reconnect public failed:", err.Error())
-		}
-	}()
-	go func() {
-		ticker := time.NewTicker(time.Second * 5)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				dur := time.Since(lastMsgTime)
-				if dur > time.Second*5 {
-					c.WriteMessage(websocket.TextMessage, []byte("ping"))
-				}
-			case <-loopEnd:
-				return
-			case <-closeCh:
-				return
-			}
-		}
-	}()
-	log.Info("okex runPublic")
-Out:
-	for {
-		select {
-		case <-closeCh:
-			break Out
-		default:
-		}
-		_, message, err = c.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			return
-		}
-		if bytes.Equal(message, pongMsg) {
-			continue
-		}
-		lastMsgTime = time.Now()
-		// fmt.Println(string(message))
-		sj, err = simplejson.NewJson(message)
-		if err != nil {
-			log.Warnf("parse json error:%s", string(message))
-			continue
-		}
-		arg, ok := sj.CheckGet("arg")
-		if !ok {
-			continue
-		}
-		channelValue, ok := arg.CheckGet("channel")
-		if !ok {
-			continue
-		}
-		channel, err = channelValue.String()
-		if err != nil {
-			log.Warnf("channelValue %v is not string error:%s", channelValue, err.Error())
-			continue
-		}
-		switch channel {
-		case "books5":
-			value := sj.Get("data")
-			if value == nil {
-				continue
-			}
-			depths5, err = parseOkexBooks5(value)
-			if err != nil {
-				log.Warnf("parseOkexBooks5 failed:%s, %s", string(message), err.Error())
-				continue
-			}
-			for _, v := range depths5 {
-				b.datas <- NewExchangeData(b.Name, EventDepth, v)
-			}
-
-		case "trades":
-			value := sj.Get("data")
-			if value == nil {
-				continue
-			}
-			trades, err = parseOkexTrade(value)
-			if err != nil {
-				log.Warnf("parseOkexTrade failed:%s, %s", string(message), err.Error())
-				continue
-			}
-			for _, v := range trades {
-				b.datas <- NewExchangeData(b.Name, EventTradeMarket, v)
-			}
-		case "candle1m":
-			value := sj.Get("data")
-			if value == nil {
-				continue
-			}
-
-			candles, err = parseWsCandle(value)
-			if err != nil {
-				log.Warnf("parseWsCandle failed:%s, %s", string(message), err.Error())
-				continue
-			}
-			if len(candles) != 1 {
-				log.Warnf("parseWsCandle candles len warn :%d, %s", len(candles), err.Error())
-			}
-			if prev == nil || prev.Start == candles[0].Start {
-				prev = candles[0]
-				continue
-			}
-			d := NewExchangeData("candle", EventCandle, prev)
-			d.Data.Extra = "1m"
-			b.datas <- d
-			prev = candles[0]
-		default:
-		}
+func (b *OkexTrader) parsePublicMsg(message []byte) (err error) {
+	sj, err := simplejson.NewJson(message)
+	if err != nil {
+		log.Warnf("parse json error:%s", string(message))
+		return
 	}
+	_, ok := sj.CheckGet("event")
+	if ok {
+		return
+	}
+	arg, ok := sj.CheckGet("arg")
+	if !ok {
+		return
+	}
+	channelValue, ok := arg.CheckGet("channel")
+	if !ok {
+		return
+	}
+	symbol, err := arg.Get("instId").String()
+	if err != nil {
+		log.Warnf("okex public ws message instId not found %s, %s", string(message), err.Error())
+	}
+	channel, err := channelValue.String()
+	if err != nil {
+		log.Warnf("channelValue %v is not string error:%s", channelValue, err.Error())
+		return
+	}
+	switch channel {
+	case "books5":
+		value, ok := sj.CheckGet("data")
+		if !ok {
+			return
+
+		}
+		var depths5 []*Depth
+		depths5, err = parseOkexBooks5(value)
+		if err != nil {
+			log.Warnf("parseOkexBooks5 failed:%s, %s", string(message), err.Error())
+			return
+		}
+
+		for _, v := range depths5 {
+			temp := NewExchangeData(b.Name, EventDepth, v)
+			temp.Symbol = symbol
+			b.datas <- temp
+		}
+
+	case "trades":
+		value, ok := sj.CheckGet("data")
+		if !ok {
+			return
+		}
+		var trades []*Trade
+		trades, err = parseOkexTrade(value)
+		if err != nil {
+			log.Warnf("parseOkexTrade failed:%s, %s", string(message), err.Error())
+			return
+		}
+		for _, v := range trades {
+			temp := NewExchangeData(b.Name, EventTradeMarket, v)
+			temp.Symbol = symbol
+			b.datas <- temp
+		}
+	case "candle1m":
+		value, ok := sj.CheckGet("data")
+		if !ok {
+			return
+		}
+		var candles []*Candle
+		candles, err = parseWsCandle(value)
+		if err != nil {
+			log.Warnf("parseWsCandle failed:%s, %s", string(message), err.Error())
+			return
+		}
+		if len(candles) != 1 {
+			log.Warnf("parseWsCandle candles len warn :%d, %s", len(candles), err.Error())
+		}
+		b.prevCandleMutex.Lock()
+		prevCandle, ok := b.prevCandle[symbol]
+		b.prevCandle[symbol] = candles[0]
+		b.prevCandleMutex.Unlock()
+		if !ok || prevCandle.Start == candles[0].Start {
+			return
+		}
+		d := NewExchangeData("candle", EventCandle, prevCandle)
+		d.Symbol = symbol
+		d.Data.Extra = "1m"
+		b.datas <- d
+
+	default:
+	}
+	return
 }
 
 // books5 {"arg":{"channel":"books5","instId":"BSV-USD-210924"},"data":[{"asks":[["166.35","20","0","1"],["166.4","135","0","2"],["166.42","86","0","1"],["166.45","310","0","1"],["166.46","61","0","2"]],"bids":[["166.14","33","0","1"],["166.07","106","0","1"],["166.05","2","0","1"],["166.04","97","0","1"],["165.98","20","0","1"]],"instId":"BSV-USD-210924","ts":"1621862688397"}]}

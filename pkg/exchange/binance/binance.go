@@ -39,9 +39,8 @@ type OrderInfo struct {
 }
 
 type BinanceTrade struct {
-	Name   string
-	api    *futures.Client
-	symbol string
+	Name string
+	api  *futures.Client
 
 	datas   chan *ExchangeData
 	closeCh chan bool
@@ -53,8 +52,8 @@ type BinanceTrade struct {
 	wsUser           *websocket.Conn
 }
 
-func NewBinanceExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, err error) {
-	b, err := NewBinanceTradeWithSymbol(cfg, cltName, symbol)
+func NewBinanceExchange(cfg *viper.Viper, cltName string) (e Exchange, err error) {
+	b, err := NewBinanceTrader(cfg, cltName)
 	if err != nil {
 		return
 	}
@@ -62,7 +61,7 @@ func NewBinanceExchange(cfg *viper.Viper, cltName, symbol string) (e Exchange, e
 	return
 }
 
-func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *BinanceTrade, err error) {
+func NewBinanceTrader(cfg *viper.Viper, cltName string) (b *BinanceTrade, err error) {
 	b = new(BinanceTrade)
 	b.Name = "binance"
 	if cltName == "" {
@@ -73,7 +72,6 @@ func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *Bin
 	apiKey := cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	apiSecret := cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
 
-	b.symbol = symbol
 	b.datas = make(chan *ExchangeData)
 	b.closeCh = make(chan bool)
 
@@ -92,13 +90,9 @@ func NewBinanceTradeWithSymbol(cfg *viper.Viper, cltName, symbol string) (b *Bin
 		websocket.DefaultDialer.Proxy = http.ProxyURL(proxyURL)
 		websocket.DefaultDialer.HandshakeTimeout = time.Second * 60
 	}
-	b.cancelService = b.api.NewCancelAllOpenOrdersService().Symbol(b.symbol)
-	b.cancelOneService = b.api.NewCancelOrderService().Symbol(b.symbol)
+	b.cancelService = b.api.NewCancelAllOpenOrdersService()
+	b.cancelOneService = b.api.NewCancelOrderService()
 	return
-}
-
-func NewBinanceTrade(cfg *viper.Viper, cltName string) (b *BinanceTrade, err error) {
-	return NewBinanceTradeWithSymbol(cfg, cltName, "BTCUSDT")
 }
 
 func (b *BinanceTrade) Start(param map[string]interface{}) (err error) {
@@ -191,6 +185,8 @@ func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
 		log.Errorf("AggTradeEvent parse amount failed: %s", evt.Quantity)
 	}
 	trade.Time = time.Unix(evt.Time/1000, (evt.Time%1000)*int64(time.Millisecond))
+	temp := NewExchangeData(b.Name, EventTradeMarket, &trade)
+	temp.Symbol = evt.Symbol
 	b.datas <- NewExchangeData(b.Name, EventTradeMarket, &trade)
 }
 
@@ -223,10 +219,13 @@ func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
 		}
 		depth.Buys = append(depth.Buys, DepthInfo{Price: price, Amount: amount})
 	}
-	b.datas <- NewExchangeData(b.Name, EventDepth, &depth)
+	temp := NewExchangeData(b.Name, EventDepth, &depth)
+	temp.Symbol = evt.Symbol
+	b.datas <- temp
 }
 
 func (b *BinanceTrade) Watch(param WatchParam) (err error) {
+	symbol := param.Extra.(string)
 	var stopC chan struct{}
 	switch param.Type {
 	case EventWatchCandle:
@@ -255,6 +254,7 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 					continue
 				}
 				d := NewExchangeData("candle", EventCandle, candle)
+				d.Symbol = v.Symbol
 				d.Data.Extra = cParam.BinSize
 				b.datas <- d
 				tLast = candle.Start
@@ -269,9 +269,9 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 		}()
 
 	case EventDepth:
-		_, stopC, err = futures.WsPartialDepthServe(b.symbol, 10, b.handleDepth, b.handleError("depth"))
+		_, stopC, err = futures.WsPartialDepthServe(symbol, 10, b.handleDepth, b.handleError("depth"))
 	case EventTradeMarket:
-		_, stopC, err = futures.WsAggTradeServe(b.symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
+		_, stopC, err = futures.WsAggTradeServe(symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
 	default:
 		err = fmt.Errorf("unknown wathc param: %s", param.Type)
 	}
@@ -286,7 +286,7 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 }
 
 func (b *BinanceTrade) CancelOrder(old *Order) (order *Order, err error) {
-	resp, err := b.cancelOneService.Symbol(b.symbol).Do(context.Background())
+	resp, err := b.cancelOneService.Symbol(old.Symbol).Do(context.Background())
 	if err != nil {
 		return
 	}
@@ -324,7 +324,7 @@ func (b *BinanceTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	} else {
 		side = futures.SideTypeSell
 	}
-	resp, err := b.api.NewCreateOrderService().Symbol(b.symbol).
+	resp, err := b.api.NewCreateOrderService().Symbol(act.Symbol).
 		Price(fmt.Sprintf("%f", act.Price)).
 		Quantity(fmt.Sprintf("%f", act.Amount)).
 		TimeInForce(futures.TimeInForceTypeGTC).
@@ -340,7 +340,10 @@ func (b *BinanceTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
 
 func (b *BinanceTrade) CancelAllOrders() (orders []*Order, err error) {
 	ctx := context.Background()
-	ret, err := b.api.NewListOrdersService().Symbol(b.symbol).Do(ctx)
+	ret, err := b.api.NewListOrdersService().Do(ctx)
+	if err != nil {
+		return
+	}
 	var st string
 	for _, v := range ret {
 		st = string(v.Status)
@@ -349,7 +352,7 @@ func (b *BinanceTrade) CancelAllOrders() (orders []*Order, err error) {
 		}
 		orders = append(orders, transOrder(v))
 	}
-	err = b.cancelService.Symbol(b.symbol).Do(context.Background())
+	err = b.cancelService.Do(context.Background())
 	return
 }
 

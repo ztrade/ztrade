@@ -105,8 +105,10 @@ type WatchParam = EventData
 
 func NewWatchCandle(cp *CandleParam) *WatchParam {
 	wp := &WatchParam{
-		Type: EventWatchCandle,
-		Data: cp}
+		Type:  EventWatchCandle,
+		Data:  cp,
+		Extra: cp.Symbol,
+	}
 	return wp
 }
 

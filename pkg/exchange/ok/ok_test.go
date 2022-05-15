@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	testClt *OkexTrade
+	testClt *OkexTrader
 )
 
-func getTestClt() *OkexTrade {
+func getTestClt() *OkexTrader {
 	cfgFile := "../../../dist/configs/ztrade.yaml"
 	cfg := viper.New()
 	cfg.SetConfigFile(cfgFile)
@@ -21,7 +21,7 @@ func getTestClt() *OkexTrade {
 	if err != nil {
 		log.Fatal("ReadInConfig failed:" + err.Error())
 	}
-	testClt, err = NewOkexTradeWithSymbol(cfg, "okex", "ETH-USDT-SWAP")
+	testClt, err = NewOkexTrader(cfg, "okex")
 	if err != nil {
 		log.Fatal("create client failed:" + err.Error())
 	}
