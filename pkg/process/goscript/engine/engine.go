@@ -85,6 +85,11 @@ func (e *EngineImpl) StopLong(price, amount float64) string {
 func (e *EngineImpl) StopShort(price, amount float64) string {
 	return e.addOrder(price, amount, StopShort)
 }
+
+func (e *EngineImpl) DoOrder(typ TradeType, price, amount float64) string {
+	return e.addOrder(price, amount, typ)
+}
+
 func (e *EngineImpl) CancelAllOrder() {
 	e.proc.Send(EventOrder, EventOrder, &TradeAction{Action: CancelAll})
 }
