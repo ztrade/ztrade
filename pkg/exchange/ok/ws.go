@@ -153,7 +153,7 @@ func (conn *WSConn) readLoop(ws *websocket.Conn, ch chan []byte, needConn chan b
 		}
 		_, message, err = ws.ReadMessage()
 		if err != nil {
-			log.Printf("%s ws reade error: %s", conn.addr, err.Error())
+			log.Printf("%s ws read error: %s", conn.addr, err.Error())
 			needConn <- true
 			return
 		}

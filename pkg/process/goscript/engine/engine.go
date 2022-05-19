@@ -123,7 +123,7 @@ func (e *EngineImpl) Log(v ...interface{}) {
 func (e *EngineImpl) addOrder(price, amount float64, orderType TradeType) (id string) {
 	// FixMe: in backtest, time may be the time of candle
 	id = getActionID()
-	act := TradeAction{ID: id, Action: orderType, Amount: amount, Price: price, Time: time.Now()}
+	act := TradeAction{ID: id, Action: orderType, Symbol: e.symbol, Amount: amount, Price: price, Time: time.Now()}
 	e.proc.Send(EventOrder, EventOrder, &act)
 	return
 }
