@@ -54,7 +54,11 @@ func (conn *WSConn) Close() (err error) {
 
 func (conn *WSConn) WriteMsg(value interface{}) (err error) {
 	conn.writeMuetx.Lock()
-	err = conn.ws.WriteJSON(value)
+	if conn.ws != nil {
+		err = conn.ws.WriteJSON(value)
+	} else {
+		log.Warnf("WriteMsg ignore conn of %s not init", conn.addr)
+	}
 	conn.writeMuetx.Unlock()
 	return
 }

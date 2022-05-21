@@ -103,12 +103,17 @@ func (s *GoEngine) AddScript(name, src, param string) (err error) {
 func (s *GoEngine) doAddScript(name, src, param string) (err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	vm, ok := s.vms[name]
+	_, ok := s.vms[name]
 	if ok {
 		err = fmt.Errorf("%s script aleady exist", name)
 		return
 	}
-	paramInfo, err := vm.Runner.Param()
+	r, err := engine.NewRunner(src)
+	if err != nil {
+		err = fmt.Errorf("AddScript %s %s error: %w", name, src, err)
+		return
+	}
+	paramInfo, err := r.Param()
 	if err != nil {
 		err = fmt.Errorf("AddScript %s %s get Params error: %w", name, src, err)
 		return
@@ -116,11 +121,6 @@ func (s *GoEngine) doAddScript(name, src, param string) (err error) {
 	paramData, err := common.ParseParams(param, paramInfo)
 	if err != nil {
 		err = fmt.Errorf("AddScript %s %s ParseParams error: %w", name, src, err)
-		return
-	}
-	r, err := engine.NewRunner(src)
-	if err != nil {
-		err = fmt.Errorf("AddScript %s %s error: %w", name, src, err)
 		return
 	}
 	// var fnName string
