@@ -1,10 +1,8 @@
 package ctl
 
 import (
-	"encoding/json"
 	"time"
 
-	"github.com/ztrade/base/common"
 	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
@@ -19,7 +17,7 @@ type Backtest struct {
 	progress    int
 	exchange    string
 	symbol      string
-	paramData   common.ParamData
+	paramData   string
 	start       time.Time
 	end         time.Time
 	running     bool
@@ -41,10 +39,7 @@ func NewBacktest(db *dbstore.DBStore, exchange, symbol, param string, start time
 	b.db = db
 	b.balanceInit = 100000
 	b.loadDBOnce = 50000
-	b.paramData = make(common.ParamData)
-	if param != "" {
-		err = json.Unmarshal([]byte(param), &b.paramData)
-	}
+	b.paramData = param
 	return
 }
 

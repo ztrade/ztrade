@@ -67,7 +67,7 @@ func (b *Trade) SetReporter(rpt rpt.Reporter) {
 	b.rpt = rpt
 }
 
-func (b *Trade) AddScript(name, scriptFile string, param map[string]interface{}) (err error) {
+func (b *Trade) AddScript(name, scriptFile, param string) (err error) {
 	err = b.engine.AddScript(name, scriptFile, param)
 	return
 }

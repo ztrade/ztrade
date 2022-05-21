@@ -9,12 +9,12 @@ import (
 
 type Scripter interface {
 	event.Processer
-	AddScript(name, src string, param map[string]interface{}) (err error)
+	AddScript(name, src, param string) (err error)
 	RemoveScript(name string) error
 	ScriptCount() int
 }
 
-func NewScript(file string, param map[string]interface{}, symbol string) (s Scripter, err error) {
+func NewScript(file, param, symbol string) (s Scripter, err error) {
 	var gEngine *goscript.GoEngine
 	gEngine, err = goscript.NewDefaultGoEngine()
 	if err != nil {

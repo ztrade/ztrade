@@ -96,19 +96,28 @@ func (s *GoEngine) RemoveScript(name string) (err error) {
 	return
 }
 
-func (s *GoEngine) AddScript(name, src string, param map[string]interface{}) (err error) {
+func (s *GoEngine) AddScript(name, src, param string) (err error) {
 	err = s.doAddScript(name, src, param)
 	return
 }
-func (s *GoEngine) doAddScript(name, src string, param map[string]interface{}) (err error) {
+func (s *GoEngine) doAddScript(name, src, param string) (err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	_, ok := s.vms[name]
+	vm, ok := s.vms[name]
 	if ok {
 		err = fmt.Errorf("%s script aleady exist", name)
 		return
 	}
-	paramData := common.ParamData(param)
+	paramInfo, err := vm.Runner.Param()
+	if err != nil {
+		err = fmt.Errorf("AddScript %s %s get Params error: %w", name, src, err)
+		return
+	}
+	paramData, err := common.ParseParams(param, paramInfo)
+	if err != nil {
+		err = fmt.Errorf("AddScript %s %s ParseParams error: %w", name, src, err)
+		return
+	}
 	r, err := engine.NewRunner(src)
 	if err != nil {
 		err = fmt.Errorf("AddScript %s %s error: %w", name, src, err)
