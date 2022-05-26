@@ -714,14 +714,14 @@ func transCandle(values [7]string) (ret *Candle) {
 		return nil
 	}
 	ret = &Candle{
-		ID:     0,
-		Start:  nTs / 1000,
-		Open:   parseFloat(values[1]),
-		High:   parseFloat(values[2]),
-		Low:    parseFloat(values[3]),
-		Close:  parseFloat(values[4]),
-		Volume: parseFloat(values[5]),
-		VWP:    parseFloat(values[6]),
+		ID:       0,
+		Start:    nTs / 1000,
+		Open:     parseFloat(values[1]),
+		High:     parseFloat(values[2]),
+		Low:      parseFloat(values[3]),
+		Close:    parseFloat(values[4]),
+		Volume:   parseFloat(values[5]),
+		Turnover: parseFloat(values[6]),
 	}
 	return
 }

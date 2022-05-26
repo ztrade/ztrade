@@ -26,7 +26,7 @@ func NewMdSpi(ex *CtpExchange, cfg *Config, api *ctp.CThostFtdcMdApi) (spi *MdSp
 	return
 }
 
-func (s *MdSpi) WaiDisconnect(closeChan chan bool) {
+func (s *MdSpi) WaitDisconnect(closeChan chan bool) {
 	for {
 		select {
 		case <-closeChan:

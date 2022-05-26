@@ -294,14 +294,14 @@ func parseWsCandle(sj *simplejson.Json) (ret []*Candle, err error) {
 			return
 		}
 		temp := Candle{
-			ID:     0,
-			Start:  nTs / 1000,
-			Open:   parseFloat(values[1].(string)),
-			High:   parseFloat(values[2].(string)),
-			Low:    parseFloat(values[3].(string)),
-			Close:  parseFloat(values[4].(string)),
-			Volume: parseFloat(values[5].(string)),
-			VWP:    parseFloat(values[6].(string)),
+			ID:       0,
+			Start:    nTs / 1000,
+			Open:     parseFloat(values[1].(string)),
+			High:     parseFloat(values[2].(string)),
+			Low:      parseFloat(values[3].(string)),
+			Close:    parseFloat(values[4].(string)),
+			Volume:   parseFloat(values[5].(string)),
+			Turnover: parseFloat(values[6].(string)),
 		}
 		ret = append(ret, &temp)
 	}

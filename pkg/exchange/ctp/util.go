@@ -18,7 +18,7 @@ func (w *SafeWait) Wait(ctx context.Context) error {
 Out:
 	for {
 		select {
-		case _ = <-ctx.Done():
+		case <-ctx.Done():
 			return errors.New("deadline")
 		default:
 			v := atomic.LoadUint32(&w.value)

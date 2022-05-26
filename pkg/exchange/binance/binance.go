@@ -426,15 +426,15 @@ func transCreateOrder(fo *futures.CreateOrderResponse) (o *Order) {
 
 func transCandle(candle *futures.Kline) (ret *Candle) {
 	ret = &Candle{
-		ID:     0,
-		Start:  candle.OpenTime / 1000,
-		Open:   parseFloat(candle.Open),
-		High:   parseFloat(candle.High),
-		Low:    parseFloat(candle.Low),
-		Close:  parseFloat(candle.Close),
-		VWP:    parseFloat(candle.QuoteAssetVolume),
-		Volume: parseFloat(candle.Volume),
-		Trades: candle.TradeNum,
+		ID:       0,
+		Start:    candle.OpenTime / 1000,
+		Open:     parseFloat(candle.Open),
+		High:     parseFloat(candle.High),
+		Low:      parseFloat(candle.Low),
+		Close:    parseFloat(candle.Close),
+		Turnover: parseFloat(candle.QuoteAssetVolume),
+		Volume:   parseFloat(candle.Volume),
+		Trades:   candle.TradeNum,
 	}
 	return
 }
@@ -451,15 +451,15 @@ func transWSCandle(candle *futures.WsKline) (ret *CandleInfo) {
 	ret = &CandleInfo{
 		Symbol: candle.Symbol,
 		Data: &Candle{
-			ID:     0,
-			Start:  candle.StartTime / 1000,
-			Open:   parseFloat(candle.Open),
-			High:   parseFloat(candle.High),
-			Low:    parseFloat(candle.Low),
-			Close:  parseFloat(candle.Close),
-			VWP:    parseFloat(candle.QuoteVolume),
-			Volume: parseFloat(candle.Volume),
-			Trades: candle.TradeNum,
+			ID:       0,
+			Start:    candle.StartTime / 1000,
+			Open:     parseFloat(candle.Open),
+			High:     parseFloat(candle.High),
+			Low:      parseFloat(candle.Low),
+			Close:    parseFloat(candle.Close),
+			Turnover: parseFloat(candle.QuoteVolume),
+			Volume:   parseFloat(candle.Volume),
+			Trades:   candle.TradeNum,
 		}}
 	return
 }

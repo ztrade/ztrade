@@ -6,18 +6,19 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/ztrade/base/common"
 	"github.com/ztrade/ctp"
 	. "github.com/ztrade/trademodel"
-	"github.com/ztrade/ztrade/pkg/core"
+	. "github.com/ztrade/ztrade/pkg/core"
 )
 
 var (
@@ -46,8 +47,9 @@ type CtpExchange struct {
 	tdApi         *ctp.CThostFtdcTraderApi
 	tdSpi         *TdSpi
 	cfg           *Config
-	datas         chan *core.ExchangeData
+	datas         chan *ExchangeData
 	prevVolume    float64
+	preTurnover   float64
 	orderID       uint64
 	orders        map[string]*Order
 	inited        uint32
@@ -56,9 +58,13 @@ type CtpExchange struct {
 	startOnce     sync.Once
 	positionReqID int
 	positionCache []Position
+
+	watchSymbols []string
+	symbolMap    sync.Map
+	klines       map[string]*CTPKline
 }
 
-func NewCtp(cfg *viper.Viper, cltName string) (e core.Exchange, err error) {
+func NewCtp(cfg *viper.Viper, cltName string) (e Exchange, err error) {
 	b, err := NewCtpExchange(cfg, cltName)
 	if err != nil {
 		return
@@ -68,7 +74,7 @@ func NewCtp(cfg *viper.Viper, cltName string) (e core.Exchange, err error) {
 }
 
 func init() {
-	core.RegisterExchange("ctp", NewCtp)
+	RegisterExchange("ctp", NewCtp)
 }
 
 func parseSymbol(str string) (exchange, symbol string, err error) {
@@ -95,12 +101,13 @@ func NewCtpExchange(cfg *viper.Viper, cltName string) (c *CtpExchange, err error
 	t := time.Now()
 	c.strStart = t.Format("01021504")
 	c.stopChan = make(chan bool)
-	c.datas = make(chan *core.ExchangeData, 1024)
+	c.datas = make(chan *ExchangeData, 1024)
 	c.orders = make(map[string]*Order)
 	err = c.initConn()
 	if err != nil {
 		return
 	}
+	c.klines = make(map[string]*CTPKline)
 	c.Start(map[string]interface{}{})
 	return
 }
@@ -122,7 +129,7 @@ func (c *CtpExchange) reConnectTdApi() {
 	var err error
 Out:
 	for {
-		c.tdSpi.WaiDisconnect(c.stopChan)
+		c.tdSpi.WaitDisconnect(c.stopChan)
 		select {
 		case <-c.stopChan:
 			break Out
@@ -140,7 +147,7 @@ Out:
 		}
 		err = c.initTdApi()
 		if err != nil {
-			logrus.Errorf("initTdApi failed: %s", err.Error())
+			log.Errorf("initTdApi failed: %s", err.Error())
 		}
 	}
 }
@@ -149,7 +156,7 @@ func (c *CtpExchange) reConnectMdApi() {
 	var err error
 Out:
 	for {
-		c.mdSpi.WaiDisconnect(c.stopChan)
+		c.mdSpi.WaitDisconnect(c.stopChan)
 		select {
 		case <-c.stopChan:
 			break Out
@@ -166,7 +173,7 @@ Out:
 		}
 		err = c.initMdApi()
 		if err != nil {
-			logrus.Errorf("initMdApi failed: %s", err.Error())
+			log.Errorf("initMdApi failed: %s", err.Error())
 		}
 	}
 }
@@ -202,8 +209,6 @@ func (c *CtpExchange) initMdApi() (err error) {
 	if err != nil {
 		return
 	}
-	// TODO: default watch all
-	// c.mdApi.SubscribeMarketData([]string{c.symbol})
 	return
 }
 
@@ -226,14 +231,15 @@ func (c *CtpExchange) initTdApi() (err error) {
 	time.Sleep(time.Second * 10)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	logrus.Println("wait TdApi login")
+	log.Println("wait TdApi login")
 	err = tdSpi.WaitLogin(ctx)
 	if err != nil {
-		logrus.Errorf("login error: %s", err.Error())
+		log.Errorf("login error: %s", err.Error())
 		return
 	}
-	logrus.Println("TdApi login success")
-
+	log.Println("TdApi login success")
+	pQryInstrument := &ctp.CThostFtdcQryInstrumentField{}
+	tdApi.ReqQryInstrument(pQryInstrument, getReqID())
 	return
 }
 
@@ -264,7 +270,7 @@ func (c *CtpExchange) syncPosition() (err error) {
 			pQryInvestorPosition := &ctp.CThostFtdcQryInvestorPositionDetailField{}
 			nRet := c.tdApi.ReqQryInvestorPositionDetail(pQryInvestorPosition, reqID)
 			if nRet != 0 {
-				logrus.Errorf("ReqQryInvestorPositionDetail failed: %d", nRet)
+				log.Errorf("ReqQryInvestorPositionDetail failed: %d", nRet)
 			} else {
 				c.positionReqID = reqID
 			}
@@ -277,14 +283,39 @@ func (c *CtpExchange) syncPosition() (err error) {
 
 // Kline get klines
 func (c *CtpExchange) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, err chan error) {
+	data = make(chan *Candle, 1)
+	err = make(chan error, 1)
+	close(data)
+	close(err)
 	return
 }
 
-func (c *CtpExchange) Watch(core.WatchParam) error {
-	return nil
+func (c *CtpExchange) Watch(param WatchParam) (err error) {
+	str := param.Extra.(string)
+	exchangeID, symbol, err := parseSymbol(str)
+	if err != nil {
+		return
+	}
+	log.Info("Ctp watch:", exchangeID, symbol)
+	switch param.Type {
+	case EventWatchCandle, EventDepth, EventTradeMarket:
+		_, ok := c.klines[symbol]
+		if ok {
+			return
+		}
+		c.klines[symbol] = newCTPKline(c.datas, str, c.stopChan)
+		c.mdApi.SubscribeMarketData([]string{symbol})
+		c.watchSymbols = append(c.watchSymbols, symbol)
+		c.symbolMap.Store(symbol, str)
+	default:
+		err = fmt.Errorf("unknown wath param: %s", param.Type)
+	}
+	return
 }
 
 func (c *CtpExchange) CancelOrder(old *Order) (order *Order, err error) {
+	err = c.cancelOrder(old.Remark, old)
+	order = old
 	return
 }
 
@@ -368,7 +399,7 @@ func (c *CtpExchange) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	// action.IPAddress;
 	///Mac地址
 	// action.MacAddress;
-	logrus.Info("processOrder ReqOrderInsert", action)
+	log.Info("processOrder ReqOrderInsert", action)
 	nRet := c.tdApi.ReqOrderInsert(&action, getReqID())
 	if nRet != 0 {
 		err = fmt.Errorf("ReqOrderInsert error: %d", nRet)
@@ -382,6 +413,7 @@ func (c *CtpExchange) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		Price:    act.Price,
 		Status:   "send",
 		Time:     time.Now(),
+		Remark:   strOrderID,
 	}
 	if act.Action.IsLong() {
 		ret.Side = "buy"
@@ -399,7 +431,7 @@ func (c *CtpExchange) CancelAllOrders() (orders []*Order, err error) {
 		}
 		err = c.cancelOrder(k, v)
 		if err != nil {
-			logrus.Errorf("cancel order %s failed: %s", k, err.Error())
+			log.Errorf("cancel order %s failed: %s", k, err.Error())
 		}
 	}
 
@@ -438,12 +470,25 @@ func (c *CtpExchange) cancelOrder(ref string, o *Order) (err error) {
 	return
 }
 
-func (b *CtpExchange) GetSymbols() (symbols []core.SymbolInfo, err error) {
+func (b *CtpExchange) GetSymbols() (symbols []SymbolInfo, err error) {
+	rawSymbols := b.tdSpi.GetSymbols()
+	for _, v := range rawSymbols {
+		symbols = append(symbols, SymbolInfo{
+			ID:          0,
+			Exchange:    b.name,
+			Symbol:      fmt.Sprintf("%s.%s", v.ExchangeID, v.InstrumentID),
+			Resolutions: "",
+			Pricescale:  0,
+		})
+	}
+	sort.Slice(symbols, func(i, j int) bool {
+		return symbols[i].Symbol < symbols[j].Symbol
+	})
 	return
 }
 
 // GetBalanceChan
-func (c *CtpExchange) GetDataChan() chan *core.ExchangeData {
+func (c *CtpExchange) GetDataChan() chan *ExchangeData {
 	return c.datas
 }
 
@@ -454,6 +499,7 @@ func (c *CtpExchange) onDepthData(pDepthMarketData *ctp.CThostFtdcDepthMarketDat
 	}
 	if c.prevVolume == 0 {
 		c.prevVolume = float64(pDepthMarketData.Volume)
+		c.preTurnover = float64(pDepthMarketData.Turnover)
 		return
 	}
 	now := time.Now()
@@ -462,7 +508,7 @@ func (c *CtpExchange) onDepthData(pDepthMarketData *ctp.CThostFtdcDepthMarketDat
 	timeStr := fmt.Sprintf("%s %s.%03d", date, pDepthMarketData.UpdateTime, pDepthMarketData.UpdateMillisec)
 	tm, err := time.ParseInLocation("20060102 15:04:05.000", timeStr, loc)
 	if err != nil {
-		logrus.Errorf("CtpExchange Parse MarketData timestamp %s failed %s", timeStr, err.Error())
+		log.Errorf("CtpExchange Parse MarketData timestamp %s failed %s", timeStr, err.Error())
 	}
 	var depth Depth
 	depth.UpdateTime = tm
@@ -472,18 +518,35 @@ func (c *CtpExchange) onDepthData(pDepthMarketData *ctp.CThostFtdcDepthMarketDat
 	depth.Sells = append(depth.Sells, DepthInfo{
 		Price:  pDepthMarketData.AskPrice1,
 		Amount: float64(pDepthMarketData.AskVolume1)})
-	temp := core.NewExchangeData(c.name, core.EventDepth, &depth)
-	temp.Symbol = pDepthMarketData.InstrumentID
+	temp := NewExchangeData(c.name, EventDepth, &depth)
+	var symbol = pDepthMarketData.InstrumentID
+	ret, ok := c.symbolMap.Load(symbol)
+	if ok {
+		symbol = ret.(string)
+	}
+	temp.Symbol = symbol
 	c.datas <- temp
 	var trade Trade
 	trade.Time = tm
 	// pDepthMarketData.UpdateTime
 	trade.Amount = float64(pDepthMarketData.Volume) - c.prevVolume
 	c.prevVolume = float64(pDepthMarketData.Volume)
+	turnover := pDepthMarketData.Turnover - c.preTurnover
+	c.preTurnover = pDepthMarketData.Turnover
 	trade.Price = pDepthMarketData.LastPrice
-	tempMarket := core.NewExchangeData(c.name, core.EventTradeMarket, &trade)
-	tempMarket.Symbol = pDepthMarketData.InstrumentID
-	c.datas <- temp
+	tempMarket := NewExchangeData(c.name, EventTradeMarket, &trade)
+	tempMarket.Symbol = symbol
+	if trade.Amount != 0 {
+		c.datas <- tempMarket
+	}
+
+	kl, ok := c.klines[pDepthMarketData.InstrumentID]
+	if !ok {
+		log.Errorf("CtpExchange no kline found: %s", symbol)
+		return
+	}
+	kl.Update(tm, trade.Price, trade.Amount, turnover)
+
 }
 
 func (c *CtpExchange) onTrade(pTrade *ctp.CThostFtdcTradeField) {
@@ -504,8 +567,8 @@ func (c *CtpExchange) onTrade(pTrade *ctp.CThostFtdcTradeField) {
 	// trade.Side = pTrade.TradeType
 	trade.Remark = pTrade.OrderRef
 	buf, err := json.Marshal(pTrade)
-	logrus.Println("trade:", string(buf), err)
-	temp := core.NewExchangeData(c.name, core.EventTrade, &trade)
+	log.Println("trade:", string(buf), err)
+	temp := NewExchangeData(c.name, EventTrade, &trade)
 	temp.Symbol = pTrade.InstrumentID
 	c.datas <- temp
 
@@ -514,7 +577,7 @@ func (c *CtpExchange) onTrade(pTrade *ctp.CThostFtdcTradeField) {
 func (c *CtpExchange) updateOrderStatus(id, orderSysID, status, err string) {
 	o, ok := c.orders[id]
 	if !ok {
-		logrus.Warnf("updateOrderStatus %s not exist, %s, %s", id, status, err)
+		log.Warnf("updateOrderStatus %s not exist, %s, %s", id, status, err)
 		return
 	}
 	o.OrderID = orderSysID
@@ -523,12 +586,12 @@ func (c *CtpExchange) updateOrderStatus(id, orderSysID, status, err string) {
 
 func (c *CtpExchange) updatePosition(pInvestorPosition *ctp.CThostFtdcInvestorPositionDetailField, reqID int, isLast bool) {
 	if reqID != c.positionReqID {
-		logrus.Errorf("updatePosition error, reqID notmatch: %d %d", c.positionReqID, reqID)
+		log.Errorf("updatePosition error, reqID notmatch: %d %d", c.positionReqID, reqID)
 		return
 	}
 	symbol := formatSymbol(pInvestorPosition.ExchangeID, pInvestorPosition.InstrumentID)
 	buf, _ := json.Marshal(pInvestorPosition)
-	logrus.Warn("updatePosition:", string(buf))
+	log.Warn("updatePosition:", string(buf))
 	var pos Position
 	pos.Hold = float64(pInvestorPosition.Volume)
 	if pInvestorPosition.Direction == '1' {
@@ -548,7 +611,7 @@ func (c *CtpExchange) updatePosition(pInvestorPosition *ctp.CThostFtdcInvestorPo
 		}
 		posMerge.Price = common.FloatMul(totalPrice, posMerge.Hold)
 		posMerge.Symbol = symbol
-		temp := core.NewExchangeData(pInvestorPosition.InstrumentID, core.EventPosition, &posMerge)
+		temp := NewExchangeData(pInvestorPosition.InstrumentID, EventPosition, &posMerge)
 		temp.Symbol = symbol
 		c.datas <- temp
 		c.positionCache = []Position{}

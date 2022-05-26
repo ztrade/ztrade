@@ -2,6 +2,7 @@ package report
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"html/template"
 	"io"
@@ -14,6 +15,9 @@ import (
 	"github.com/ztrade/base/common"
 	. "github.com/ztrade/trademodel"
 )
+
+//go:embed report.tmpl
+var reportTmpl string
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -213,7 +217,7 @@ func (r *Report) GenHTMLReport(fPath string) (err error) {
 }
 
 func (r *Report) GenHTML(w io.Writer) (err error) {
-	tmpl, err := template.ParseFiles(common.GetExecDir() + "/report/report.tmpl")
+	tmpl, err := template.New("report").Parse(reportTmpl)
 	if err != nil {
 		log.Println("tmpl parse failed:", err.Error())
 		return

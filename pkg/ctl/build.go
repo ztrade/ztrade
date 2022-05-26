@@ -1,6 +1,7 @@
 package ctl
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,11 @@ import (
 
 var (
 	buildInfo *debug.BuildInfo
+
+	//go:embed tmpl/define.go
+	defineGo string
+	//go:embed tmpl/export.go
+	exportGo string
 )
 
 type Builder struct {
@@ -59,15 +65,15 @@ func (b *Builder) Build() (err error) {
 			os.RemoveAll(tempDir)
 		}
 	}()
-
 	err = common.CopyWithMainPkg(filepath.Join(tempDir, baseName), b.source)
 	if err != nil {
 		err = fmt.Errorf("copy file failed: %w", err)
 		return
 	}
-	err = common.CopyWithMainPkg(filepath.Join(tempDir, "define.go"), filepath.Join(common.GetExecDir(), "tmpl", "define.go"))
+	err = ioutil.WriteFile(filepath.Join(tempDir, "define.go"), []byte(defineGo), 0644)
+	// err = common.CopyWithMainPkg(filepath.Join(tempDir, "define.go"), filepath.Join(common.GetExecDir(), "tmpl", "define.go"))
 	if err != nil {
-		err = fmt.Errorf("copy tmpl file failed: %w", err)
+		err = fmt.Errorf("write tmpl file define.go failed: %w", err)
 		return
 	}
 	runner, err := engine.NewRunner(b.source)
@@ -75,8 +81,10 @@ func (b *Builder) Build() (err error) {
 		err = fmt.Errorf("export.go error: %w", err.Error())
 		return
 	}
-	fTmpl := filepath.Join(common.GetExecDir(), "tmpl", "export.go")
-	tmpl, err := template.ParseFiles(fTmpl)
+
+	// fTmpl := filepath.Join(common.GetExecDir(), "tmpl", "export.go")
+	// tmpl, err := template.ParseFiles(fTmpl)
+	tmpl, err := template.New("export").Parse(exportGo)
 	if err != nil {
 		err = fmt.Errorf("export.go error: %w", err)
 		return

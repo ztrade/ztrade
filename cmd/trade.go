@@ -61,7 +61,11 @@ func runTrade(cmd *cobra.Command, args []string) {
 			log.Fatal("param error:", err.Error())
 		}
 	}
-	real.AddScript(filepath.Base(scriptFile), scriptFile, param)
+	err = real.AddScript(filepath.Base(scriptFile), scriptFile, param)
+	if err != nil {
+		fmt.Println("AddScript failed:", err.Error())
+		return
+	}
 	// real.SetScript(scriptFile)
 	go func() {
 		sig := <-gracefulStop

@@ -118,10 +118,13 @@ func (s *GoEngine) doAddScript(name, src, param string) (err error) {
 		err = fmt.Errorf("AddScript %s %s get Params error: %w", name, src, err)
 		return
 	}
-	paramData, err := common.ParseParams(param, paramInfo)
-	if err != nil {
-		err = fmt.Errorf("AddScript %s %s ParseParams error: %w", name, src, err)
-		return
+	paramData := make(common.ParamData)
+	if param != "" {
+		paramData, err = common.ParseParams(param, paramInfo)
+		if err != nil {
+			err = fmt.Errorf("AddScript %s %s ParseParams error: %w", name, src, err)
+			return
+		}
 	}
 	// var fnName string
 	si := scriptInfo{Runner: r, params: paramData}

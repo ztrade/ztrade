@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"sync/atomic"
 
 	"github.com/sirupsen/logrus"
@@ -12,14 +13,15 @@ import (
 
 type TdSpi struct {
 	ctp.CThostFtdcTraderSpiBase
-	hasLogin  SafeWait
-	symbols   map[string]*ctp.CThostFtdcInstrumentField
-	ex        *CtpExchange
-	api       *ctp.CThostFtdcTraderApi
-	cfg       *Config
-	frontID   int
-	sessionID int
-	connected uint32
+	hasLogin     SafeWait
+	symbols      map[string]*ctp.CThostFtdcInstrumentField
+	symbolsMutex sync.RWMutex
+	ex           *CtpExchange
+	api          *ctp.CThostFtdcTraderApi
+	cfg          *Config
+	frontID      int
+	sessionID    int
+	connected    uint32
 }
 
 func NewTdSpi(ex *CtpExchange, cfg *Config, api *ctp.CThostFtdcTraderApi) *TdSpi {
@@ -30,7 +32,7 @@ func NewTdSpi(ex *CtpExchange, cfg *Config, api *ctp.CThostFtdcTraderApi) *TdSpi
 	td.symbols = make(map[string]*ctp.CThostFtdcInstrumentField)
 	return td
 }
-func (s *TdSpi) WaiDisconnect(closeChan chan bool) {
+func (s *TdSpi) WaitDisconnect(closeChan chan bool) {
 	for {
 		select {
 		case <-closeChan:
@@ -45,7 +47,13 @@ func (s *TdSpi) WaiDisconnect(closeChan chan bool) {
 }
 
 func (s *TdSpi) GetSymbols() (symbols map[string]*ctp.CThostFtdcInstrumentField) {
-	return s.symbols
+	s.symbolsMutex.RLock()
+	defer s.symbolsMutex.RUnlock()
+	symbols = make(map[string]*ctp.CThostFtdcInstrumentField)
+	for k, v := range s.symbols {
+		symbols[k] = v
+	}
+	return symbols
 }
 
 func (s *TdSpi) OnFrontConnected() {
@@ -124,7 +132,9 @@ func (s *TdSpi) OnRspQryInstrument(pInstrument *ctp.CThostFtdcInstrumentField, p
 	if pInstrument.ProductClass != '1' {
 		return
 	}
+	s.symbolsMutex.Lock()
 	s.symbols[pInstrument.InstrumentID] = pInstrument
+	s.symbolsMutex.Unlock()
 
 }
 func (s *TdSpi) WaitLogin(ctx context.Context) (err error) {
