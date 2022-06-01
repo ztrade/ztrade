@@ -1,12 +1,14 @@
 package ok
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/ztrade/trademodel"
+	"github.com/ztrade/ztrade/pkg/core"
 )
 
 var (
@@ -117,4 +119,13 @@ func TestCancelStopOrder(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	t.Log("ret:", *ret)
+}
+
+func TestDepth(t *testing.T) {
+	param := core.WatchParam{Type: core.EventDepth, Extra: "ETH-USDT-SWAP", Data: map[string]interface{}{"name": "depth"}}
+	testClt.Watch(param)
+	ch := testClt.GetDataChan()
+	for v := range ch {
+		fmt.Println(v)
+	}
 }

@@ -43,6 +43,10 @@ func init() {
 			"FloatSub":    reflect.ValueOf(common.FloatSub),
 			"FloatMul":    reflect.ValueOf(common.FloatMul),
 			"FloatDiv":    reflect.ValueOf(common.FloatDiv),
+			"StringParam": reflect.ValueOf(common.StringParam),
+			"FloatParam":  reflect.ValueOf(common.FloatParam),
+			"IntParam":    reflect.ValueOf(common.IntParam),
+			"BoolParam":   reflect.ValueOf(common.BoolParam),
 		},
 	}
 

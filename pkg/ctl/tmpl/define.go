@@ -23,6 +23,11 @@ type ParamData = common.ParamData
 
 type Engine = engine.Engine
 
+var StringParam = common.StringParam
+var IntParam = common.IntParam
+var FloatParam = common.FloatParam
+var BoolParam = common.BoolParam
+
 func min(a, b float64) float64 {
 	if a < b {
 		return a
