@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -10,6 +11,9 @@ import (
 
 var (
 	exchangeFactory = map[string]NewExchangeFn{}
+
+	exchangeMutex sync.Mutex
+	exchanges     = map[string]Exchange{}
 )
 
 type NewExchangeFn func(cfg *viper.Viper, cltName string) (t Exchange, err error)
@@ -19,6 +23,20 @@ func RegisterExchange(name string, fn NewExchangeFn) {
 }
 
 func NewExchange(name string, cfg *viper.Viper, cltName string) (ex Exchange, err error) {
+	exchangeMutex.Lock()
+	defer exchangeMutex.Unlock()
+	if cfg.GetBool("share_exchange") {
+		v, ok := exchanges[cltName]
+		if ok {
+			ex = v
+			return
+		}
+		defer func() {
+			if err == nil {
+				exchanges[cltName] = ex
+			}
+		}()
+	}
 	fn, ok := exchangeFactory[name]
 	if !ok {
 		err = fmt.Errorf("no such exchange %s", name)
