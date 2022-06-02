@@ -43,7 +43,7 @@ func NewGoEngine(symbol string) (s *GoEngine, err error) {
 	s = new(GoEngine)
 	s.Name = "multi_script"
 	s.vms = make(map[string]*scriptInfo)
-	s.engine = engine.NewEngineWrapper(&s.BaseProcesser, nil, symbol)
+	s.engine = engine.NewEngineWrapper(&s.BaseProcesser, nil, symbol, "")
 	return
 }
 
@@ -65,11 +65,8 @@ func (s *GoEngine) Init(bus *Bus) (err error) {
 func (s *GoEngine) Start() (err error) {
 	atomic.StoreInt32(&s.started, 1)
 	for k, v := range s.vms {
-		temp := k
-		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl}
-		tempEng.Cb = func(status int, msg string) {
-			s.updateScriptStatus(temp, status, msg)
-		}
+		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl, VmID: k}
+		tempEng.Cb = s.updateScriptStatus
 		v.wrap = &tempEng
 		v.Init(&tempEng, v.params)
 	}
@@ -87,11 +84,16 @@ func (s *GoEngine) Stop() (err error) {
 func (s *GoEngine) RemoveScript(name string) (err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	_, ok := s.vms[name]
+	return s.doRemoveScript(name)
+}
+
+func (s *GoEngine) doRemoveScript(name string) (err error) {
+	vm, ok := s.vms[name]
 	if !ok {
-		err = fmt.Errorf("%s script not  exist", name)
+		log.Warnf("%s script not exist", name)
 		return
 	}
+	vm.wrap.CleanMerges()
 	delete(s.vms, name)
 	return
 }
@@ -101,6 +103,7 @@ func (s *GoEngine) AddScript(name, src, param string) (err error) {
 	return
 }
 func (s *GoEngine) doAddScript(name, src, param string) (err error) {
+	log.Info("GoEngine doAddScript:", name, src, param)
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	_, ok := s.vms[name]
@@ -131,11 +134,8 @@ func (s *GoEngine) doAddScript(name, src, param string) (err error) {
 	s.vms[name] = &si
 	isStart := atomic.LoadInt32(&s.started)
 	if isStart == 1 {
-		temp := name
-		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl}
-		tempEng.Cb = func(status int, msg string) {
-			s.updateScriptStatus(temp, status, msg)
-		}
+		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl, VmID: name}
+		tempEng.Cb = s.updateScriptStatus
 		si.wrap = &tempEng
 		si.Runner.Init(&tempEng, paramData)
 	}
@@ -266,18 +266,10 @@ func (s *GoEngine) onEventBalance(e *Event) (err error) {
 
 func (s *GoEngine) updateScriptStatus(name string, status int, msg string) {
 	// call in script, no need lock
-	if s.mutex.TryLock() {
-		defer s.mutex.Unlock()
-	}
-	_, ok := s.vms[name]
-	if !ok {
-		log.Errorf("GoEngine updateScriptStatus failed,no script %s found", name)
-		return
-	}
 	switch status {
 	case bengine.StatusRunning:
 	case bengine.StatusSuccess, bengine.StatusFail:
-		delete(s.vms, name)
+		s.doRemoveScript(name)
 	default:
 		log.Errorf("GoEngine updateScriptStatus script %s unknown status: %d,", name, status)
 	}

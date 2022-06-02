@@ -3,10 +3,10 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/ztrade/base/common"
-	"github.com/ztrade/base/engine"
 	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
 
@@ -34,34 +34,41 @@ func getActionID() string {
 }
 
 type EngineImpl struct {
-	proc     *BaseProcesser
-	pos      float64
-	posPrice float64
-	balance  float64
-	merges   []*KlinePlugin
-	symbol   string
+	proc        *BaseProcesser
+	pos         float64
+	posPrice    float64
+	balance     float64
+	merges      map[string][]*KlinePlugin
+	mergesMutex sync.Mutex
+	symbol      string
 }
 
-type UpdateStatusFn func(status int, msg string)
+type UpdateStatusFn func(vm string, status int, msg string)
 type EngineWrapper struct {
 	*EngineImpl
-	Cb UpdateStatusFn
+	VmID string
+	Cb   UpdateStatusFn
 }
 
 func (e *EngineWrapper) UpdateStatus(status int, msg string) {
-	e.Cb(status, msg)
+	e.Cb(e.VmID, status, msg)
 }
 
-func NewEngineWrapper(proc *BaseProcesser, cb UpdateStatusFn, symbol string) *EngineWrapper {
-	return &EngineWrapper{EngineImpl: NewEngineImpl(proc, symbol), Cb: cb}
+func (e *EngineWrapper) Merge(src, dst string, fn common.CandleFn) {
+	e.EngineImpl.Merge(e.VmID, src, dst, fn)
 }
 
-func NewEngine(proc *BaseProcesser, symbol string) engine.Engine {
-	return NewEngineWrapper(proc, nil, symbol)
+func (e *EngineWrapper) CleanMerges() {
+	e.EngineImpl.RemoveMerge(e.VmID)
+}
+
+func NewEngineWrapper(proc *BaseProcesser, cb UpdateStatusFn, symbol string, id string) *EngineWrapper {
+	return &EngineWrapper{EngineImpl: NewEngineImpl(proc, symbol), Cb: cb, VmID: id}
 }
 
 func NewEngineImpl(proc *BaseProcesser, symbol string) *EngineImpl {
 	e := new(EngineImpl)
+	e.merges = make(map[string][]*KlinePlugin)
 	e.symbol = symbol
 	e.proc = proc
 	return e
@@ -149,13 +156,29 @@ func (e *EngineImpl) Balance() (balance float64) {
 	return e.balance
 }
 
-func (e *EngineImpl) Merge(src, dst string, fn common.CandleFn) {
-	e.merges = append(e.merges, NewKlinePlugin(src, dst, fn))
+func (e *EngineImpl) Merge(vmID, src, dst string, fn common.CandleFn) {
+	e.mergesMutex.Lock()
+	defer e.mergesMutex.Unlock()
+	kp := NewKlinePlugin(src, dst, fn)
+	ms, ok := e.merges[vmID]
+	if ok {
+		e.merges[vmID] = append(ms, kp)
+	} else {
+		e.merges[vmID] = []*KlinePlugin{kp}
+	}
+}
+
+func (e *EngineImpl) RemoveMerge(vmID string) {
+	e.mergesMutex.Lock()
+	defer e.mergesMutex.Unlock()
+	delete(e.merges, vmID)
 }
 
 func (e *EngineImpl) OnCandle(candle *Candle) {
-	for _, v := range e.merges {
-		v.Update(candle)
+	for _, kls := range e.merges {
+		for _, v := range kls {
+			v.Update(candle)
+		}
 	}
 }
 
