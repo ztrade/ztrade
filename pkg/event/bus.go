@@ -26,13 +26,13 @@ type ProcessList []ProcessCallInfo
 type Bus struct {
 	syncMode   bool
 	chs        map[string]chan *Event
-	chsMutex   sync.Mutex
 	cache      int
 	procs      map[string]ProcessList
 	procsMutex sync.RWMutex
 
 	processEvent  int64
 	lastEventTime time.Time
+	routines      int32
 }
 
 func NewBus(cache int) *Bus {
@@ -52,9 +52,12 @@ func NewSyncBus() *Bus {
 }
 
 func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
+	atomic.AddInt32(&b.routines, 1)
+	defer atomic.AddInt32(&b.routines, -1)
 	log.Debug("Bus runProc of ", sub)
 	if ch == nil {
 		err = fmt.Errorf("no such event channel: %s", sub)
+		panic(err.Error())
 		return
 	}
 	b.procsMutex.RLock()
@@ -145,6 +148,16 @@ func (b *Bus) Close() {
 	for _, v := range b.chs {
 		close(v)
 	}
+
+	var n int32
+	for {
+		n = atomic.LoadInt32(&b.routines)
+		if n == 0 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+		log.Info("event bus routines all finished, left:", n)
+	}
 }
 
 func (b *Bus) Start() {
@@ -154,6 +167,16 @@ func (b *Bus) Start() {
 	for k := range b.procs {
 		ch := make(chan *Event, b.cache)
 		b.chs[k] = ch
-		go b.runProc(k, ch)
+		b.runProc(k, ch)
+	}
+	// wait for all routines start
+	var n int32
+	for {
+		n = atomic.LoadInt32(&b.routines)
+		if n == int32(len(b.procs)) {
+			break
+		}
+		time.Sleep(time.Millisecond)
+		log.Info("event bus %d routines, started: %d", len(b.procs), n)
 	}
 }
