@@ -41,6 +41,7 @@ type RptAct struct {
 	Total       float64
 	TotalProfit float64 // total profit,sum of all history profits,if action is open, total profit is zero
 	Profit      float64 // profit, if action is open, profit is zero
+	Fee         float64
 }
 
 func NewReportSimple() *Report {
@@ -78,15 +79,15 @@ func (r *Report) Analyzer() (err error) {
 	var success, total int
 	var tmplData, lastTmplData *RptAct
 	var lastMaxTotal, lastMinTotal, drawdown, drawdownValue float64
-	var profit float64
+	var profit, fee float64
 	bal := common.NewVBalance()
 	bal.Set(r.balanceInit)
 	bal.SetFee(r.fee)
 	//	fmt.Println("balance init:", r.balanceInit)
-	startBalance := bal.Get()
+	// startBalance := bal.Get()
 
 	for _, v := range r.trades {
-		profit, err = bal.AddTrade(v)
+		profit, fee, err = bal.AddTrade(v)
 		if err != nil {
 			log.Error("Report add trade error:", err.Error())
 			return
@@ -108,7 +109,9 @@ func (r *Report) Analyzer() (err error) {
 		r.totalAction++
 		tmplData = &RptAct{Trade: v,
 			Total:  bal.Get(),
-			Profit: profit}
+			Profit: profit,
+			Fee:    fee,
+		}
 		r.tmplDatas = append(r.tmplDatas, tmplData)
 		// log.Println("amount:", longAmount, shortAmount)
 		// one round finish
@@ -158,8 +161,9 @@ func (r *Report) Analyzer() (err error) {
 			}
 		}
 	}
-	endBalance := bal.Get()
-	r.profit = endBalance - startBalance
+	// endBalance := bal.G
+	r.profit = lastTmplData.TotalProfit
+	// endBalance - startBalance
 	if total > 0 {
 		r.winRate = common.FloatDiv(float64(success), float64(total))
 	}

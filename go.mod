@@ -21,7 +21,7 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.11.0
 	github.com/tidwall/gjson v1.14.1
-	github.com/ztrade/base v0.1.0
+	github.com/ztrade/base v0.1.1
 	github.com/ztrade/ctp v0.0.2
 	github.com/ztrade/indicator v1.1.1
 	github.com/ztrade/trademodel v1.1.5

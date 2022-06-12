@@ -136,6 +136,7 @@ function drawProfit(domID, source) {
             <th scope="col">Amount</th>
             <th scope="col">Total</th>
             <th scope="col">Profit</th>
+            <th scope="col">Fee</th>
           </tr>
     </thead>
     <tbody>
@@ -144,9 +145,10 @@ function drawProfit(domID, source) {
             <td>{{.Time}}</td>
             <td>{{.Action}}</td>
             <td>{{.Price}}</td>
-          <td>{{.Amount}}</td>
-          <td>{{.Total}}</td>
-          <td>{{.Profit}}</td>
+            <td>{{.Amount}}</td>
+            <td>{{.Total}}</td>
+            <td>{{.Profit}}</td>
+            <td>{{.Fee}}</td>
           </tr>
           {{end}}
       </table>

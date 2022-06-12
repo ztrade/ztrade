@@ -95,7 +95,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 				Amount: v.Amount,
 				Side:   side,
 				Remark: ""}
-			_, err := ex.balance.AddTrade(tr)
+			_, _, err := ex.balance.AddTrade(tr)
 			if err != nil {
 				log.Errorf("vexchange balance AddTrade error:%s %f %f", err.Error(), v.Price, v.Amount)
 				continue
