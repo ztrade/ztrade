@@ -50,64 +50,10 @@ replace your key and secret in dist/configs/ztrade.yaml
 
 
 ## strategy
-Just copy pkg/helper/helper.go to your own strategy dir,and then you can develop it as you would normally write go code
+show examples:
 
-[strategy.go](pkg/helper/strategy.go)
+[strategy](https://github.com/ztrade/strategy)
 
-```
-type DemoStrategy struct {
-}
-
-func NewDemoStrategy() *DemoStrategy {
-	return new(DemoStrategy)
-}
-
-// Param define you script params here
-func (s *DemoStrategy) Param() (paramInfo []Param) {
-	paramInfo = []Param{
-		Param{Name: "symbol", Type: "string", Info: "symbol code"},
-	}
-	return
-}
-
-// Init strategy
-func (s *DemoStrategy) Init(engine *Engine, params ParamData) {
-	return
-}
-
-// OnCandle call when 1m candle reached
-func (s *DemoStrategy) OnCandle(candle *Candle) {
-	var param Param
-	param.Name = "hello"
-	fmt.Println("candle:", candle, param)
-	return
-}
-
-// OnPosition call when position is updated
-func (s *DemoStrategy) OnPosition(pos float64) {
-	fmt.Println("position:", pos)
-	return
-}
-
-// OnTradeMarket call every trade occurs
-func (s *DemoStrategy) OnTradeMarket(trade Trade) {
-	fmt.Println("trade:", trade)
-	return
-}
-
-// OnTrade call when you own trade occures
-func (s *DemoStrategy) OnTrade(trade *Trade) {
-	fmt.Println("tradeHistory:", trade)
-	return
-}
-
-// OnDepth call when orderbook updated
-func (s *DemoStrategy) OnDepth(depth *Depth) {
-	fmt.Println("depth:", depth)
-	return
-}
-
-```
 
 ## Thanks
 
