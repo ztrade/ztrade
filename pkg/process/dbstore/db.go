@@ -10,10 +10,10 @@ import (
 	. "github.com/ztrade/ztrade/pkg/core"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/xorm"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
+	_ "modernc.org/sqlite"
+	"xorm.io/xorm"
 )
 
 var (

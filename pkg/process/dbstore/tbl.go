@@ -10,8 +10,8 @@ import (
 	// . "github.com/ztrade/ztrade/pkg/core"
 	// . "github.com/ztrade/ztrade/pkg/event"
 
-	"github.com/go-xorm/xorm"
 	log "github.com/sirupsen/logrus"
+	"xorm.io/xorm"
 )
 
 // TimeData data with time info
