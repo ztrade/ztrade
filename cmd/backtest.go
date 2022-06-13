@@ -67,14 +67,13 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	}
 
 	r := report.NewReportSimple()
-	r.SetFee(fee)
 	back, err := ctl.NewBacktest(db, exchangeName, symbol, param, startTime, endTime)
 	if err != nil {
 		log.Fatal("init backtest failed:", err.Error())
 	}
 	back.SetScript(scriptFile)
 	back.SetReporter(r)
-	back.SetBalanceInit(balanceInit)
+	back.SetBalanceInit(balanceInit, fee)
 	back.SetLoadDBOnce(loadOnce)
 
 	err = back.Run()

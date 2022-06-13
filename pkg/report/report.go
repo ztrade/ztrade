@@ -73,8 +73,8 @@ func (r *Report) Analyzer() (err error) {
 	}
 	r.trades = r.trades[0:i]
 	// var longTotal,shortTotal float64
-	var longAmount, longOnce, costOnce float64
-	var shortAmount, shortOnce float64
+	var longAmount, costOnce float64
+	var shortAmount float64
 	var actTotal, lose float64
 	var success, total int
 	var tmplData, lastTmplData *RptAct
@@ -83,8 +83,7 @@ func (r *Report) Analyzer() (err error) {
 	bal := common.NewVBalance()
 	bal.Set(r.balanceInit)
 	bal.SetFee(r.fee)
-	//	fmt.Println("balance init:", r.balanceInit)
-	// startBalance := bal.Get()
+	//	startBalance := bal.Get()
 
 	for _, v := range r.trades {
 		profit, fee, err = bal.AddTrade(v)
@@ -95,12 +94,10 @@ func (r *Report) Analyzer() (err error) {
 		actTotal = common.FloatMul(v.Price, v.Amount)
 		if v.Action.IsLong() {
 			longAmount = common.FloatAdd(longAmount, v.Amount)
-			longOnce = common.FloatAdd(longOnce, actTotal)
-			// 	// log.Println("buy action", v.Time, v.Action, v.Price, v.Amount)
+			// log.Println("buy action", v.Time, v.Action, v.Price, v.Amount)
 		} else {
-			// 	// log.Println("sell action", v.Time, v.Action, v.Price, v.Amount)
+			// log.Println("sell action", v.Time, v.Action, v.Price, v.Amount)
 			shortAmount = common.FloatAdd(shortAmount, v.Amount)
-			shortOnce = common.FloatAdd(shortOnce, actTotal)
 		}
 		if v.Action.IsOpen() {
 			costOnce = common.FloatAdd(costOnce, actTotal)
@@ -113,7 +110,6 @@ func (r *Report) Analyzer() (err error) {
 			Fee:    fee,
 		}
 		r.tmplDatas = append(r.tmplDatas, tmplData)
-		// log.Println("amount:", longAmount, shortAmount)
 		// one round finish
 		if longAmount == shortAmount {
 			if lastTmplData != nil {
@@ -134,8 +130,6 @@ func (r *Report) Analyzer() (err error) {
 					r.maxLose = lose
 				}
 			}
-			shortOnce = 0
-			longOnce = 0
 			costOnce = 0
 		}
 		if tmplData.TotalProfit != 0 {
@@ -161,7 +155,8 @@ func (r *Report) Analyzer() (err error) {
 			}
 		}
 	}
-	// endBalance := bal.G
+	//	endBalance := bal.Get()
+
 	r.profit = lastTmplData.TotalProfit
 	// endBalance - startBalance
 	if total > 0 {
@@ -238,8 +233,9 @@ func (r *Report) GenHTML(w io.Writer) (err error) {
 	return
 }
 
-func (r *Report) OnBalanceInit(balance float64) (err error) {
+func (r *Report) OnBalanceInit(balance, fee float64) (err error) {
 	r.balanceInit = balance
+	r.fee = fee
 	return
 }
 

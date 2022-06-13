@@ -126,7 +126,9 @@ func (ex *VExchange) processCandle(candle Candle) {
 		pos.Hold = ex.position
 		ex.Send(ex.symbol, EventCurPosition, pos)
 		ex.Send(ex.symbol, EventPosition, &pos)
-		ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
+		if pos.Hold == 0 {
+			ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
+		}
 	}
 }
 
@@ -171,6 +173,7 @@ func (ex *VExchange) onEventOrder(e *Event) (err error) {
 func (ex *VExchange) onEventBalanceInit(e *Event) (err error) {
 	balance := e.GetData().(*BalanceInfo)
 	ex.balance.Set(balance.Balance)
+	ex.balance.SetFee(balance.Fee)
 	ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
 	return
 }

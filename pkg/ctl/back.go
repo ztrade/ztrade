@@ -27,6 +27,7 @@ type Backtest struct {
 	rpt         rpt.Reporter
 	balanceInit float64
 	loadDBOnce  int
+	fee         float64
 }
 
 // NewBacktest constructor of Backtest
@@ -47,8 +48,9 @@ func (b *Backtest) SetLoadDBOnce(loadOnce int) {
 	b.loadDBOnce = loadOnce
 }
 
-func (b *Backtest) SetBalanceInit(balanceInit float64) {
+func (b *Backtest) SetBalanceInit(balanceInit, fee float64) {
 	b.balanceInit = balanceInit
+	b.fee = fee
 }
 
 func (b *Backtest) SetScript(scriptFile string) {
@@ -98,7 +100,7 @@ func (b *Backtest) Run() (err error) {
 	processers.Add(r)
 	processers.Start()
 
-	param.Send("balance_init", EventBalanceInit, &BalanceInfo{Balance: b.balanceInit})
+	param.Send("balance_init", EventBalanceInit, &BalanceInfo{Balance: b.balanceInit, Fee: b.fee})
 	candleParam := CandleParam{
 		Start:   b.start,
 		End:     b.end,

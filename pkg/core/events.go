@@ -115,4 +115,5 @@ func NewWatchCandle(cp *CandleParam) *WatchParam {
 // BalanceInfo balance
 type BalanceInfo struct {
 	Balance float64
+	Fee     float64
 }

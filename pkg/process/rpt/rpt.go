@@ -13,7 +13,7 @@ import (
 // Reporter report generater
 type Reporter interface {
 	OnTrade(Trade)
-	OnBalanceInit(balance float64) (err error)
+	OnBalanceInit(balance, fee float64) (err error)
 }
 
 type Rpt struct {
@@ -63,7 +63,7 @@ func (rpt *Rpt) OnEventBalanceInit(e *Event) (err error) {
 		return
 	}
 	if rpt.rpt != nil {
-		rpt.rpt.OnBalanceInit(balance.Balance)
+		rpt.rpt.OnBalanceInit(balance.Balance, balance.Fee)
 	}
 	return
 }
