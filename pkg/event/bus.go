@@ -167,7 +167,7 @@ func (b *Bus) Start() {
 	for k := range b.procs {
 		ch := make(chan *Event, b.cache)
 		b.chs[k] = ch
-		b.runProc(k, ch)
+		go b.runProc(k, ch)
 	}
 	// wait for all routines start
 	var n int32
