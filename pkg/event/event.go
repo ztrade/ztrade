@@ -2,7 +2,6 @@ package event
 
 import (
 	"sync"
-	"time"
 
 	"github.com/ztrade/ztrade/pkg/core"
 )
@@ -18,7 +17,7 @@ var (
 type Event struct {
 	Data core.EventData
 	Name string
-	Time time.Time
+	// Time time.Time
 	From string
 }
 
@@ -27,7 +26,7 @@ func NewErrorEvent(from, msg string) *Event {
 	e.Name = msg
 	e.Data.Type = EventError
 	e.From = from
-	e.Time = time.Now()
+	// e.Time = time.Now()
 	return e
 }
 
@@ -38,7 +37,7 @@ func NewEvent(name, strType, from string, data interface{}, extra interface{}) *
 	e.Data.Type = strType
 	e.From = from
 	e.Data.Data = data
-	e.Time = time.Now()
+	// e.Time = time.Now()
 	e.Data.Extra = extra
 	return e
 }
@@ -57,9 +56,9 @@ func (e *Event) GetType() string {
 	return e.Data.Type
 }
 
-func (e *Event) GetTime() time.Time {
-	return e.Time
-}
+// func (e *Event) GetTime() time.Time {
+// 	return e.Time
+// }
 
 func (e *Event) GetFrom() string {
 	return e.From

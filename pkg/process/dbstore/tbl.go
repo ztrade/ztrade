@@ -48,7 +48,7 @@ func NewTimeTbl(db *DBStore, creator DataCreator, exchange, symbol, binSize, ext
 	t.exchange = exchange
 	t.symbol = symbol
 	t.binSize = binSize
-	t.loadOnce = 5000
+	t.loadOnce = 50000
 
 	t.table = fmt.Sprintf("%s_%s_%s", exchange, symbol, binSize)
 	if extName != "" {
