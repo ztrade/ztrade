@@ -63,7 +63,11 @@ func (ex *VExchange) processCandle(candle Candle) {
 	virtualTime := candle.Time()
 	var trades []*Event
 	var pos Position
+	var orderFilled bool
+	var side string
+	var price float64
 	for elem := ex.orders.Front(); elem != nil; elem = elem.Next() {
+		orderFilled = false
 		v, ok := elem.Value.(TradeAction)
 		if !ok {
 			log.Errorf("order items type error:%##v", elem.Value)
@@ -79,37 +83,73 @@ func (ex *VExchange) processCandle(candle Candle) {
 				continue
 			}
 		}
-		// FIXME: stop order can't be filled when price not in low-high
 		// order can only be filled after next candle
-		if candle.High >= v.Price && candle.Low <= v.Price {
-			side := "buy"
-			if !v.Action.IsLong() {
-				side = "sell"
-			} else {
-			}
-			virtualTime = virtualTime.Add(time.Second)
-			tr := Trade{ID: fmt.Sprintf("%d", len(ex.trades)),
-				Action: v.Action,
-				Time:   virtualTime,
-				Price:  v.Price,
-				Amount: v.Amount,
-				Side:   side,
-				Remark: ""}
-			_, _, err := ex.balance.AddTrade(tr)
-			if err != nil {
-				log.Errorf("vexchange balance AddTrade error:%s %f %f", err.Error(), v.Price, v.Amount)
-				continue
-			}
-			ex.trades = append(ex.trades, tr)
-			tradeEvent := ex.CreateEvent("trade", EventTrade, &tr)
-			trades = append(trades, tradeEvent)
+		price = v.Price
 
-			posChange = true
-			pos.Price = tr.Price
-			deleteElems = append(deleteElems, elem)
-		} else {
-			// log.Printf("trade not work:%##v, %##v\n", candle, v)
+		switch v.Action {
+		case StopShort:
+			if v.Price <= candle.High {
+				side = "buy"
+				orderFilled = true
+				if v.Price < candle.Low {
+					price = candle.Low
+				}
+			}
+		case StopLong:
+			if v.Price >= candle.Low {
+				side = "sell"
+				orderFilled = true
+				if v.Price > candle.High {
+					price = candle.High
+				}
+			}
+		case OpenLong, CloseShort:
+			if v.Price >= candle.Low {
+				side = "buy"
+				orderFilled = true
+				if v.Price > candle.High {
+					price = candle.High
+				}
+			}
+		case OpenShort, CloseLong:
+			if v.Price <= candle.High {
+				side = "sell"
+				orderFilled = true
+				if v.Price < candle.Low {
+					price = candle.Low
+				}
+			}
+		default:
+			log.Warnf("unsupport ActionType: %s", v.Action.String())
+			continue
 		}
+
+		//		fmt.Println("action:", v.Action.String(), v.Price, candle.High, candle.Low, candle.Time(), orderFilled)
+		if !orderFilled {
+			continue
+		}
+
+		virtualTime = virtualTime.Add(time.Second)
+		tr := Trade{ID: fmt.Sprintf("%d", len(ex.trades)),
+			Action: v.Action,
+			Time:   virtualTime,
+			Price:  price,
+			Amount: v.Amount,
+			Side:   side,
+			Remark: ""}
+		// fix size
+		_, _, err := ex.balance.AddTrade(tr)
+		if err != nil {
+			log.Errorf("vexchange balance AddTrade error:%s %f %f", err.Error(), v.Price, v.Amount)
+			continue
+		}
+		ex.trades = append(ex.trades, tr)
+		tradeEvent := ex.CreateEvent("trade", EventTrade, &tr)
+		trades = append(trades, tradeEvent)
+
+		posChange = true
+		pos.Price = tr.Price
+		deleteElems = append(deleteElems, elem)
 	}
 	for _, v := range deleteElems {
 		ex.orders.Remove(v)
@@ -124,7 +164,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 		ex.position = ex.balance.Pos()
 		pos.Symbol = ex.symbol
 		pos.Hold = ex.position
-		ex.Send(ex.symbol, EventCurPosition, pos)
+		//		ex.Send(ex.symbol, EventCurPosition, pos)
 		ex.Send(ex.symbol, EventPosition, &pos)
 		if pos.Hold == 0 {
 			ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
