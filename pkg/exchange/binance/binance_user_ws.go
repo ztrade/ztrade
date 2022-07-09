@@ -72,14 +72,13 @@ type orderInfo struct {
 	TraceStopRate  string `json:"cr"` // "cr":"5.0"                      // 追踪止损回调比例, 仅在追踪止损单时会推送此字段
 }
 
-type oneLevel [2]string
 type wsUserResp struct {
 	// orderbook
-	Name      string      `json:"e, omitempty"`
-	EventTime int64       `json:"E, omitempty"`
-	TradeTime int64       `json:"T, omitempty"`
-	O         orderInfo   `json:"o, omitempty"`
-	A         accountInfo `json:"a, omitempty"`
+	Name      string      `json:"e,omitempty"`
+	EventTime int64       `json:"E,omitempty"`
+	TradeTime int64       `json:"T,omitempty"`
+	O         orderInfo   `json:"o,omitempty"`
+	A         accountInfo `json:"a,omitempty"`
 }
 
 func (b *BinanceTrade) updateUserListenKey() {
@@ -87,10 +86,11 @@ func (b *BinanceTrade) updateUserListenKey() {
 	var listenKey string
 	var err error
 	ticker := time.NewTicker(time.Minute * 30)
+Out:
 	for {
 		select {
 		case <-b.closeCh:
-			break
+			break Out
 		case <-ticker.C:
 			for i := 0; i < 10; i++ {
 				listenKey, err = b.api.NewStartUserStreamService().Do(ctx)
@@ -105,9 +105,8 @@ func (b *BinanceTrade) updateUserListenKey() {
 				break
 			}
 			if err != nil {
-				break
+				break Out
 			}
-		default:
 		}
 	}
 }

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	gobinance "github.com/adshao/go-binance/v2"
-	"github.com/adshao/go-binance/v2/futures"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -21,39 +20,28 @@ import (
 	// . "github.com/ztrade/ztrade/pkg/event"
 )
 
-var (
-	defaultBinSizes = map[string]bool{"1m": true, "5m": true, "1h": true, "1d": true}
-	background      = context.Background()
-)
-
-var _ Exchange = &BinanceTrade{}
+var _ Exchange = &BinanceSpot{}
 
 func init() {
-	RegisterExchange("binance", NewBinanceExchange)
+	RegisterExchange("binance_spot", NewBinanceSpot)
 }
 
-type OrderInfo struct {
-	Order
-	Action TradeType
-	Filled bool
-}
-
-type BinanceTrade struct {
+type BinanceSpot struct {
 	Name string
-	api  *futures.Client
+	api  *gobinance.Client
 
 	datas   chan *ExchangeData
 	closeCh chan bool
 
-	cancelService    *futures.CancelAllOpenOrdersService
-	cancelOneService *futures.CancelOrderService
+	cancelService    *gobinance.CancelOpenOrdersService
+	cancelOneService *gobinance.CancelOrderService
 	klineLimit       int
 	wsUserListenKey  string
 	wsUser           *websocket.Conn
 }
 
-func NewBinanceExchange(cfg *viper.Viper, cltName string) (e Exchange, err error) {
-	b, err := NewBinanceTrader(cfg, cltName)
+func NewBinanceSpot(cfg *viper.Viper, cltName string) (e Exchange, err error) {
+	b, err := NewBinanceSpotEx(cfg, cltName)
 	if err != nil {
 		return
 	}
@@ -61,24 +49,25 @@ func NewBinanceExchange(cfg *viper.Viper, cltName string) (e Exchange, err error
 	return
 }
 
-func NewBinanceTrader(cfg *viper.Viper, cltName string) (b *BinanceTrade, err error) {
-	b = new(BinanceTrade)
-	b.Name = "binance"
+func NewBinanceSpotEx(cfg *viper.Viper, cltName string) (b *BinanceSpot, err error) {
+	b = new(BinanceSpot)
+	b.Name = "binance_spot"
 	if cltName == "" {
-		cltName = "binance"
+		cltName = "binance_spot"
 	}
 	b.klineLimit = 1500
 	// isDebug := cfg.GetBool(fmt.Sprintf("exchanges.%s.debug", cltName))
 	apiKey := cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	apiSecret := cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
-
+	fmt.Println("spot:", apiKey, apiSecret)
 	b.datas = make(chan *ExchangeData)
 	b.closeCh = make(chan bool)
 
 	// if isDebug{
 	//     b.api = gobinance.NewFuturesClient(apiKey string, secretKey string)
 	// }
-	b.api = gobinance.NewFuturesClient(apiKey, apiSecret)
+
+	b.api = gobinance.NewClient(apiKey, apiSecret)
 	clientProxy := cfg.GetString("proxy")
 	if clientProxy != "" {
 		var proxyURL *url.URL
@@ -90,24 +79,24 @@ func NewBinanceTrader(cfg *viper.Viper, cltName string) (b *BinanceTrade, err er
 		websocket.DefaultDialer.Proxy = http.ProxyURL(proxyURL)
 		websocket.DefaultDialer.HandshakeTimeout = time.Second * 60
 	}
-	b.cancelService = b.api.NewCancelAllOpenOrdersService()
+	b.cancelService = b.api.NewCancelOpenOrdersService()
 	b.cancelOneService = b.api.NewCancelOrderService()
 	b.Start(map[string]interface{}{})
 	return
 }
 
-func (b *BinanceTrade) Start(param map[string]interface{}) (err error) {
+func (b *BinanceSpot) Start(param map[string]interface{}) (err error) {
 	// watch position and order changed
 	err = b.startUserWS()
 	return
 }
-func (b *BinanceTrade) Stop() (err error) {
+func (b *BinanceSpot) Stop() (err error) {
 	close(b.closeCh)
 	return
 }
 
 // KlineChan get klines
-func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, errCh chan error) {
+func (b *BinanceSpot) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, errCh chan error) {
 	data = make(chan *Candle, 1024*10)
 	errCh = make(chan error, 1)
 	go func() {
@@ -134,7 +123,7 @@ func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (dat
 				if v.OpenTime <= nPrevStart {
 					continue
 				}
-				temp = transCandle(v)
+				temp = transSpotCandle(v)
 				data <- temp
 				nStart = temp.Start * 1000
 			}
@@ -150,10 +139,10 @@ func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (dat
 }
 
 // WatchKline watch kline changes
-func (b *BinanceTrade) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, stopC chan struct{}, err error) {
-	f := newKlineFilter(b.Name, symbol.Resolutions)
+func (b *BinanceSpot) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, stopC chan struct{}, err error) {
+	f := newSpotKlineFilter(b.Name, symbol.Resolutions)
 	datas = f.GetData()
-	doneC, stopC, err := futures.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError("watchKline"))
+	doneC, stopC, err := gobinance.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError("watchKline"))
 	go func() {
 		select {
 		case <-doneC:
@@ -168,15 +157,15 @@ func (b *BinanceTrade) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, st
 	return
 }
 
-func (b *BinanceTrade) handleError(typ string) func(error) {
+func (b *BinanceSpot) handleError(typ string) func(error) {
 	return func(err error) {
 		log.Errorf("binance %s error:%s", typ, err.Error())
 	}
 }
-func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
+func (b *BinanceSpot) handleAggTradeEvent(evt *gobinance.WsAggTradeEvent) {
 	var err error
 	var trade Trade
-	trade.ID = fmt.Sprintf("%d", evt.AggregateTradeID)
+
 	trade.Amount, err = strconv.ParseFloat(evt.Quantity, 64)
 	if err != nil {
 		log.Errorf("AggTradeEvent parse amount failed: %s", evt.Quantity)
@@ -193,11 +182,11 @@ func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
 	b.datas <- d
 }
 
-func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
+func (b *BinanceSpot) handleDepth(evt *gobinance.WsPartialDepthEvent) {
 	var depth Depth
 	var err error
 	var price, amount float64
-	depth.UpdateTime = time.Unix(evt.TransactionTime/1000, (evt.TransactionTime%1000)*int64(time.Millisecond))
+	depth.UpdateTime = time.Now()
 	for _, v := range evt.Asks {
 		// depth.Sells
 		price, err = strconv.ParseFloat(v.Price, 64)
@@ -227,7 +216,7 @@ func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
 	b.datas <- temp
 }
 
-func (b *BinanceTrade) Watch(param WatchParam) (err error) {
+func (b *BinanceSpot) Watch(param WatchParam) (err error) {
 	symbol := param.Extra.(string)
 	var stopC chan struct{}
 	switch param.Type {
@@ -262,16 +251,16 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 				b.datas <- d
 				tLast = candle.Start
 			}
-
 			if err != nil {
 				log.Error("exchange emitCandle error:", err.Error())
 			}
 		}()
 
 	case EventDepth:
-		_, stopC, err = futures.WsPartialDepthServe(symbol, 10, b.handleDepth, b.handleError("depth"))
+		// gobinance.WsDepthServe(symbol string, handler gobinance.WsDepthHandler, errHandler gobinance.ErrHandler)
+		_, stopC, err = gobinance.WsPartialDepthServe100Ms(symbol, "20", b.handleDepth, b.handleError("depth"))
 	case EventTradeMarket:
-		_, stopC, err = futures.WsAggTradeServe(symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
+		_, stopC, err = gobinance.WsAggTradeServe(symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
 	default:
 		err = fmt.Errorf("unknown wathc param: %s", param.Type)
 	}
@@ -287,7 +276,7 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 	return
 }
 
-func (b *BinanceTrade) CancelOrder(old *Order) (order *Order, err error) {
+func (b *BinanceSpot) CancelOrder(old *Order) (order *Order, err error) {
 	resp, err := b.cancelOneService.Symbol(old.Symbol).Do(context.Background())
 	if err != nil {
 		return
@@ -308,57 +297,57 @@ func (b *BinanceTrade) CancelOrder(old *Order) (order *Order, err error) {
 		Price:    price,
 		Status:   strings.ToUpper(string(resp.Status)),
 		Side:     strings.ToLower(string(resp.Side)),
-		Time:     time.Unix(resp.UpdateTime/1000, 0),
+		Time:     time.Unix(resp.TransactTime/1000, 0),
 	}
 
 	return
 }
 
-func (b *BinanceTrade) ProcessOrder(act TradeAction) (ret *Order, err error) {
+func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	ctx := context.Background()
-	orderType := futures.OrderTypeLimit
+	orderType := gobinance.OrderTypeLimit
 	if act.Action.IsStop() {
-		orderType = futures.OrderTypeStopMarket
+		orderType = gobinance.OrderTypeStopLoss
 	}
-	var side futures.SideType
+	var side gobinance.SideType
 	if act.Action.IsLong() {
-		side = futures.SideTypeBuy
+		side = gobinance.SideTypeBuy
 	} else {
-		side = futures.SideTypeSell
+		side = gobinance.SideTypeSell
 	}
 	resp, err := b.api.NewCreateOrderService().Symbol(act.Symbol).
 		Price(fmt.Sprintf("%f", act.Price)).
 		Quantity(fmt.Sprintf("%f", act.Amount)).
-		TimeInForce(futures.TimeInForceTypeGTC).
+		TimeInForce(gobinance.TimeInForceTypeGTC).
 		Type(orderType).
 		Side(side).
 		Do(ctx)
 	if err != nil {
 		return
 	}
-	ret = transCreateOrder(resp)
+	ret = transSpotCreateOrder(resp)
 	return
 }
 
-func (b *BinanceTrade) CancelAllOrders() (orders []*Order, err error) {
+func (b *BinanceSpot) CancelAllOrders() (orders []*Order, err error) {
 	ctx := context.Background()
-	ret, err := b.api.NewListOrdersService().Do(ctx)
-	if err != nil {
-		return
-	}
-	var st string
-	for _, v := range ret {
-		st = string(v.Status)
-		if st == OrderStatusFilled || st == OrderStatusCanceled {
-			continue
-		}
-		orders = append(orders, transOrder(v))
-	}
-	err = b.cancelService.Do(context.Background())
+	// ret, err := b.api.NewListOrdersService().Symbol("BTCUSDT").Do(ctx)
+	// if err != nil {
+	// 	return
+	// }
+	// var st string
+	// for _, v := range ret {
+	// 	st = string(v.Status)
+	// 	if st == OrderStatusFilled || st == OrderStatusCanceled {
+	// 		continue
+	// 	}
+	// 	orders = append(orders, transSpotOrder(v))
+	// }
+	_, err = b.cancelService.Symbol("BTCUSDT").Do(ctx)
 	return
 }
 
-func (b *BinanceTrade) GetSymbols() (symbols []SymbolInfo, err error) {
+func (b *BinanceSpot) GetSymbols() (symbols []SymbolInfo, err error) {
 	ctx, cancel := context.WithTimeout(background, time.Second*5)
 	defer cancel()
 	resp, err := b.api.NewExchangeInfoService().Do(ctx)
@@ -371,18 +360,18 @@ func (b *BinanceTrade) GetSymbols() (symbols []SymbolInfo, err error) {
 			Exchange:    "binance",
 			Symbol:      v.Symbol,
 			Resolutions: "1m,5m,15m,30m,1h,4h,1d,1w",
-			Pricescale:  v.QuantityPrecision,
+			Pricescale:  v.QuotePrecision,
 		}
 	}
 
 	return
 }
 
-func (b *BinanceTrade) GetDataChan() chan *ExchangeData {
+func (b *BinanceSpot) GetDataChan() chan *ExchangeData {
 	return b.datas
 }
 
-func transOrder(fo *futures.Order) (o *Order) {
+func transSpotOrder(fo *gobinance.Order) (o *Order) {
 	price, err := strconv.ParseFloat(fo.Price, 64)
 	if err != nil {
 		panic(fmt.Sprintf("parse price %s error: %s", fo.Price, err.Error()))
@@ -404,7 +393,7 @@ func transOrder(fo *futures.Order) (o *Order) {
 	return
 }
 
-func transCreateOrder(fo *futures.CreateOrderResponse) (o *Order) {
+func transSpotCreateOrder(fo *gobinance.CreateOrderResponse) (o *Order) {
 	price, err := strconv.ParseFloat(fo.Price, 64)
 	if err != nil {
 		panic(fmt.Sprintf("parse price %s error: %s", fo.Price, err.Error()))
@@ -421,12 +410,12 @@ func transCreateOrder(fo *futures.CreateOrderResponse) (o *Order) {
 		Price:    price,
 		Status:   strings.ToUpper(string(fo.Status)),
 		Side:     strings.ToLower(string(fo.Side)),
-		Time:     time.Unix(fo.UpdateTime/1000, 0),
+		Time:     time.Unix(fo.TransactTime/1000, 0),
 	}
 	return
 }
 
-func transCandle(candle *futures.Kline) (ret *Candle) {
+func transSpotCandle(candle *gobinance.Kline) (ret *Candle) {
 	ret = &Candle{
 		ID:       0,
 		Start:    candle.OpenTime / 1000,
@@ -441,15 +430,7 @@ func transCandle(candle *futures.Kline) (ret *Candle) {
 	return
 }
 
-func parseFloat(str string) float64 {
-	f, err := strconv.ParseFloat(str, 64)
-	if err != nil {
-		panic("binance parseFloat error:" + err.Error())
-	}
-	return f
-}
-
-func transWSCandle(candle *futures.WsKline) (ret *CandleInfo) {
+func transSpotWSCandle(candle *gobinance.WsKline) (ret *CandleInfo) {
 	ret = &CandleInfo{
 		Symbol: candle.Symbol,
 		Data: &Candle{

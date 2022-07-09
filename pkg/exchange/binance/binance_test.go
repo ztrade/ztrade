@@ -23,7 +23,7 @@ func getTestClt() *BinanceTrade {
 	if err != nil {
 		log.Fatal("ReadInConfig failed:" + err.Error())
 	}
-	testClt, err := NewBinanceTrade(cfg, "binance")
+	testClt, err = NewBinanceTrader(cfg, "binance")
 	if err != nil {
 		log.Fatal("create client failed:" + err.Error())
 	}
@@ -32,6 +32,7 @@ func getTestClt() *BinanceTrade {
 
 func TestMain(m *testing.M) {
 	testClt = getTestClt()
+	testSpotClt = getTestSpotClt()
 	m.Run()
 }
 
@@ -60,8 +61,8 @@ func TestProcessOrder(t *testing.T) {
 		Amount: 1,
 		Price:  1,
 		Time:   time.Now(),
+		Symbol: "EOSUSDT",
 	}
-	testClt.symbol = "EOSUSDT"
 	ret, err := testClt.ProcessOrder(act)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -70,7 +71,6 @@ func TestProcessOrder(t *testing.T) {
 }
 
 func TestCancelAllOrders(t *testing.T) {
-	testClt.symbol = "EOSUSDT"
 	orders, err := testClt.CancelAllOrders()
 	if err != nil {
 		t.Fatal(err.Error())
