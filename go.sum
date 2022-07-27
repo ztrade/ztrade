@@ -618,6 +618,8 @@ github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxt
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
 github.com/ztrade/base v0.1.2 h1:oNq1iqaG0X09vZrF+lA9JfAiPOSmEj2AbMwwnys9hDs=
 github.com/ztrade/base v0.1.2/go.mod h1:UW2phqXXB6v4EOXVHLF0IsXnma8G/fYPZaqH9uBLPVw=
+github.com/ztrade/base v0.1.4 h1:VWetEOnzSsX0OmQmwFoNSKsQE3faENb+YkMpECdhZ0M=
+github.com/ztrade/base v0.1.4/go.mod h1:UW2phqXXB6v4EOXVHLF0IsXnma8G/fYPZaqH9uBLPVw=
 github.com/ztrade/ctp v0.0.2 h1:77K2gPKJRrrWjYaM2xaE6IhOmiIhY2Tx9FgO42s2gPc=
 github.com/ztrade/ctp v0.0.2/go.mod h1:F6mY4Zoyo5kVecAQg08iwni5gIC5ISoFv6a09xZs+NQ=
 github.com/ztrade/indicator v1.1.1 h1:SoY+7KwXG4gCqqsng//SwUvyo88ZRM3YMJMqkgeRqig=
