@@ -156,8 +156,9 @@ func (r *Report) Analyzer() (err error) {
 		}
 	}
 	//	endBalance := bal.Get()
-
-	r.profit = lastTmplData.TotalProfit
+	if lastTmplData != nil {
+		r.profit = lastTmplData.TotalProfit
+	}
 	// endBalance - startBalance
 	if total > 0 {
 		r.winRate = common.FloatDiv(float64(success), float64(total))
