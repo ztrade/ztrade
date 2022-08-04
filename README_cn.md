@@ -47,8 +47,11 @@ cd dist
 
 
 ## 策略
-参考例子：
 
+策略文档:
+[策略](./doc/strategy.md)
+
+参考例子：
 [strategy](https://github.com/ztrade/strategy)
 
 ## 鸣谢
