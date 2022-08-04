@@ -212,6 +212,13 @@ func (b *OkexTrader) Stop() (err error) {
 func (b *OkexTrader) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, errCh chan error) {
 	data = make(chan *Candle, 1024*10)
 	errCh = make(chan error, 1)
+	dur, err := time.ParseDuration(bSize)
+	if err != nil {
+		errCh <- err
+		close(data)
+		close(errCh)
+		return
+	}
 	go func() {
 		defer func() {
 			close(data)
@@ -224,7 +231,9 @@ func (b *OkexTrader) GetKline(symbol, bSize string, start, end time.Time) (data 
 		var resp *market.GetApiV5MarketHistoryCandlesResponse
 		var startStr, endStr string
 		var err error
+		nDur := int64(dur / time.Millisecond)
 		for {
+			tMax := time.Now().Unix()*1000 - nDur
 			ctx, cancel := context.WithTimeout(background, time.Second*3)
 			startStr = strconv.FormatInt(nStart, 10)
 			tempEnd = nStart + 100*60*1000
@@ -249,9 +258,16 @@ func (b *OkexTrader) GetKline(symbol, bSize string, start, end time.Time) (data 
 				return klines[i].Start < klines[j].Start
 			})
 
-			for _, v := range klines {
+			for k, v := range klines {
 				if v.Start*1000 <= nPrevStart {
 					continue
+				}
+				if k == len(klines)-1 {
+					// check if candle is unfinished
+					if v.Start > tMax {
+						log.Infof("skip unfinished candle: %##v\n", *v)
+						break
+					}
 				}
 				data <- v
 				nStart = v.Start * 1000

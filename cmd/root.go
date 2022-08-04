@@ -135,20 +135,24 @@ func initConfig() {
 
 func initTimerange(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&startStr, "start", "s", "2019-01-01 10:00:00", "start time")
-	cmd.PersistentFlags().StringVarP(&endStr, "end", "e", "2019-01-01 10:00:00", "end time")
+	cmd.PersistentFlags().StringVarP(&endStr, "end", "e", "", "end time")
 	cmd.PersistentFlags().StringVarP(&binSize, "binSize", "b", "1m", "binSize: 1m,5m,15m,1h,1d")
 	cmd.PersistentFlags().StringVar(&symbol, "symbol", "BTCUSDT", "symbol")
 	cmd.PersistentFlags().StringVar(&exchangeName, "exchange", "binance", "exchage name, support binance,okex current now")
 }
 
 func parseTimerange() (startTime, endTime time.Time, err error) {
-	if startStr == "" || endStr == "" {
+	if startStr == "" {
 		err = errors.New("start/end time can't be empty")
 		return
 	}
 	startTime, err = time.Parse("2006-01-02 15:04:05", startStr)
 	if err != nil {
 		err = errors.New("parse start time error")
+		return
+	}
+	if endStr == "" {
+		endTime = time.Now()
 		return
 	}
 	endTime, err = time.Parse("2006-01-02 15:04:05", endStr)

@@ -355,8 +355,11 @@ func (t *TimeTbl) WriteDatas(datas []interface{}) (err error) {
 		v.SetTable(t.table)
 		_, err = sess.Insert(data)
 		if err != nil {
-			if strings.Contains(err.Error(), "Duplicate entry") {
-				log.Debugf("TimeTbl insert %s error:%#v", v, err)
+			if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE constraint") {
+				_, err = sess.Where("start=?", v.GetStart()).Update(data)
+				if err != nil {
+					log.Debugf("TimeTbl insert/update %s error:%#v", v, err)
+				}
 			} else {
 				log.Errorf("TimeTbl insert %s error:%#v", v, err)
 			}

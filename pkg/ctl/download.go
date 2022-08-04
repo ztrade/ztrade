@@ -81,7 +81,7 @@ func (d *DataDownload) AutoRun() (err error) {
 	}
 	// log.Info(k, "temp time newest:", tmTemp)
 	if tmTemp.Sub(start) < 0 {
-		start = tmTemp
+		start = tmTemp.Add(-time.Minute)
 	}
 	end := time.Now()
 	log.Debugf("autorun start:%s, end:%s", start, end)

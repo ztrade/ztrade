@@ -109,6 +109,13 @@ func (b *BinanceTrade) Stop() (err error) {
 func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (data chan *Candle, errCh chan error) {
 	data = make(chan *Candle, 1024*10)
 	errCh = make(chan error, 1)
+	dur, err := time.ParseDuration(bSize)
+	if err != nil {
+		errCh <- err
+		close(data)
+		close(errCh)
+		return
+	}
 	go func() {
 		defer func() {
 			close(data)
@@ -119,7 +126,9 @@ func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (dat
 		nStart := start.Unix() * 1000
 		nEnd := end.Unix() * 1000
 		var nPrevStart int64
+		nDur := int64(dur / time.Millisecond)
 		for {
+			tMax := time.Now().Unix()*1000 - nDur
 			klines, err := b.api.NewKlinesService().Interval(bSize).Symbol(symbol).StartTime(nStart).EndTime(nEnd).Limit(b.klineLimit).Do(ctx)
 			if err != nil {
 				errCh <- err
@@ -128,14 +137,20 @@ func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (dat
 			sort.Slice(klines, func(i, j int) bool {
 				return klines[i].OpenTime < klines[j].OpenTime
 			})
-
-			for _, v := range klines {
+			for k, v := range klines {
 				if v.OpenTime <= nPrevStart {
 					continue
 				}
 				temp = transCandle(v)
 				data <- temp
 				nStart = temp.Start * 1000
+				if k == len(klines)-1 {
+					// check if candle is unfinished
+					if v.OpenTime > tMax {
+						log.Infof("skip unfinished candle: %##v\n", *v)
+						break
+					}
+				}
 			}
 			if nStart >= nEnd || nStart <= nPrevStart || len(klines) == 0 {
 				fmt.Println(time.Unix(nStart/1000, 0), start, end)

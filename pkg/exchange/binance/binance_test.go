@@ -23,7 +23,7 @@ func getTestClt() *BinanceTrade {
 	if err != nil {
 		log.Fatal("ReadInConfig failed:" + err.Error())
 	}
-	testClt, err := NewBinanceTrade(cfg, "binance")
+	testClt, err := NewBinanceTrader(cfg, "binance")
 	if err != nil {
 		log.Fatal("create client failed:" + err.Error())
 	}
@@ -58,10 +58,10 @@ func TestProcessOrder(t *testing.T) {
 	act := trademodel.TradeAction{
 		Action: trademodel.OpenLong,
 		Amount: 1,
-		Price:  1,
+		Price:  0.1,
+		Symbol: "EOSUSDT",
 		Time:   time.Now(),
 	}
-	testClt.symbol = "EOSUSDT"
 	ret, err := testClt.ProcessOrder(act)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -70,7 +70,6 @@ func TestProcessOrder(t *testing.T) {
 }
 
 func TestCancelAllOrders(t *testing.T) {
-	testClt.symbol = "EOSUSDT"
 	orders, err := testClt.CancelAllOrders()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -81,10 +80,10 @@ func TestCancelAllOrders(t *testing.T) {
 }
 
 func TestWatchKline(t *testing.T) {
-	symbol := core.SymbolInfo{Symbol: "EOSUSDT", Resolutions: "1m"}
+	symbol := core.SymbolInfo{Symbol: "BTCUSDT", Resolutions: "1m"}
 	datas, stopC, err := testClt.WatchKline(symbol)
 	go func() {
-		<-time.After(time.Minute)
+		<-time.After(time.Minute * 3)
 		stopC <- struct{}{}
 	}()
 	var n int
