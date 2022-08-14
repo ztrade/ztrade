@@ -1,8 +1,8 @@
-//go:build !igo
+//go:build igo
 
 package goscript
 
 import (
+	_ "github.com/ztrade/ztrade/pkg/process/goscript/igo"
 	_ "github.com/ztrade/ztrade/pkg/process/goscript/plugin"
-	_ "github.com/ztrade/ztrade/pkg/process/goscript/script"
 )
