@@ -204,6 +204,13 @@ func (ex *VExchange) onEventOrder(e *Event) (err error) {
 	}
 	if ex.candle != nil {
 		act.Time = ex.candle.Time().Add(time.Second * time.Duration(ex.orderIndex))
+		if act.Action == StopLong && act.Price >= ex.candle.Close {
+			log.Warnf("invalid stop long order,action: %#v, candle: %s", *act, *ex.candle)
+			return
+		} else if act.Action == StopShort && act.Price <= ex.candle.Close {
+			log.Warnf("invalid stop short order,action: %#v, candle: %s", *act, *ex.candle)
+			return
+		}
 	}
 	ex.orderIndex++
 	ex.orders.PushBack(*act)
