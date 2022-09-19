@@ -11,9 +11,11 @@ import (
 	"sort"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/base/common"
 	. "github.com/ztrade/trademodel"
+	"xorm.io/xorm"
 )
 
 //go:embed report.tmpl
@@ -34,10 +36,11 @@ type Report struct {
 	maxDrawdown      float64
 	maxDrawdownValue float64
 	fee              float64
+	profitLoseRatio  float64
 }
 
 type RptAct struct {
-	Trade
+	Trade       `xorm:"extends"`
 	Total       float64
 	TotalProfit float64 // total profit,sum of all history profits,if action is open, total profit is zero
 	Profit      float64 // profit, if action is open, profit is zero
@@ -72,7 +75,8 @@ func (r *Report) Analyzer() (err error) {
 		}
 	}
 	r.trades = r.trades[0:i]
-	// var longTotal,shortTotal float64
+	profitTotal := decimal.New(0, 0)
+	loseTotal := decimal.New(0, 0)
 	var longAmount, costOnce float64
 	var shortAmount float64
 	var actTotal, lose float64
@@ -116,6 +120,11 @@ func (r *Report) Analyzer() (err error) {
 				tmplData.TotalProfit = lastTmplData.TotalProfit
 			}
 			tmplData.Profit = profit
+			if profit > 0 {
+				profitTotal = profitTotal.Add(decimal.NewFromFloat(profit))
+			} else {
+				loseTotal = loseTotal.Add(decimal.NewFromFloat(profit))
+			}
 			tmplData.TotalProfit = common.FloatAdd(tmplData.TotalProfit, tmplData.Profit)
 			r.profitHistory = append(r.profitHistory, profit)
 			total++
@@ -163,6 +172,11 @@ func (r *Report) Analyzer() (err error) {
 	if total > 0 {
 		r.winRate = common.FloatDiv(float64(success), float64(total))
 	}
+	if !loseTotal.IsZero() {
+		r.profitLoseRatio, _ = profitTotal.Div(loseTotal.Abs()).Float64()
+	} else {
+		r.profitLoseRatio, _ = profitTotal.Float64()
+	}
 	return
 }
 
@@ -174,6 +188,10 @@ func (r *Report) WinRate() (rate float64) {
 func (r *Report) Profit() (profit float64) {
 	profit = common.FormatFloat(r.profit, 4)
 	return
+}
+
+func (r *Report) ProfitLoseRatio() float64 {
+	return r.profitLoseRatio
 }
 
 // MaxLose max total lose
@@ -200,6 +218,7 @@ func (r *Report) GetReport() (report string) {
 	buf.WriteString(fmt.Sprintf("Max lose percent:%f\n", r.MaxLose()))
 	buf.WriteString(fmt.Sprintf("Max drawdown percent:%f%%\n", r.MaxDrawdown()))
 	buf.WriteString(fmt.Sprintf("Max drawdown value :%f\n", r.MaxDrawdown()))
+	buf.WriteString(fmt.Sprintf("Profit lose ratio: %f\n", r.ProfitLoseRatio()))
 	data, _ := json.Marshal(r.profitHistory)
 	buf.WriteString(string(data))
 	report = buf.String()
@@ -230,6 +249,7 @@ func (r *Report) GenHTML(w io.Writer) (err error) {
 	data["actions"] = r.tmplDatas
 	data["maxDrawdown"] = r.MaxDrawdown()
 	data["maxDrawdownValue"] = r.MaxDrawdownValue()
+	data["profitLoseRatio"] = r.ProfitLoseRatio()
 	err = tmpl.Execute(w, data)
 	return
 }
@@ -242,7 +262,6 @@ func (r *Report) OnBalanceInit(balance, fee float64) (err error) {
 
 func (r *Report) OnTrade(t Trade) {
 	r.trades = append(r.trades, t)
-	return
 }
 
 func (r *Report) GenRPT(fPath string) (err error) {
@@ -275,6 +294,27 @@ func (r *Report) GetResult() (ret ReportResult, err error) {
 	ret.MaxLose = r.MaxLose()
 	ret.MaxDrawdown = r.MaxDrawdown()
 	ret.MaxDrawDownValue = r.MaxDrawdownValue()
+	return
+}
+
+func (r *Report) ExportToDB(dbPath string) (err error) {
+	eng, err := xorm.NewEngine("sqlite", dbPath)
+	if err != nil {
+		return
+	}
+	var data RptAct
+	err = eng.Sync2(&data)
+	if err != nil {
+		return
+	}
+	defer eng.Close()
+	fmt.Println("tmpl len:", len(r.tmplDatas))
+	for _, v := range r.tmplDatas {
+		_, err = eng.Insert(v)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 

@@ -10,7 +10,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.10.1
 	github.com/getkin/kin-openapi v0.94.0
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/goplus/igop v0.8.6
+	github.com/goplus/igop v0.9.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lib/pq v1.10.5
@@ -41,7 +41,7 @@ require (
 	github.com/goccy/go-json v0.9.6 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/goplus/reflectx v0.9.5 // indirect
+	github.com/goplus/reflectx v0.9.6 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -57,7 +57,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/peterh/liner v1.2.2 // indirect
-	github.com/petermattis/goid v0.0.0-20220712135657-ac599d9cba15 // indirect
+	github.com/petermattis/goid v0.0.0-20220824145935-af5520614cb6 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -72,6 +72,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/visualfc/funcval v0.1.3 // indirect
+	github.com/visualfc/goembed v0.2.2 // indirect
 	github.com/visualfc/gomod v0.1.2 // indirect
 	github.com/visualfc/xtype v0.1.0 // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect

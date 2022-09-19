@@ -27,6 +27,8 @@ var (
 	loadOnce     int
 	fee          float64
 	simpleReport bool
+
+	rptDB string
 )
 
 // backtestCmd represents the backtest command
@@ -47,6 +49,7 @@ func init() {
 	backtestCmd.PersistentFlags().IntVarP(&loadOnce, "load", "", 50000, "load db once limit")
 	backtestCmd.PersistentFlags().Float64VarP(&fee, "fee", "", 0.0001, "fee")
 	backtestCmd.PersistentFlags().BoolVarP(&simpleReport, "console", "", false, "print report to console")
+	backtestCmd.PersistentFlags().StringVarP(&rptDB, "reportDB", "d", "", "save all actions to sqlite db")
 	initTimerange(backtestCmd)
 }
 
@@ -100,6 +103,13 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	err = r.GenRPT(rptFile)
 	if err != nil {
 		return
+	}
+	if rptDB != "" {
+		err = r.ExportToDB(rptDB)
+		if err != nil {
+			fmt.Println("export to DB failed:", err.Error())
+			return
+		}
 	}
 	err = common.OpenURL(rptFile)
 	return
