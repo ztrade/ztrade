@@ -27,6 +27,7 @@ import (
 	"github.com/ztrade/ztrade/pkg/exchange/ok/api/market"
 	"github.com/ztrade/ztrade/pkg/exchange/ok/api/public"
 	"github.com/ztrade/ztrade/pkg/exchange/ok/api/trade"
+	"github.com/ztrade/ztrade/pkg/exchange/ws"
 )
 
 var (
@@ -70,8 +71,8 @@ type OkexTrader struct {
 	tdMode    string
 
 	klineLimit int
-	wsUser     *WSConn
-	wsPublic   *WSConn
+	wsUser     *ws.WSConn
+	wsPublic   *ws.WSConn
 
 	ordersCache     sync.Map
 	stopOrdersCache sync.Map

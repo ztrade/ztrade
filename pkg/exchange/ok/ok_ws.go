@@ -15,10 +15,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
+	"github.com/ztrade/ztrade/pkg/exchange/ws"
 )
 
 func (b *OkexTrader) runPrivate() (err error) {
-	b.wsUser, err = NewWSConn(WSOkexPrivate, func(ws *WSConn) error {
+	b.wsUser, err = ws.NewWSConn(WSOkexPrivate, func(ws *ws.WSConn) error {
 		login := OPParam{
 			OP:   "login",
 			Args: []interface{}{NewLoginArg(b.apiKey, b.apiPwd, b.apiSecret)},

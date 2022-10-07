@@ -1,4 +1,4 @@
-package ok
+package ws
 
 import (
 	"fmt"
@@ -10,10 +10,10 @@ import (
 
 func TestWsConn(t *testing.T) {
 	initFn := func(ws *WSConn) error {
-		var p = OPParam{
-			OP: "subscribe",
-			Args: []interface{}{
-				OPArg{Channel: "trades", InstType: "SWAP", InstID: "BTC-USDT-SWAP"},
+		var p = map[string]interface{}{
+			"op": "subscribe",
+			"args": []interface{}{
+				map[string]interface{}{"channel": "trades", "instType": "SWAP", "instId": "BTC-USDT-SWAP"},
 			},
 		}
 		return ws.WriteMsg(p)
@@ -22,7 +22,7 @@ func TestWsConn(t *testing.T) {
 		fmt.Println("msg:", string(msg))
 		return nil
 	}
-	conn, err := NewWSConn(WSOkexPUbilc, initFn, messageFn)
+	conn, err := NewWSConn("wss://wsaws.okx.com:8443/ws/v5/public", initFn, messageFn)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -42,7 +42,7 @@ func TestWsPing(t *testing.T) {
 		fmt.Println("recv pong msg:", string(msg))
 		return nil
 	}
-	conn, err := NewWSConn(WSOkexPUbilc, initFn, messageFn)
+	conn, err := NewWSConn("wss://wsaws.okx.com:8443/ws/v5/public", initFn, messageFn)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -10,10 +10,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
+	"github.com/ztrade/ztrade/pkg/exchange/ws"
 )
 
 func (b *OkexTrader) runPublic() (err error) {
-	b.wsPublic, err = NewWSConn(WSOkexPUbilc, func(ws *WSConn) error {
+	b.wsPublic, err = ws.NewWSConn(WSOkexPUbilc, func(ws *ws.WSConn) error {
 		// watch when reconnect
 		for _, v := range b.watchPublics {
 			err1 := ws.WriteMsg(v)

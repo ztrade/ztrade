@@ -1,4 +1,4 @@
-package ok
+package ws
 
 import (
 	"bytes"
