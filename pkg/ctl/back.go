@@ -28,6 +28,8 @@ type Backtest struct {
 	balanceInit float64
 	loadDBOnce  int
 	fee         float64
+
+	closeAllWhenFinished bool
 }
 
 // NewBacktest constructor of Backtest
@@ -42,6 +44,10 @@ func NewBacktest(db *dbstore.DBStore, exchange, symbol, param string, start time
 	b.loadDBOnce = 50000
 	b.paramData = param
 	return
+}
+
+func (b *Backtest) CloseAllWhenFinished(bCloseAll bool) {
+	b.closeAllWhenFinished = bCloseAll
 }
 
 func (b *Backtest) SetLoadDBOnce(loadOnce int) {
@@ -112,13 +118,17 @@ func (b *Backtest) Run() (err error) {
 	param.Send("load_candle", EventWatch, NewWatchCandle(&candleParam))
 	// TODO wait for finish
 	<-closeCh
+	if b.closeAllWhenFinished {
+		time.Sleep(time.Second * 10)
+		ex.CloseAll()
+	}
 	processers.WaitClose(time.Second * 10)
 	return
 }
 
 // Progress return the progress of current backtest
 func (b *Backtest) Progress() (progress int) {
-	return b.Progress()
+	return b.progress
 }
 
 // IsRunning return if the backtest is running

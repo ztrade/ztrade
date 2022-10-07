@@ -3,6 +3,7 @@ package vex
 import (
 	"container/list"
 	"fmt"
+	"math"
 	"reflect"
 	"sync"
 	"time"
@@ -20,7 +21,6 @@ import (
 type VExchange struct {
 	BaseProcesser
 	candle   *Candle
-	lastActs []TradeAction
 	trades   []Trade
 	orders   *list.List
 	position float64
@@ -222,5 +222,47 @@ func (ex *VExchange) onEventBalanceInit(e *Event) (err error) {
 	ex.balance.Set(balance.Balance)
 	ex.balance.SetFee(balance.Fee)
 	ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
+	return
+}
+
+func (ex *VExchange) CloseAll() (err error) {
+	if ex.position == 0 {
+		return
+	}
+	virtualTime := ex.candle.Time().Add(time.Second)
+	var tr Trade
+	if ex.position > 0 {
+		tr = Trade{ID: fmt.Sprintf("%d", len(ex.trades)),
+			Action: CloseLong,
+			Time:   virtualTime,
+			Price:  ex.candle.Close,
+			Amount: math.Abs(ex.position),
+			Side:   "sell",
+			Remark: ""}
+	} else {
+		tr = Trade{ID: fmt.Sprintf("%d", len(ex.trades)),
+			Action: CloseShort,
+			Time:   virtualTime,
+			Price:  ex.candle.Close,
+			Amount: math.Abs(ex.position),
+			Side:   "buy",
+			Remark: ""}
+	}
+	tradeEvent := ex.CreateEvent("trade", EventTrade, &tr)
+	ex.Bus.Send(tradeEvent)
+	_, _, err = ex.balance.AddTrade(tr)
+	if err != nil {
+		log.Errorf("vexchange CloseALll balance AddTrade error:%s %f %f", err.Error(), tr.Price, tr.Amount)
+		return
+	}
+	ex.position = ex.balance.Pos()
+	var pos Position
+	pos.Symbol = ex.symbol
+	pos.Hold = ex.position
+	//		ex.Send(ex.symbol, EventCurPosition, pos)
+	ex.Send(ex.symbol, EventPosition, &pos)
+	if pos.Hold == 0 {
+		ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
+	}
 	return
 }
