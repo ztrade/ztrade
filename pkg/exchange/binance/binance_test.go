@@ -23,7 +23,9 @@ func getTestClt() *BinanceTrade {
 	if err != nil {
 		log.Fatal("ReadInConfig failed:" + err.Error())
 	}
-	testClt, err := NewBinanceTrader(cfg, "binance")
+
+	testClt, err = NewBinanceTrader(cfg, "binance")
+
 	if err != nil {
 		log.Fatal("create client failed:" + err.Error())
 	}
@@ -32,6 +34,7 @@ func getTestClt() *BinanceTrade {
 
 func TestMain(m *testing.M) {
 	testClt = getTestClt()
+	testSpotClt = getTestSpotClt()
 	m.Run()
 }
 
