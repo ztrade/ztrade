@@ -17,7 +17,12 @@ import (
 	"github.com/spf13/viper"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
+	"github.com/ztrade/ztrade/pkg/exchange/ws"
 	// . "github.com/ztrade/ztrade/pkg/event"
+)
+
+var (
+	BinanceSpotAddr = "wss://stream.binance.com:9443/ws/"
 )
 
 var _ Exchange = &BinanceSpot{}
@@ -38,6 +43,9 @@ type BinanceSpot struct {
 	klineLimit       int
 	wsUserListenKey  string
 	wsUser           *websocket.Conn
+
+	wsDepth       *ws.WSConn
+	wsMarketTrade *ws.WSConn
 }
 
 func NewBinanceSpot(cfg *viper.Viper, cltName string) (e Exchange, err error) {
@@ -162,59 +170,6 @@ func (b *BinanceSpot) handleError(typ string) func(error) {
 		log.Errorf("binance %s error:%s", typ, err.Error())
 	}
 }
-func (b *BinanceSpot) handleAggTradeEvent(evt *gobinance.WsAggTradeEvent) {
-	var err error
-	var trade Trade
-
-	trade.Amount, err = strconv.ParseFloat(evt.Quantity, 64)
-	if err != nil {
-		log.Errorf("AggTradeEvent parse amount failed: %s", evt.Quantity)
-	}
-	trade.Price, err = strconv.ParseFloat(evt.Price, 64)
-	if err != nil {
-		log.Errorf("AggTradeEvent parse amount failed: %s", evt.Quantity)
-	}
-	trade.Time = time.Unix(evt.Time/1000, (evt.Time%1000)*int64(time.Millisecond))
-	temp := NewExchangeData(b.Name, EventTradeMarket, &trade)
-	temp.Symbol = evt.Symbol
-	d := NewExchangeData(b.Name, EventTradeMarket, &trade)
-	d.Symbol = evt.Symbol
-	b.datas <- d
-}
-
-func (b *BinanceSpot) handleDepth(evt *gobinance.WsPartialDepthEvent) {
-	var depth Depth
-	var err error
-	var price, amount float64
-	depth.UpdateTime = time.Now()
-	for _, v := range evt.Asks {
-		// depth.Sells
-		price, err = strconv.ParseFloat(v.Price, 64)
-		if err != nil {
-			log.Errorf("handleDepth parse price failed: %s", v.Price)
-		}
-		amount, err = strconv.ParseFloat(v.Quantity, 64)
-		if err != nil {
-			log.Errorf("handleDepth parse amount failed: %s", v.Quantity)
-		}
-		depth.Sells = append(depth.Sells, DepthInfo{Price: price, Amount: amount})
-	}
-	for _, v := range evt.Bids {
-		// depth.Sells
-		price, err = strconv.ParseFloat(v.Price, 64)
-		if err != nil {
-			log.Errorf("handleDepth parse price failed: %s", v.Price)
-		}
-		amount, err = strconv.ParseFloat(v.Quantity, 64)
-		if err != nil {
-			log.Errorf("handleDepth parse amount failed: %s", v.Quantity)
-		}
-		depth.Buys = append(depth.Buys, DepthInfo{Price: price, Amount: amount})
-	}
-	temp := NewExchangeData(b.Name, EventDepth, &depth)
-	temp.Symbol = evt.Symbol
-	b.datas <- temp
-}
 
 func (b *BinanceSpot) Watch(param WatchParam) (err error) {
 	symbol := param.Extra.(string)
@@ -257,10 +212,13 @@ func (b *BinanceSpot) Watch(param WatchParam) (err error) {
 		}()
 
 	case EventDepth:
-		// gobinance.WsDepthServe(symbol string, handler gobinance.WsDepthHandler, errHandler gobinance.ErrHandler)
-		_, stopC, err = gobinance.WsPartialDepthServe100Ms(symbol, "20", b.handleDepth, b.handleError("depth"))
+		if b.wsDepth == nil {
+			addr := fmt.Sprintf("%s%s@depth20@100ms", BinanceSpotAddr, strings.ToLower(symbol))
+			b.wsDepth, err = ws.NewWSConn(addr, nil, b.parseBinanceSpotDepth(symbol))
+		}
 	case EventTradeMarket:
-		_, stopC, err = gobinance.WsAggTradeServe(symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
+		addr := fmt.Sprintf("%s%s@trade", BinanceSpotAddr, strings.ToLower(symbol))
+		b.wsMarketTrade, err = ws.NewWSConn(addr, nil, b.parseBinanceSpotMarketTrade(symbol))
 	default:
 		err = fmt.Errorf("unknown wathc param: %s", param.Type)
 	}
@@ -309,6 +267,7 @@ func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	if act.Action.IsStop() {
 		orderType = gobinance.OrderTypeStopLoss
 	}
+	orderType = gobinance.OrderTypeMarket
 	var side gobinance.SideType
 	if act.Action.IsLong() {
 		side = gobinance.SideTypeBuy
