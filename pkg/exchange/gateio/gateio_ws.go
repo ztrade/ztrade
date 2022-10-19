@@ -14,7 +14,7 @@ import (
 )
 
 func (g *GateIO) parseDepth(message []byte) (err error) {
-	var ob GateFuturesOB
+	var ob GateFuturesOBEvent
 	err = json.Unmarshal(message, &ob)
 	if err != nil {
 		if bytes.Contains(message, []byte("subscribe")) {
@@ -23,9 +23,15 @@ func (g *GateIO) parseDepth(message []byte) (err error) {
 		}
 		return
 	}
-	depth := transDepth(&ob)
+	if len(ob.Result.Asks) == 0 && len(ob.Result.Bids) == 0 {
+		logrus.Warnf("depth data empty: %s", string(message))
+		return
+	}
+
+	depth := transDepth(&ob.Result)
+
 	temp := NewExchangeData(g.Name, EventDepth, &depth)
-	temp.Symbol = ob.Contract
+	temp.Symbol = ob.Result.Contract
 	g.datas <- temp
 	return nil
 }
@@ -38,6 +44,10 @@ func (g *GateIO) parseMarketTrade(message []byte) (err error) {
 			fmt.Println("got subscribe return:", string(message))
 			err = nil
 		}
+		return
+	}
+	if len(t.Result) == 0 {
+		logrus.Warnf("trade empty: %s", string(message))
 		return
 	}
 	trades := transTrade(&t)
@@ -63,6 +73,13 @@ type GateFuturesOB struct {
 	Bids     []OneLevel `json:"bids"`
 }
 
+type GateFuturesOBEvent struct {
+	Time    int    `json:"time"`
+	Channel string `json:"channel"`
+	Event   string `json:"event"`
+	Result  GateFuturesOB
+}
+
 type GateFuturesTrade struct {
 	Time    int    `json:"time"`
 	Channel string `json:"channel"`
@@ -79,7 +96,6 @@ type GateFuturesTrade struct {
 
 func transDepth(ob *GateFuturesOB) (dep trademodel.Depth) {
 	dep.UpdateTime = time.UnixMilli(ob.T)
-
 	dep.Buys = make([]trademodel.DepthInfo, len(ob.Bids))
 	dep.Sells = make([]trademodel.DepthInfo, len(ob.Asks))
 	var price float64

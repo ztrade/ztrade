@@ -393,7 +393,7 @@ func (g *GateIO) Watch(param WatchParam) (err error) {
 
 	case EventDepth:
 		if g.wsDepth == nil {
-			g.wsDepth, err = ws.NewWSConn(GateIOUsdtFuturesWS, func(ws *ws.WSConn) error {
+			g.wsDepth, err = ws.NewWSConnWithoutPing(GateIOUsdtFuturesWS, func(ws *ws.WSConn) error {
 				data := map[string]interface{}{"time": time.Now().Unix(),
 					"channel": "futures.order_book",
 					"event":   "subscribe",
@@ -404,7 +404,7 @@ func (g *GateIO) Watch(param WatchParam) (err error) {
 		}
 	case EventTradeMarket:
 		if g.wsMarketTrade == nil {
-			g.wsMarketTrade, err = ws.NewWSConn(GateIOUsdtFuturesWS, func(ws *ws.WSConn) error {
+			g.wsMarketTrade, err = ws.NewWSConnWithoutPing(GateIOUsdtFuturesWS, func(ws *ws.WSConn) error {
 
 				data := map[string]interface{}{"time": time.Now().Unix(),
 					"channel": "futures.trades",

@@ -19,14 +19,26 @@ type WSInitFn func(ws *WSConn) error
 type MessageFn func(message []byte) error
 
 type WSConn struct {
-	addr       string
-	ws         *websocket.Conn
-	initFn     WSInitFn
-	messageFn  MessageFn
-	pongFn     MessageFn
-	closeCh    chan int
-	writeMuetx sync.Mutex
-	wg         sync.WaitGroup
+	addr           string
+	ws             *websocket.Conn
+	initFn         WSInitFn
+	messageFn      MessageFn
+	pongFn         MessageFn
+	closeCh        chan int
+	writeMuetx     sync.Mutex
+	wg             sync.WaitGroup
+	disablePingMsg bool
+}
+
+func NewWSConnWithoutPing(addr string, initFn WSInitFn, messageFn MessageFn) (conn *WSConn, err error) {
+	conn = new(WSConn)
+	conn.addr = addr
+	conn.initFn = initFn
+	conn.messageFn = messageFn
+	conn.closeCh = make(chan int, 1)
+	conn.disablePingMsg = true
+	err = conn.connect()
+	return
 }
 
 func NewWSConn(addr string, initFn WSInitFn, messageFn MessageFn) (conn *WSConn, err error) {
@@ -40,6 +52,10 @@ func NewWSConn(addr string, initFn WSInitFn, messageFn MessageFn) (conn *WSConn,
 		return
 	}
 	return
+}
+
+func (conn *WSConn) SetDisablePingMsg(disablePingMsg bool) {
+	conn.disablePingMsg = disablePingMsg
 }
 
 func (conn *WSConn) SetPongMsgFn(pong MessageFn) {
@@ -119,9 +135,11 @@ Out:
 		case <-ticker.C:
 			dur := time.Since(lastMsgTime)
 			if dur > time.Second*5 {
-				conn.writeMuetx.Lock()
-				ws.WriteMessage(websocket.TextMessage, []byte("ping"))
-				conn.writeMuetx.Unlock()
+				if !conn.disablePingMsg {
+					conn.writeMuetx.Lock()
+					ws.WriteMessage(websocket.TextMessage, []byte("ping"))
+					conn.writeMuetx.Unlock()
+				}
 			}
 		case <-conn.closeCh:
 			return

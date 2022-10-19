@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/exchange/ws"
@@ -37,6 +38,7 @@ func (b *BinanceSpot) parseBinanceSpotDepth(symbol string) ws.MessageFn {
 		var ob BinanceOrderbookSpot
 		err := json.Unmarshal([]byte(message), &ob)
 		if err != nil {
+			logrus.Error("binance_spot depth json unmarshal error:", err.Error())
 			return err
 		}
 		depth := transBinanceSpotOB(&ob)
@@ -52,7 +54,7 @@ func (b *BinanceSpot) parseBinanceSpotMarketTrade(symbol string) ws.MessageFn {
 		var t BinanceSpotTrade
 		err := json.Unmarshal([]byte(message), &t)
 		if err != nil {
-			fmt.Println("json unmarshal error:", err.Error())
+			logrus.Error("binance_spot markettrade json unmarshal error:", err.Error())
 			return err
 		}
 		td := transBinanceSpotTrade(&t)
