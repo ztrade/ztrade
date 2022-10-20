@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/ztrade/trademodel"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/exchange/ws"
@@ -189,7 +190,7 @@ func (b *BinanceSpot) Watch(param WatchParam) (err error) {
 			return
 		}
 		go func() {
-			var tLast int64
+			var prev *trademodel.Candle
 			log.Infof("emitCandles wathKline :%##v", symbolInfo)
 			for v := range datas {
 				candle := v.Data.(*Candle)
@@ -197,14 +198,19 @@ func (b *BinanceSpot) Watch(param WatchParam) (err error) {
 					log.Error("emitCandles data type error:", reflect.TypeOf(v.Data))
 					continue
 				}
-				if candle.Start == tLast {
+				if prev == nil {
+					prev = candle
 					continue
 				}
-				d := NewExchangeData("candle", EventCandle, candle)
+				if candle.Start == prev.Start {
+					prev = candle
+					continue
+				}
+				d := NewExchangeData("candle", EventCandle, prev)
 				d.Symbol = v.Symbol
 				d.Data.Extra = cParam.BinSize
 				b.datas <- d
-				tLast = candle.Start
+				prev = candle
 			}
 			if err != nil {
 				log.Error("exchange emitCandle error:", err.Error())
