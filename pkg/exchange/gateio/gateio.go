@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	GateIOUsdtFuturesWS = "wss://fx-ws.gateio.ws/v4/ws/usdt"
+	GateIOUsdtFuturesWS = "wss://fx-ws.gateio.ws/v4/ws/"
 )
 var _ Exchange = &GateIO{}
 
@@ -35,12 +35,14 @@ type GateIO struct {
 	api     *gateapi.APIClient
 	key     string
 	secret  string
+	settle  string
 	datas   chan *ExchangeData
 	closeCh chan bool
 	symbols []SymbolInfo
 
 	wsDepth       *ws.WSConn
 	wsMarketTrade *ws.WSConn
+	wsKline       *ws.WSConn
 }
 
 func NewGateIOExchange(cfg *viper.Viper, cltName string) (e Exchange, err error) {
@@ -59,6 +61,10 @@ func NewGateIO(cfg *viper.Viper, cltName string) (e *GateIO, err error) {
 	// apiCfg.Debug = true
 	g.key = cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	g.secret = cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
+	g.settle = cfg.GetString(fmt.Sprintf("exchanges.%s.settle", cltName))
+	if g.settle == "" {
+		g.settle = "usdt"
+	}
 	apiCfg.Key = g.key
 	apiCfg.Secret = g.secret
 	clientProxy := cfg.GetString("proxy")
@@ -116,7 +122,7 @@ func (g *GateIO) GetKline(symbol, bSize string, start, end time.Time) (data chan
 			opt.To = optional.NewInt64(nEnd)
 
 			tMax := time.Now().Unix() - nDur
-			klines, resp, err := g.api.FuturesApi.ListFuturesCandlesticks(ctx, "usdt", symbol, &opt)
+			klines, resp, err := g.api.FuturesApi.ListFuturesCandlesticks(ctx, g.settle, symbol, &opt)
 			resp.Body.Close()
 			if err != nil {
 				errCh <- err
@@ -175,7 +181,7 @@ func (g *GateIO) doStopOrder(act trademodel.TradeAction) (ret *trademodel.Order,
 		// order.OrderType = "close-long-order"
 		order.Trigger.Rule = 2
 	}
-	retOrder, resp, err := g.api.FuturesApi.CreatePriceTriggeredOrder(ctx, "usdt", order)
+	retOrder, resp, err := g.api.FuturesApi.CreatePriceTriggeredOrder(ctx, g.settle, order)
 	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
@@ -214,7 +220,7 @@ func (g *GateIO) ProcessOrder(act trademodel.TradeAction) (ret *trademodel.Order
 		order.Close = true
 		order.Size = 0
 	}
-	retOrder, resp, err := g.api.FuturesApi.CreateFuturesOrder(ctx, "usdt", order)
+	retOrder, resp, err := g.api.FuturesApi.CreateFuturesOrder(ctx, g.settle, order)
 	defer resp.Body.Close()
 	if err != nil {
 		return
@@ -228,7 +234,7 @@ func (g *GateIO) CancelAllOrders() (orders []*trademodel.Order, err error) {
 	var resp *http.Response
 
 	for _, v := range g.symbols {
-		retOrders, resp, err = g.api.FuturesApi.CancelFuturesOrders(context.Background(), "usdt", v.Symbol, &gateapi.CancelFuturesOrdersOpts{})
+		retOrders, resp, err = g.api.FuturesApi.CancelFuturesOrders(context.Background(), g.settle, v.Symbol, &gateapi.CancelFuturesOrdersOpts{})
 		resp.Body.Close()
 		if err != nil {
 			return nil, err
@@ -242,7 +248,7 @@ func (g *GateIO) CancelAllOrders() (orders []*trademodel.Order, err error) {
 			orders = append(orders, temp)
 		}
 
-		triggerOrders, resp, err = g.api.FuturesApi.CancelPriceTriggeredOrderList(context.Background(), "usdt", v.Symbol)
+		triggerOrders, resp, err = g.api.FuturesApi.CancelPriceTriggeredOrderList(context.Background(), g.settle, v.Symbol)
 		resp.Body.Close()
 		if err != nil {
 			return nil, err
@@ -252,7 +258,7 @@ func (g *GateIO) CancelAllOrders() (orders []*trademodel.Order, err error) {
 			ret := &trademodel.Order{
 				OrderID:  fmt.Sprintf("%d", v.Id),
 				Symbol:   v.Initial.Contract,
-				Currency: "usdt",
+				Currency: g.settle,
 				Amount:   math.Abs(float64(v.Initial.Size)),
 				Price:    price,
 				Status:   "canceled",
@@ -299,7 +305,7 @@ func transOrder(retOrder *gateapi.FuturesOrder) (ret *trademodel.Order, err erro
 }
 func (g *GateIO) CancelOrder(old *trademodel.Order) (order *trademodel.Order, err error) {
 	ctx := context.Background()
-	retOrder, resp, err := g.api.FuturesApi.CancelFuturesOrder(ctx, "usdt", old.OrderID)
+	retOrder, resp, err := g.api.FuturesApi.CancelFuturesOrder(ctx, g.settle, old.OrderID)
 	defer resp.Body.Close()
 	if err != nil {
 		logrus.Errorf("cancel order:%s failed, try cacel stop order", old.OrderID)
@@ -311,7 +317,7 @@ func (g *GateIO) CancelOrder(old *trademodel.Order) (order *trademodel.Order, er
 
 func (g *GateIO) cancelStopOrder(old *trademodel.Order) (order *trademodel.Order, err error) {
 	ctx := context.Background()
-	retOrder, resp, err := g.api.FuturesApi.CancelPriceTriggeredOrder(ctx, "usdt", old.OrderID)
+	retOrder, resp, err := g.api.FuturesApi.CancelPriceTriggeredOrder(ctx, g.settle, old.OrderID)
 	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
@@ -356,44 +362,25 @@ func (g *GateIO) Watch(param WatchParam) (err error) {
 	var stopC chan struct{}
 	switch param.Type {
 	case EventWatchCandle:
-		// cParam, ok := param.Data.(*CandleParam)
-		// if !ok {
-		// 	err = fmt.Errorf("event not CandleParam %s %#v", param.Type, param.Data)
-		// 	return
-		// }
-		// symbolInfo := SymbolInfo{Exchange: cParam.Exchange, Symbol: cParam.Symbol, Resolutions: cParam.BinSize}
-		// var datas chan *CandleInfo
-		// datas, _, err = b.WatchKline(symbolInfo)
-		// if err != nil {
-		// 	log.Errorf("emitCandles wathKline failed: %s", err.Error())
-		// 	return
-		// }
-		// go func() {
-		// 	var tLast int64
-		// 	log.Infof("emitCandles wathKline :%##v", symbolInfo)
-		// 	for v := range datas {
-		// 		candle := v.Data.(*Candle)
-		// 		if candle == nil {
-		// 			log.Error("emitCandles data type error:", reflect.TypeOf(v.Data))
-		// 			continue
-		// 		}
-		// 		if candle.Start == tLast {
-		// 			continue
-		// 		}
-		// 		d := NewExchangeData("candle", EventCandle, candle)
-		// 		d.Symbol = v.Symbol
-		// 		d.Data.Extra = cParam.BinSize
-		// 		b.datas <- d
-		// 		tLast = candle.Start
-		// 	}
-		// 	if err != nil {
-		// 		log.Error("exchange emitCandle error:", err.Error())
-		// 	}
-		// }()
+		cParam, ok := param.Data.(*CandleParam)
+		if !ok {
+			err = fmt.Errorf("event not CandleParam %s %#v", param.Type, param.Data)
+			return
+		}
+		if g.wsKline == nil {
+			g.wsKline, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
+				data := map[string]interface{}{"time": time.Now().Unix(),
+					"channel": "futures.candlesticks",
+					"event":   "subscribe",
+					"payload": []string{cParam.BinSize, cParam.Symbol}}
+				ws.WriteMsg(data)
+				return nil
+			}, g.parseKline(cParam.Symbol))
+		}
 
 	case EventDepth:
 		if g.wsDepth == nil {
-			g.wsDepth, err = ws.NewWSConnWithoutPing(GateIOUsdtFuturesWS, func(ws *ws.WSConn) error {
+			g.wsDepth, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
 				data := map[string]interface{}{"time": time.Now().Unix(),
 					"channel": "futures.order_book",
 					"event":   "subscribe",
@@ -404,8 +391,7 @@ func (g *GateIO) Watch(param WatchParam) (err error) {
 		}
 	case EventTradeMarket:
 		if g.wsMarketTrade == nil {
-			g.wsMarketTrade, err = ws.NewWSConnWithoutPing(GateIOUsdtFuturesWS, func(ws *ws.WSConn) error {
-
+			g.wsMarketTrade, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
 				data := map[string]interface{}{"time": time.Now().Unix(),
 					"channel": "futures.trades",
 					"event":   "subscribe",

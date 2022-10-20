@@ -7,7 +7,7 @@ import (
 	"github.com/ztrade/ztrade/pkg/core"
 )
 
-func TestSpotDepthWS(t *testing.T) {
+func TestDepthWS(t *testing.T) {
 	data := testClt.datas
 	err := testClt.Watch(core.WatchParam{Type: core.EventDepth, Extra: "BTC_USDT"})
 	if err != nil {
@@ -19,7 +19,7 @@ func TestSpotDepthWS(t *testing.T) {
 	}
 }
 
-func TestSpotTradeWS(t *testing.T) {
+func TestTradeWS(t *testing.T) {
 	data := testClt.datas
 	err := testClt.Watch(core.WatchParam{Type: core.EventTradeMarket, Extra: "BTC_USDT"})
 	if err != nil {
@@ -28,5 +28,17 @@ func TestSpotTradeWS(t *testing.T) {
 
 	for v := range data {
 		t.Logf("%s %v", v.Symbol, v.Data.Data.(*trademodel.Trade))
+	}
+}
+
+func TestCandleWS(t *testing.T) {
+	data := testClt.datas
+	err := testClt.Watch(core.WatchParam{Type: core.EventWatchCandle, Extra: "BTC_USDT", Data: &core.CandleParam{BinSize: "1m", Symbol: "BTC_USDT"}})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for v := range data {
+		t.Logf("%s %v", v.Symbol, v.Data.Data.(*trademodel.Candle))
 	}
 }

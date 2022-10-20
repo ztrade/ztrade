@@ -53,8 +53,8 @@ func TestOrderLong(t *testing.T) {
 
 func TestOrderShort(t *testing.T) {
 	order, err := testClt.ProcessOrder(trademodel.TradeAction{
-		Symbol: "EOS_USDT",
-		Price:  1.1,
+		Symbol: "BTC_USD",
+		Price:  19100,
 		Amount: 1,
 		Action: trademodel.OpenShort,
 	})
@@ -72,7 +72,7 @@ func TestOrderShort(t *testing.T) {
 func TestOrderClose(t *testing.T) {
 	order, err := testClt.ProcessOrder(trademodel.TradeAction{
 		Symbol: "EOS_USDT",
-		Price:  1,
+		Price:  1.033,
 		Amount: 1,
 		Action: trademodel.CloseShort,
 	})
