@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/bitly/go-simplejson"
+	"github.com/lunny/log"
 	"github.com/sirupsen/logrus"
 	"github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
@@ -213,4 +215,129 @@ func transTrade(t *GateFuturesTrade) (trades []trademodel.Trade) {
 		trades[k].Time = time.UnixMilli(v.CreateTimeMs)
 	}
 	return
+}
+
+func (g *GateIO) parseUserData(message []byte) (err error) {
+	sj, err := simplejson.NewJson(message)
+	if err != nil {
+		log.Warnf("parse json error:%s", string(message))
+		return
+	}
+	channel, err := sj.Get("channel").String()
+	if err != nil {
+		log.Warnf("parse json channel error:%s", string(message))
+		return
+	}
+	switch channel {
+	case "futures.usertrades":
+		err = g.parseUserOrder(message)
+	case "futures.positions":
+		err = g.parseUserPos(message)
+	default:
+		logrus.Warnf("unsupport userdata: %s", string(message))
+	}
+	return
+}
+
+func (g *GateIO) parseUserOrder(message []byte) (err error) {
+	fmt.Println(string(message))
+	var o FuturesOrder
+	err = json.Unmarshal(message, &o)
+	if err != nil {
+		logrus.Warnf("parse user order failed:%s", string(message))
+		err = nil
+		return
+	}
+	for _, v := range o.Result {
+		amount := math.Abs(float64(v.Size))
+		od := trademodel.Order{
+			OrderID:  v.OrderID,
+			Symbol:   v.Contract,
+			Currency: g.settle,
+			Amount:   amount,
+			Status:   "filled",
+			Time:     time.UnixMilli(v.CreateTimeMs),
+			// Remark:
+			Filled: amount,
+		}
+		od.Price, _ = strconv.ParseFloat(v.Price, 64)
+		if v.Size > 0 {
+			od.Side = "long"
+		} else if v.Size < 0 {
+			od.Side = "sell"
+		}
+		temp := NewExchangeData(g.Name, EventTrade, &od)
+		temp.Symbol = v.Contract
+		g.datas <- temp
+	}
+	return
+}
+
+func (g *GateIO) parseUserPos(message []byte) (err error) {
+	var pos FuturesPosition
+	err = json.Unmarshal(message, &pos)
+	if err != nil {
+		logrus.Warnf("parse user position failed: %s", string(message))
+		err = nil
+		return
+	}
+	for _, v := range pos.Result {
+		var pos trademodel.Position
+		if v.Size > 0 {
+			pos = trademodel.Position{Symbol: v.Contract, Type: trademodel.Long, Hold: float64(v.Size), Price: v.EntryPrice}
+		} else if v.Size < 0 {
+			pos = trademodel.Position{Symbol: v.Contract, Type: trademodel.Long, Hold: float64(v.Size), Price: v.EntryPrice}
+		}
+		temp := NewExchangeData(g.Name, EventPosition, &pos)
+		temp.Symbol = v.Contract
+		g.datas <- temp
+	}
+	return
+}
+
+type FuturesPosition struct {
+	Time    int    `json:"time"`
+	Channel string `json:"channel"`
+	Event   string `json:"event"`
+	Result  []struct {
+		Contract           string  `json:"contract"`
+		CrossLeverageLimit int     `json:"cross_leverage_limit"`
+		EntryPrice         float64 `json:"entry_price"`
+		HistoryPnl         float64 `json:"history_pnl"`
+		HistoryPoint       int     `json:"history_point"`
+		LastClosePnl       float64 `json:"last_close_pnl"`
+		Leverage           int     `json:"leverage"`
+		LeverageMax        int     `json:"leverage_max"`
+		LiqPrice           float64 `json:"liq_price"`
+		MaintenanceRate    float64 `json:"maintenance_rate"`
+		Margin             float64 `json:"margin"`
+		Mode               string  `json:"mode"`
+		RealisedPnl        int     `json:"realised_pnl"`
+		RealisedPoint      int     `json:"realised_point"`
+		RiskLimit          int     `json:"risk_limit"`
+		Size               int     `json:"size"`
+		Time               int     `json:"time"`
+		TimeMs             int64   `json:"time_ms"`
+		User               string  `json:"user"`
+	} `json:"result"`
+}
+
+type FuturesOrder struct {
+	Time    int         `json:"time"`
+	Channel string      `json:"channel"`
+	Event   string      `json:"event"`
+	Error   interface{} `json:"error"`
+	Result  []struct {
+		ID           string  `json:"id"`
+		CreateTime   int     `json:"create_time"`
+		CreateTimeMs int64   `json:"create_time_ms"`
+		Contract     string  `json:"contract"`
+		OrderID      string  `json:"order_id"`
+		Size         int     `json:"size"`
+		Price        string  `json:"price"`
+		Role         string  `json:"role"`
+		Text         string  `json:"text"`
+		Fee          float64 `json:"fee"`
+		PointFee     int     `json:"point_fee"`
+	} `json:"result"`
 }

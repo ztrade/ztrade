@@ -42,3 +42,14 @@ func TestCandleWS(t *testing.T) {
 		t.Logf("%s %v", v.Symbol, v.Data.Data.(*trademodel.Candle))
 	}
 }
+
+func TestUserWS(t *testing.T) {
+	err := testClt.userWS()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for v := range testClt.datas {
+		t.Log(v)
+	}
+
+}

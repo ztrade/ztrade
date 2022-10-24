@@ -2,6 +2,9 @@ package gateio
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"net/http"
@@ -35,6 +38,7 @@ type GateIO struct {
 	key     string
 	secret  string
 	settle  string
+	userID  string
 	datas   chan *ExchangeData
 	closeCh chan bool
 	symbols []SymbolInfo
@@ -42,6 +46,7 @@ type GateIO struct {
 	wsDepth       *ws.WSConn
 	wsMarketTrade *ws.WSConn
 	wsKline       *ws.WSConn
+	wsUser        *ws.WSConn
 }
 
 func NewGateIOExchange(cfg *viper.Viper, cltName string) (e Exchange, err error) {
@@ -61,6 +66,7 @@ func NewGateIO(cfg *viper.Viper, cltName string) (e *GateIO, err error) {
 	g.key = cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	g.secret = cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
 	g.settle = cfg.GetString(fmt.Sprintf("exchanges.%s.settle", cltName))
+	g.userID = cfg.GetString(fmt.Sprintf("exchanges.%s.user", cltName))
 	if g.settle == "" {
 		g.settle = "usdt"
 	}
@@ -84,11 +90,41 @@ func NewGateIO(cfg *viper.Viper, cltName string) (e *GateIO, err error) {
 }
 
 func (g *GateIO) Start(map[string]interface{}) (err error) {
-	return
+	return g.startUserWS()
 }
 
 func (g *GateIO) Stop() (err error) {
 	close(g.closeCh)
+	return
+}
+
+func (g *GateIO) subPrivate(channel string, payload []interface{}) map[string]interface{} {
+	ts := time.Now().Unix()
+	hash := hmac.New(sha512.New, []byte(g.secret))
+	hash.Write([]byte(fmt.Sprintf("channel=%s&event=%s&time=%d", channel, "subscribe", ts)))
+	req := map[string]interface{}{
+		"time":    ts,
+		"channel": channel,
+		"event":   "subscribe",
+		"payload": payload,
+		"auth": map[string]interface{}{
+			"method": "api_key",
+			"KEY":    g.key,
+			"SIGN":   hex.EncodeToString(hash.Sum(nil)),
+		},
+	}
+	return req
+}
+
+func (g *GateIO) startUserWS() (err error) {
+	g.wsUser, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
+		req := g.subPrivate("futures.positions", []interface{}{g.userID, "!all"})
+		ws.WriteMsg(req)
+		fmt.Printf("|%s|\n", g.userID)
+		req = g.subPrivate("futures.usertrades", []interface{}{g.userID, "!all"})
+		ws.WriteMsg(req)
+		return nil
+	}, g.parseUserData)
 	return
 }
 
