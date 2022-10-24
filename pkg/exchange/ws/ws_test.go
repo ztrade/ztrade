@@ -38,15 +38,15 @@ func TestWsPing(t *testing.T) {
 		fmt.Println("msg:", string(msg))
 		return nil
 	}
-	pongFn := func(msg []byte) error {
+	pongFn := func(msg []byte) bool {
 		fmt.Println("recv pong msg:", string(msg))
-		return nil
+		return true
 	}
 	conn, err := NewWSConn("wss://wsaws.okx.com:8443/ws/v5/public", initFn, messageFn)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	conn.SetPongMsgFn(pongFn)
+	conn.SetPingPongFn(defaultPingFn, pongFn)
 	conn.ws.WriteMessage(websocket.TextMessage, []byte("ping"))
 	time.Sleep(time.Second * 15)
 	conn.Close()

@@ -1,6 +1,7 @@
 package gateio
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha512"
@@ -11,6 +12,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/antihax/optional"
@@ -24,7 +26,7 @@ import (
 )
 
 var (
-	GateIOUsdtFuturesWS = "wss://fx-ws.gateio.ws/v4/ws/"
+	GateIOFuturesWS = "wss://fx-ws.gateio.ws/v4/ws/"
 )
 var _ Exchange = &GateIO{}
 
@@ -86,16 +88,31 @@ func NewGateIO(cfg *viper.Viper, cltName string) (e *GateIO, err error) {
 	g.api = gateapi.NewAPIClient(apiCfg)
 	e = g
 	_, err = g.GetSymbols()
+	if err != nil {
+		return
+	}
+	err = g.startUserWS()
 	return
 }
 
 func (g *GateIO) Start(map[string]interface{}) (err error) {
-	return g.startUserWS()
+	return
 }
 
 func (g *GateIO) Stop() (err error) {
 	close(g.closeCh)
 	return
+}
+
+func (g *GateIO) subPublic(channel string, payload []interface{}) map[string]interface{} {
+	ts := time.Now().Unix()
+	req := map[string]interface{}{
+		"time":    ts,
+		"channel": channel,
+		"event":   "subscribe",
+		"payload": payload,
+	}
+	return req
 }
 
 func (g *GateIO) subPrivate(channel string, payload []interface{}) map[string]interface{} {
@@ -116,15 +133,35 @@ func (g *GateIO) subPrivate(channel string, payload []interface{}) map[string]in
 	return req
 }
 
+func (g *GateIO) pongFn(message []byte) bool {
+	return bytes.Contains(message, []byte("futures.pong"))
+}
+
+func (g *GateIO) pingFn(channel string, private bool) ws.PingFn {
+	return func(ws *ws.WSConn) error {
+		str := channel
+		nIndex := strings.Index(channel, ".")
+		if nIndex > 0 {
+			str = channel[0:nIndex]
+		}
+		str += ".ping"
+		if private {
+			req := g.subPrivate(str, nil)
+			return ws.WriteMsg(req)
+		}
+		req := g.subPublic(str, nil)
+		return ws.WriteMsg(req)
+	}
+}
+
 func (g *GateIO) startUserWS() (err error) {
-	g.wsUser, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
+	g.wsUser, err = ws.NewWSConnWithPingPong(fmt.Sprintf("%s%s", GateIOFuturesWS, g.settle), func(ws *ws.WSConn) error {
 		req := g.subPrivate("futures.positions", []interface{}{g.userID, "!all"})
 		ws.WriteMsg(req)
-		fmt.Printf("|%s|\n", g.userID)
 		req = g.subPrivate("futures.usertrades", []interface{}{g.userID, "!all"})
 		ws.WriteMsg(req)
 		return nil
-	}, g.parseUserData)
+	}, g.parseUserData, g.pingFn("futures", true), g.pongFn)
 	return
 }
 
@@ -182,7 +219,7 @@ func (g *GateIO) GetKline(symbol, bSize string, start, end time.Time) (data chan
 				}
 			}
 			if nStart >= nEnd || nStart <= nPrevStart || len(klines) == 0 {
-				fmt.Println(time.Unix(nStart, 0), start, end)
+				logrus.Infof("get kline finished: last start:%s, range: %s-%s", time.Unix(nStart, 0), start, end)
 				break
 			}
 			nPrevStart = nStart
@@ -197,15 +234,15 @@ func (g *GateIO) doStopOrder(act trademodel.TradeAction) (ret *trademodel.Order,
 		Initial: gateapi.FuturesInitialOrder{
 			Contract:   act.Symbol,
 			Size:       0,
-			Price:      fmt.Sprintf("%f", act.Price),
+			Price:      "0",
 			ReduceOnly: true,
 			IsClose:    true,
 			Close:      true,
-			Tif:        "gtc",
+			Tif:        "ioc",
 		},
 		Trigger: gateapi.FuturesPriceTrigger{
 			StrategyType: 0,
-			PriceType:    1,
+			PriceType:    0,
 			Price:        fmt.Sprintf("%f", act.Price),
 		},
 	}
@@ -217,6 +254,7 @@ func (g *GateIO) doStopOrder(act trademodel.TradeAction) (ret *trademodel.Order,
 		order.Trigger.Rule = 2
 	}
 	retOrder, resp, err := g.api.FuturesApi.CreatePriceTriggeredOrder(ctx, g.settle, order)
+	logrus.Debug("doStopOrder:", err)
 	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
@@ -237,6 +275,7 @@ func (g *GateIO) doStopOrder(act trademodel.TradeAction) (ret *trademodel.Order,
 // for trade
 // ProcessOrder process order
 func (g *GateIO) ProcessOrder(act trademodel.TradeAction) (ret *trademodel.Order, err error) {
+	logrus.Debug("ProcessOrder:", act)
 	if act.Action.IsStop() {
 		return g.doStopOrder(act)
 	}
@@ -374,7 +413,7 @@ func (g *GateIO) GetDataChan() chan *ExchangeData {
 }
 
 func (g *GateIO) GetSymbols() (symbols []SymbolInfo, err error) {
-	contracts, resp, err := g.api.FuturesApi.ListFuturesContracts(context.Background(), "usdt")
+	contracts, resp, err := g.api.FuturesApi.ListFuturesContracts(context.Background(), g.settle)
 	if err != nil {
 		return nil, err
 	}
@@ -403,37 +442,25 @@ func (g *GateIO) Watch(param WatchParam) (err error) {
 			return
 		}
 		if g.wsKline == nil {
-			g.wsKline, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
-				data := map[string]interface{}{"time": time.Now().Unix(),
-					"channel": "futures.candlesticks",
-					"event":   "subscribe",
-					"payload": []string{cParam.BinSize, cParam.Symbol}}
-				ws.WriteMsg(data)
-				return nil
-			}, g.parseKline(cParam.Symbol))
+			g.wsKline, err = ws.NewWSConnWithPingPong(fmt.Sprintf("%s%s", GateIOFuturesWS, g.settle), func(ws *ws.WSConn) error {
+				req := g.subPublic("futures.candlesticks", []interface{}{cParam.BinSize, cParam.Symbol})
+				return ws.WriteMsg(req)
+			}, g.parseKline(cParam.Symbol), g.pingFn("futures.candlesticks", false), g.pongFn)
 		}
 
 	case EventDepth:
 		if g.wsDepth == nil {
-			g.wsDepth, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
-				data := map[string]interface{}{"time": time.Now().Unix(),
-					"channel": "futures.order_book",
-					"event":   "subscribe",
-					"payload": []string{symbol, "20", "0"}}
-				ws.WriteMsg(data)
-				return nil
-			}, g.parseDepth)
+			g.wsDepth, err = ws.NewWSConnWithPingPong(fmt.Sprintf("%s%s", GateIOFuturesWS, g.settle), func(ws *ws.WSConn) error {
+				req := g.subPublic("futures.order_book", []interface{}{symbol, "20", "0"})
+				return ws.WriteMsg(req)
+			}, g.parseDepth, g.pingFn("futures.order_book", false), g.pongFn)
 		}
 	case EventTradeMarket:
 		if g.wsMarketTrade == nil {
-			g.wsMarketTrade, err = ws.NewWSConnWithoutPing(fmt.Sprintf("%s%s", GateIOUsdtFuturesWS, g.settle), func(ws *ws.WSConn) error {
-				data := map[string]interface{}{"time": time.Now().Unix(),
-					"channel": "futures.trades",
-					"event":   "subscribe",
-					"payload": []string{symbol}}
-				ws.WriteMsg(data)
-				return nil
-			}, g.parseMarketTrade)
+			g.wsMarketTrade, err = ws.NewWSConnWithPingPong(fmt.Sprintf("%s%s", GateIOFuturesWS, g.settle), func(ws *ws.WSConn) error {
+				req := g.subPublic("futures.trades", []interface{}{symbol})
+				return ws.WriteMsg(req)
+			}, g.parseMarketTrade, g.pingFn("futures.trades", false), g.pongFn)
 		}
 	default:
 		err = fmt.Errorf("unknown wathc param: %s", param.Type)

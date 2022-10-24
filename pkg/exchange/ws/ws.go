@@ -17,26 +17,37 @@ var (
 
 type WSInitFn func(ws *WSConn) error
 type MessageFn func(message []byte) error
+type PingFn func(ws *WSConn) error
+type PongFn func(message []byte) bool
 
-type WSConn struct {
-	addr           string
-	ws             *websocket.Conn
-	initFn         WSInitFn
-	messageFn      MessageFn
-	pongFn         MessageFn
-	closeCh        chan int
-	writeMuetx     sync.Mutex
-	wg             sync.WaitGroup
-	disablePingMsg bool
+func defaultPingFn(ws *WSConn) error {
+	return ws.WriteText("ping")
 }
 
-func NewWSConnWithoutPing(addr string, initFn WSInitFn, messageFn MessageFn) (conn *WSConn, err error) {
+func defaultPongFn(message []byte) bool {
+	return bytes.Equal(pongMsg, message)
+}
+
+type WSConn struct {
+	addr       string
+	ws         *websocket.Conn
+	initFn     WSInitFn
+	messageFn  MessageFn
+	pingFn     PingFn
+	pongFn     PongFn
+	closeCh    chan int
+	writeMuetx sync.Mutex
+	wg         sync.WaitGroup
+}
+
+func NewWSConnWithPingPong(addr string, initFn WSInitFn, messageFn MessageFn, ping PingFn, pong PongFn) (conn *WSConn, err error) {
 	conn = new(WSConn)
 	conn.addr = addr
 	conn.initFn = initFn
 	conn.messageFn = messageFn
 	conn.closeCh = make(chan int, 1)
-	conn.disablePingMsg = true
+	conn.pingFn = ping
+	conn.pongFn = pong
 	err = conn.connect()
 	return
 }
@@ -45,6 +56,8 @@ func NewWSConn(addr string, initFn WSInitFn, messageFn MessageFn) (conn *WSConn,
 	conn = new(WSConn)
 	conn.addr = addr
 	conn.initFn = initFn
+	conn.pingFn = defaultPingFn
+	conn.pongFn = defaultPongFn
 	conn.messageFn = messageFn
 	conn.closeCh = make(chan int, 1)
 	err = conn.connect()
@@ -54,17 +67,25 @@ func NewWSConn(addr string, initFn WSInitFn, messageFn MessageFn) (conn *WSConn,
 	return
 }
 
-func (conn *WSConn) SetDisablePingMsg(disablePingMsg bool) {
-	conn.disablePingMsg = disablePingMsg
-}
-
-func (conn *WSConn) SetPongMsgFn(pong MessageFn) {
+func (conn *WSConn) SetPingPongFn(ping PingFn, pong PongFn) {
+	conn.pingFn = ping
 	conn.pongFn = pong
 }
 
 func (conn *WSConn) Close() (err error) {
 	close(conn.closeCh)
 	conn.wg.Wait()
+	return
+}
+
+func (conn *WSConn) WriteText(value string) (err error) {
+	conn.writeMuetx.Lock()
+	if conn.ws != nil {
+		err = conn.ws.WriteMessage(websocket.TextMessage, []byte(value))
+	} else {
+		log.Warnf("WriteText ignore conn of %s not init", conn.addr)
+	}
+	conn.writeMuetx.Unlock()
 	return
 }
 
@@ -122,10 +143,8 @@ Out:
 				break Out
 			}
 			lastMsgTime = time.Now()
-			if bytes.Equal(msg, pongMsg) {
-				if conn.pongFn != nil {
-					conn.pongFn(pongMsg)
-				}
+
+			if conn.pongFn != nil && conn.pongFn(msg) {
 				continue
 			}
 			err = conn.messageFn(msg)
@@ -135,10 +154,11 @@ Out:
 		case <-ticker.C:
 			dur := time.Since(lastMsgTime)
 			if dur > time.Second*5 {
-				if !conn.disablePingMsg {
-					conn.writeMuetx.Lock()
-					ws.WriteMessage(websocket.TextMessage, []byte("ping"))
-					conn.writeMuetx.Unlock()
+				if conn.pingFn != nil {
+					err1 := conn.pingFn(conn)
+					if err1 != nil {
+						log.Errorf("ws pingFn failed: %s", err1.Error())
+					}
 				}
 			}
 		case <-conn.closeCh:

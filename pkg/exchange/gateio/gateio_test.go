@@ -1,6 +1,7 @@
 package gateio
 
 import (
+	"fmt"
 	"log"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ func getTestSpotClt() *GateIO {
 
 func TestOrderLong(t *testing.T) {
 	order, err := testClt.ProcessOrder(trademodel.TradeAction{
-		Symbol: "EOS_USDT",
+		Symbol: "EOS_USD",
 		Price:  1,
 		Amount: 1,
 		Action: trademodel.OpenLong,
@@ -71,7 +72,7 @@ func TestOrderShort(t *testing.T) {
 
 func TestOrderClose(t *testing.T) {
 	order, err := testClt.ProcessOrder(trademodel.TradeAction{
-		Symbol: "EOS_USDT",
+		Symbol: "EOS_USD",
 		Price:  1.033,
 		Amount: 1,
 		Action: trademodel.CloseShort,
@@ -84,10 +85,10 @@ func TestOrderClose(t *testing.T) {
 
 func TestOrderStop(t *testing.T) {
 	order, err := testClt.ProcessOrder(trademodel.TradeAction{
-		Symbol: "EOS_USDT",
-		Price:  1.1,
-		Amount: 1,
-		Action: trademodel.StopShort,
+		Symbol: "BTC_USD",
+		Price:  19000,
+		Amount: 200,
+		Action: trademodel.StopLong,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -121,5 +122,19 @@ func TestKline(t *testing.T) {
 	err := <-errCh
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestCancelAll(t *testing.T) {
+	testClt.GetSymbols()
+	for _, v := range testClt.symbols {
+		fmt.Println(v.Symbol)
+	}
+	orders, err := testClt.CancelAllOrders()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range orders {
+		t.Log(v)
 	}
 }

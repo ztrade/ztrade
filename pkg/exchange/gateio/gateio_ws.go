@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/bitly/go-simplejson"
-	"github.com/lunny/log"
 	"github.com/sirupsen/logrus"
 	"github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
@@ -22,7 +21,7 @@ func (g *GateIO) parseKline(symbol string) func(message []byte) (err error) {
 		err = json.Unmarshal(message, &candles)
 		if err != nil {
 			if bytes.Contains(message, []byte("subscribe")) {
-				fmt.Println("got subscribe return:", string(message))
+				logrus.Info("got subscribe return:", string(message))
 				err = nil
 			}
 			return
@@ -59,7 +58,7 @@ func (g *GateIO) parseDepth(message []byte) (err error) {
 	err = json.Unmarshal(message, &ob)
 	if err != nil {
 		if bytes.Contains(message, []byte("subscribe")) {
-			fmt.Println("got subscribe return:", string(message))
+			logrus.Info("got subscribe return:", string(message))
 			err = nil
 		}
 		return
@@ -82,7 +81,7 @@ func (g *GateIO) parseMarketTrade(message []byte) (err error) {
 	err = json.Unmarshal(message, &t)
 	if err != nil {
 		if bytes.Contains(message, []byte("subscribe")) {
-			fmt.Println("got subscribe return:", string(message))
+			logrus.Info("got subscribe return:", string(message))
 			err = nil
 		}
 		return
@@ -220,12 +219,17 @@ func transTrade(t *GateFuturesTrade) (trades []trademodel.Trade) {
 func (g *GateIO) parseUserData(message []byte) (err error) {
 	sj, err := simplejson.NewJson(message)
 	if err != nil {
-		log.Warnf("parse json error:%s", string(message))
+		logrus.Warnf("parse json error:%s", string(message))
 		return
 	}
 	channel, err := sj.Get("channel").String()
 	if err != nil {
-		log.Warnf("parse json channel error:%s", string(message))
+		logrus.Warnf("parse json channel error:%s", string(message))
+		return
+	}
+	_, ok := sj.Get("result").CheckGet("status")
+	if ok {
+		logrus.Info("got subscribe return:", string(message))
 		return
 	}
 	switch channel {
@@ -240,7 +244,6 @@ func (g *GateIO) parseUserData(message []byte) (err error) {
 }
 
 func (g *GateIO) parseUserOrder(message []byte) (err error) {
-	fmt.Println(string(message))
 	var o FuturesOrder
 	err = json.Unmarshal(message, &o)
 	if err != nil {

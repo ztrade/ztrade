@@ -9,7 +9,7 @@ import (
 
 func TestDepthWS(t *testing.T) {
 	data := testClt.datas
-	err := testClt.Watch(core.WatchParam{Type: core.EventDepth, Extra: "BTC_USDT"})
+	err := testClt.Watch(core.WatchParam{Type: core.EventDepth, Extra: "BTC_USD"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -21,7 +21,7 @@ func TestDepthWS(t *testing.T) {
 
 func TestTradeWS(t *testing.T) {
 	data := testClt.datas
-	err := testClt.Watch(core.WatchParam{Type: core.EventTradeMarket, Extra: "BTC_USDT"})
+	err := testClt.Watch(core.WatchParam{Type: core.EventTradeMarket, Extra: "BTC_USD"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -33,7 +33,7 @@ func TestTradeWS(t *testing.T) {
 
 func TestCandleWS(t *testing.T) {
 	data := testClt.datas
-	err := testClt.Watch(core.WatchParam{Type: core.EventWatchCandle, Extra: "BTC_USDT", Data: &core.CandleParam{BinSize: "1m", Symbol: "BTC_USDT"}})
+	err := testClt.Watch(core.WatchParam{Type: core.EventWatchCandle, Extra: "BTC_USD", Data: &core.CandleParam{BinSize: "1m", Symbol: "BTC_USD"}})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -44,7 +44,7 @@ func TestCandleWS(t *testing.T) {
 }
 
 func TestUserWS(t *testing.T) {
-	err := testClt.userWS()
+	err := testClt.startUserWS()
 	if err != nil {
 		t.Fatal(err)
 	}
