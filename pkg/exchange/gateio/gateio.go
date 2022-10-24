@@ -13,7 +13,6 @@ import (
 	"github.com/antihax/optional"
 	"github.com/gateio/gateapi-go/v6"
 	"github.com/gorilla/websocket"
-	"github.com/lunny/log"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/ztrade/trademodel"
@@ -141,7 +140,7 @@ func (g *GateIO) GetKline(symbol, bSize string, start, end time.Time) (data chan
 				if k == len(klines)-1 {
 					// check if candle is unfinished
 					if int64(v.T) > tMax {
-						log.Infof("skip unfinished candle: %##v\n", v)
+						logrus.Infof("skip unfinished candle: %##v\n", v)
 						break
 					}
 				}
