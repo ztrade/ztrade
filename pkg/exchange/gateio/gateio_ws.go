@@ -42,7 +42,8 @@ func (g *GateIO) parseKline(symbol string) func(message []byte) (err error) {
 				continue
 			}
 			sendData := *prev
-			temp := NewExchangeData(g.Name, EventDepth, &sendData)
+			temp := NewExchangeData(g.Name, EventCandle, &sendData)
+			temp.Data.Extra = "1m"
 			temp.Symbol = symbol
 			prev = &data
 			g.datas <- temp
