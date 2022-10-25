@@ -189,9 +189,14 @@ func (g *GateIO) GetKline(symbol, bSize string, start, end time.Time) (data chan
 		nDur := int64(dur / time.Second)
 		var opt = gateapi.ListFuturesCandlesticksOpts{}
 		opt.Interval = optional.NewString(bSize)
+		var onceMax int64 = 24 * 60 * 60
 		for {
 			opt.From = optional.NewInt64(nStart)
-			opt.To = optional.NewInt64(nEnd)
+			if nEnd-nStart > onceMax {
+				opt.To = optional.NewInt64(nStart + int64(onceMax))
+			} else {
+				opt.To = optional.NewInt64(nEnd)
+			}
 
 			tMax := time.Now().Unix() - nDur
 			klines, resp, err := g.api.FuturesApi.ListFuturesCandlesticks(ctx, g.settle, symbol, &opt)

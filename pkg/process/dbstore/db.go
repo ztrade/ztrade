@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	tblRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)_([A-Za-z0-9\-]+)_([A-Za-z0-9]+)$`)
+	tblRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)_([A-Za-z0-9\_\-]+)_([A-Za-z0-9]+)$`)
 )
 
 type TableInfo struct {
@@ -139,7 +139,6 @@ func (dr *DBStore) GetKlineTables() (tbls []TableInfo, err error) {
 		return
 	}
 	for _, v := range tblNames {
-
 		ret := tblRegexp.FindAllStringSubmatch(v, -1)
 		if len(ret) != 1 {
 			continue
