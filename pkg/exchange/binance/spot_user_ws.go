@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -91,15 +92,6 @@ type wsSpotUserResp struct {
 
 func (b *BinanceSpot) wsUserLoop() {
 	var resp wsSpotUserResp
-	// var order Order
-	// var pos Position
-	// type Position struct {
-	// 	Symbol      string
-	// 	Type        int     // 合约类型，Long: 多头，Short: 空头
-	// 	Hold        float64 // 持有仓位
-	// 	Price       float64 //开仓价格
-	// 	ProfitRatio float64 // 盈利比例,正数表示盈利，负数表示亏岁
-	// }
 
 	for {
 		_, message, err := b.wsUser.ReadMessage()
@@ -112,21 +104,27 @@ func (b *BinanceSpot) wsUserLoop() {
 			log.Errorf("unmarshal error:%s message:%s", err.Error(), string(message))
 			continue
 		}
+		log.Debug("binancespot user ws:", string(message))
+		if resp.Name != "outboundAccountPosition" {
+			continue
+		}
+
 		if len(resp.Balances) > 0 {
 			var balance Balance
 			for _, v := range resp.Balances {
-				if v.Symbol == "USDT" {
+				if strings.EqualFold(v.Symbol, b.currency) {
 					balance.Balance, _ = strconv.ParseFloat(v.Available, 64)
 					balance.Available, _ = strconv.ParseFloat(v.Available, 64)
 					d := NewExchangeData(b.Name, EventBalance, &balance)
-					d.Symbol = "BTCUSDT"
+					d.Symbol = v.Symbol
 					b.datas <- d
-				}
-				if v.Symbol == "BTC" {
+				} else {
 					var pos Position
 					pos.Hold, _ = strconv.ParseFloat(v.Available, 64)
+					freeze, _ := strconv.ParseFloat(v.Freeze, 64)
+					pos.Hold += freeze
 					d := NewExchangeData(b.Name, EventPosition, &pos)
-					d.Symbol = "BTCUSDT"
+					d.Symbol = v.Symbol + b.currency
 					b.datas <- d
 				}
 			}

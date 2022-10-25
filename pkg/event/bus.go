@@ -177,6 +177,6 @@ func (b *Bus) Start() {
 			break
 		}
 		time.Sleep(time.Millisecond)
-		log.Info("event bus %d routines, started: %d", len(b.procs), n)
+		log.Infof("event bus %d routines, started: %d", len(b.procs), n)
 	}
 }

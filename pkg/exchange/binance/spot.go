@@ -29,15 +29,17 @@ var (
 var _ Exchange = &BinanceSpot{}
 
 func init() {
-	RegisterExchange("binance_spot", NewBinanceSpot)
+	RegisterExchange("binancespot", NewBinanceSpot)
 }
 
 type BinanceSpot struct {
-	Name string
-	api  *gobinance.Client
+	Name     string
+	currency string
+	api      *gobinance.Client
 
 	datas   chan *ExchangeData
 	closeCh chan bool
+	symbols []SymbolInfo
 
 	cancelService    *gobinance.CancelOpenOrdersService
 	cancelOneService *gobinance.CancelOrderService
@@ -68,13 +70,12 @@ func NewBinanceSpotEx(cfg *viper.Viper, cltName string) (b *BinanceSpot, err err
 	// isDebug := cfg.GetBool(fmt.Sprintf("exchanges.%s.debug", cltName))
 	apiKey := cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	apiSecret := cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
-	fmt.Println("spot:", apiKey, apiSecret)
 	b.datas = make(chan *ExchangeData)
 	b.closeCh = make(chan bool)
-
-	// if isDebug{
-	//     b.api = gobinance.NewFuturesClient(apiKey string, secretKey string)
-	// }
+	b.currency = cfg.GetString(fmt.Sprintf("exchanges.%s.currency", cltName))
+	if b.currency == "" {
+		b.currency = "USDT"
+	}
 
 	b.api = gobinance.NewClient(apiKey, apiSecret)
 	clientProxy := cfg.GetString("proxy")
@@ -269,18 +270,41 @@ func (b *BinanceSpot) CancelOrder(old *Order) (order *Order, err error) {
 
 func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	ctx := context.Background()
-	orderType := gobinance.OrderTypeLimit
-	if act.Action.IsStop() {
-		orderType = gobinance.OrderTypeStopLoss
-	}
-	orderType = gobinance.OrderTypeMarket
 	var side gobinance.SideType
 	if act.Action.IsLong() {
 		side = gobinance.SideTypeBuy
 	} else {
 		side = gobinance.SideTypeSell
 	}
-	resp, err := b.api.NewCreateOrderService().Symbol(act.Symbol).
+	orderType := gobinance.OrderTypeLimit
+	var resp *gobinance.CreateOrderResponse
+	if act.Action.IsStop() {
+		orderType = gobinance.OrderTypeStopLossLimit
+		price := act.Price * 0.9
+		if act.Action.IsLong() {
+			price = act.Price * 1.1
+		}
+		resp, err = b.api.NewCreateOrderService().Symbol(act.Symbol).
+			StopPrice(fmt.Sprintf("%f", act.Price)).
+			Price(fmt.Sprintf("%f", price)).
+			Quantity(fmt.Sprintf("%f", act.Amount)).
+			TimeInForce(gobinance.TimeInForceTypeGTC).
+			Type(orderType).
+			Side(side).
+			Do(ctx)
+		if err != nil {
+			return
+		}
+		ret = transSpotStopCreateOrder(resp)
+		if ret.Price == 0 {
+			ret.Price = act.Price
+		}
+		if ret.Amount == 0 {
+			ret.Amount = act.Amount
+		}
+		return
+	}
+	resp, err = b.api.NewCreateOrderService().Symbol(act.Symbol).
 		Price(fmt.Sprintf("%f", act.Price)).
 		Quantity(fmt.Sprintf("%f", act.Amount)).
 		TimeInForce(gobinance.TimeInForceTypeGTC).
@@ -296,19 +320,11 @@ func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 
 func (b *BinanceSpot) CancelAllOrders() (orders []*Order, err error) {
 	ctx := context.Background()
-	// ret, err := b.api.NewListOrdersService().Symbol("BTCUSDT").Do(ctx)
-	// if err != nil {
-	// 	return
-	// }
-	// var st string
-	// for _, v := range ret {
-	// 	st = string(v.Status)
-	// 	if st == OrderStatusFilled || st == OrderStatusCanceled {
-	// 		continue
-	// 	}
-	// 	orders = append(orders, transSpotOrder(v))
-	// }
 	_, err = b.cancelService.Symbol("BTCUSDT").Do(ctx)
+	if err != nil {
+		log.Warn("BinanaceSpot cancel order:", err.Error())
+		err = nil
+	}
 	return
 }
 
@@ -328,7 +344,7 @@ func (b *BinanceSpot) GetSymbols() (symbols []SymbolInfo, err error) {
 			Pricescale:  v.QuotePrecision,
 		}
 	}
-
+	b.symbols = symbols
 	return
 }
 
@@ -354,6 +370,22 @@ func transSpotOrder(fo *gobinance.Order) (o *Order) {
 		Status:   strings.ToUpper(string(fo.Status)),
 		Side:     strings.ToLower(string(fo.Side)),
 		Time:     time.Unix(fo.Time/1000, 0),
+	}
+	return
+}
+
+func transSpotStopCreateOrder(fo *gobinance.CreateOrderResponse) (o *Order) {
+	price, _ := strconv.ParseFloat(fo.Price, 64)
+	amount, _ := strconv.ParseFloat(fo.OrigQuantity, 64)
+	o = &Order{
+		OrderID:  strconv.FormatInt(fo.OrderID, 10),
+		Symbol:   fo.Symbol,
+		Currency: fo.Symbol,
+		Amount:   amount,
+		Price:    price,
+		Status:   strings.ToUpper(string(fo.Status)),
+		Side:     strings.ToLower(string(fo.Side)),
+		Time:     time.Unix(fo.TransactTime/1000, 0),
 	}
 	return
 }

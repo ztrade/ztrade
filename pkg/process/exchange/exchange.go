@@ -88,7 +88,7 @@ func (b *TradeExchange) recvDatas() {
 	var tFirstLastStart int64
 Out:
 	for data := range b.datas {
-		if data.Symbol != b.symbol {
+		if data.Symbol != b.symbol && data.Data.Type != EventBalance {
 			log.Infof("TradeExchange ignore event: %#v, exchange symbol: %s, data symbol: %s", data, b.symbol, data.Symbol)
 			continue
 		}
