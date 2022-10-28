@@ -284,6 +284,12 @@ func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		if act.Action.IsLong() {
 			price = act.Price * 1.1
 		}
+		for _, v := range b.symbols {
+			if v.Symbol == act.Symbol {
+				price = float64(int(price)*v.Pricescale) / float64(v.Pricescale)
+				break
+			}
+		}
 		resp, err = b.api.NewCreateOrderService().Symbol(act.Symbol).
 			StopPrice(fmt.Sprintf("%f", act.Price)).
 			Price(fmt.Sprintf("%f", price)).
