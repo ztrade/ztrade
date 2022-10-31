@@ -3,6 +3,7 @@ package binance
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -39,7 +40,7 @@ type BinanceSpot struct {
 
 	datas   chan *ExchangeData
 	closeCh chan bool
-	symbols []SymbolInfo
+	symbols []gobinance.Symbol
 
 	cancelService    *gobinance.CancelOpenOrdersService
 	cancelOneService *gobinance.CancelOrderService
@@ -268,6 +269,45 @@ func (b *BinanceSpot) CancelOrder(old *Order) (order *Order, err error) {
 	return
 }
 
+func (b *BinanceSpot) fixPrice(price float64, symbol string) (ret float64) {
+	var temp interface{}
+	var ok bool
+	var str string
+	var n, fvalue float64
+	var err error
+	ret = price
+	for _, v := range b.symbols {
+		if v.Symbol == symbol {
+			n = math.Pow(10, float64(v.BaseAssetPrecision))
+			for _, f := range v.Filters {
+				temp, ok = f["filterType"]
+				if !ok {
+					continue
+				}
+				str, ok = temp.(string)
+				if !ok || str != "PRICE_FILTER" {
+					continue
+				}
+				temp, ok = f["tickSize"]
+				if !ok {
+					continue
+				}
+				str, ok = temp.(string)
+				if !ok {
+					continue
+				}
+				fvalue, err = strconv.ParseFloat(str, 64)
+				if err != nil {
+					log.Errorf("binance fixPrice failed:%s", str)
+				}
+				ret = float64(int(ret*n)/int(fvalue*n)) * fvalue
+			}
+			break
+		}
+	}
+	return
+}
+
 func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 	ctx := context.Background()
 	var side gobinance.SideType
@@ -284,12 +324,8 @@ func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 		if act.Action.IsLong() {
 			price = act.Price * 1.1
 		}
-		for _, v := range b.symbols {
-			if v.Symbol == act.Symbol {
-				price = float64(int(price)*v.Pricescale) / float64(v.Pricescale)
-				break
-			}
-		}
+		price = b.fixPrice(price, act.Symbol)
+		fmt.Println(price)
 		resp, err = b.api.NewCreateOrderService().Symbol(act.Symbol).
 			StopPrice(fmt.Sprintf("%f", act.Price)).
 			Price(fmt.Sprintf("%f", price)).
@@ -341,6 +377,7 @@ func (b *BinanceSpot) GetSymbols() (symbols []SymbolInfo, err error) {
 	if err != nil {
 		return
 	}
+	b.symbols = resp.Symbols
 	symbols = make([]SymbolInfo, len(resp.Symbols))
 	for i, v := range resp.Symbols {
 		symbols[i] = SymbolInfo{
@@ -350,7 +387,7 @@ func (b *BinanceSpot) GetSymbols() (symbols []SymbolInfo, err error) {
 			Pricescale:  v.QuotePrecision,
 		}
 	}
-	b.symbols = symbols
+
 	return
 }
 

@@ -44,10 +44,11 @@ func TestSpotProcessOrder(t *testing.T) {
 }
 
 func TestSpotProcessOrderStop(t *testing.T) {
+	testSpotClt.GetSymbols()
 	act := trademodel.TradeAction{
 		Action: trademodel.StopLong,
 		Amount: 0.001,
-		Price:  19000,
+		Price:  20410.45,
 		Time:   time.Now(),
 		Symbol: "BTCUSDT",
 	}
