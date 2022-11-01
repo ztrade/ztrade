@@ -93,6 +93,7 @@ func NewBinanceSpotEx(cfg *viper.Viper, cltName string) (b *BinanceSpot, err err
 	b.cancelService = b.api.NewCancelOpenOrdersService()
 	b.cancelOneService = b.api.NewCancelOrderService()
 	b.Start(map[string]interface{}{})
+	_, err = b.GetSymbols()
 	return
 }
 
@@ -325,7 +326,6 @@ func (b *BinanceSpot) ProcessOrder(act TradeAction) (ret *Order, err error) {
 			price = act.Price * 1.1
 		}
 		price = b.fixPrice(price, act.Symbol)
-		fmt.Println(price)
 		resp, err = b.api.NewCreateOrderService().Symbol(act.Symbol).
 			StopPrice(fmt.Sprintf("%f", act.Price)).
 			Price(fmt.Sprintf("%f", price)).
