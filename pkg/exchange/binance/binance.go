@@ -113,10 +113,14 @@ func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (dat
 	errCh = make(chan error, 1)
 	dur, err := time.ParseDuration(bSize)
 	if err != nil {
-		errCh <- err
-		close(data)
-		close(errCh)
-		return
+		if bSize == "1d" {
+			dur = time.Hour * 24
+		} else {
+			errCh <- err
+			close(data)
+			close(errCh)
+			return
+		}
 	}
 	go func() {
 		defer func() {
