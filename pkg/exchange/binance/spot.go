@@ -71,7 +71,7 @@ func NewBinanceSpotEx(cfg *viper.Viper, cltName string) (b *BinanceSpot, err err
 	// isDebug := cfg.GetBool(fmt.Sprintf("exchanges.%s.debug", cltName))
 	apiKey := cfg.GetString(fmt.Sprintf("exchanges.%s.key", cltName))
 	apiSecret := cfg.GetString(fmt.Sprintf("exchanges.%s.secret", cltName))
-	b.datas = make(chan *ExchangeData)
+	b.datas = make(chan *ExchangeData, 1024*10)
 	b.closeCh = make(chan bool)
 	b.currency = cfg.GetString(fmt.Sprintf("exchanges.%s.currency", cltName))
 	if b.currency == "" {
@@ -97,7 +97,38 @@ func NewBinanceSpotEx(cfg *viper.Viper, cltName string) (b *BinanceSpot, err err
 	return
 }
 
+func (b *BinanceSpot) fetchBalance() (err error) {
+	account, err := b.api.NewGetAccountService().Do(background)
+	if err != nil {
+		return
+	}
+	var balance Balance
+	var locked float64
+	for _, v := range account.Balances {
+		locked, _ = strconv.ParseFloat(v.Locked, 64)
+		if strings.EqualFold(v.Asset, b.currency) {
+			balance.Balance, _ = strconv.ParseFloat(v.Free, 64)
+			balance.Available = balance.Balance + locked
+			d := NewExchangeData(b.Name, EventBalance, &balance)
+			d.Symbol = v.Asset
+			b.datas <- d
+		} else {
+			var pos Position
+			pos.Hold, _ = strconv.ParseFloat(v.Free, 64)
+			pos.Hold += locked
+			d := NewExchangeData(b.Name, EventPosition, &pos)
+			d.Symbol = v.Asset + b.currency
+			b.datas <- d
+		}
+	}
+	return
+}
+
 func (b *BinanceSpot) Start(param map[string]interface{}) (err error) {
+	err = b.fetchBalance()
+	if err != nil {
+		return
+	}
 	// watch position and order changed
 	err = b.startUserWS()
 	return

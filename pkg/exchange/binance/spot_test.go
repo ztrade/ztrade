@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/ztrade/trademodel"
+	"github.com/ztrade/ztrade/pkg/core"
 )
 
 var (
@@ -67,5 +68,31 @@ func TestSpotCancelAllOrders(t *testing.T) {
 	}
 	for _, v := range orders {
 		t.Log(v)
+	}
+}
+
+func TestSpotBalance(t *testing.T) {
+	err := testSpotClt.fetchBalance()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	closeCh := make(chan int)
+	go time.AfterFunc(time.Second*3, func() { close(closeCh) })
+	dataCh := testSpotClt.GetDataChan()
+	var v *core.ExchangeData
+	for {
+		select {
+		case <-closeCh:
+			return
+		case v = <-dataCh:
+			switch v.Data.Type {
+			case core.EventBalance:
+				bl := v.Data.Data.(*trademodel.Balance)
+				t.Log("balance:", v.Name, v.Symbol, bl.Currency, bl.Available, bl.Balance, bl.Frozen)
+			case core.EventPosition:
+				pos := v.Data.Data.(*trademodel.Position)
+				t.Log("pos:", v.Name, v.Symbol, pos.Symbol, pos.Hold, pos.Price)
+			}
+		}
 	}
 }
