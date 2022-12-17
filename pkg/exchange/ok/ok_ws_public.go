@@ -100,8 +100,10 @@ func (b *OkexTrader) parsePublicMsg(message []byte) (err error) {
 			log.Warnf("parseWsCandle failed:%s, %s", string(message), err.Error())
 			return
 		}
-		if len(candles) != 1 {
-			log.Warnf("parseWsCandle candles len warn :%d, %s", len(candles), err.Error())
+		if len(candles) == 0 {
+			return
+		} else if len(candles) != 1 {
+			log.Warnf("parseWsCandle candles len warn :%d, %v", len(candles), err)
 		}
 		b.prevCandleMutex.Lock()
 		prevCandle, ok := b.prevCandle[symbol]
@@ -285,7 +287,7 @@ func parseWsCandle(sj *simplejson.Json) (ret []*Candle, err error) {
 			log.Warnf("transWsCandle data error:%#v", values)
 			continue
 		}
-		if len(values) != 7 {
+		if len(values) != 9 {
 			log.Warnf("transWsCandle data len error:%#v", values)
 			continue
 		}
@@ -293,6 +295,10 @@ func parseWsCandle(sj *simplejson.Json) (ret []*Candle, err error) {
 		if err != nil {
 			panic(fmt.Sprintf("trans candle error: %#v", values))
 			return
+		}
+		// unfinished kline
+		if values[8].(string) == "0" {
+			continue
 		}
 		temp := Candle{
 			ID:       0,
@@ -302,7 +308,7 @@ func parseWsCandle(sj *simplejson.Json) (ret []*Candle, err error) {
 			Low:      parseFloat(values[3].(string)),
 			Close:    parseFloat(values[4].(string)),
 			Volume:   parseFloat(values[5].(string)),
-			Turnover: parseFloat(values[6].(string)),
+			Turnover: parseFloat(values[7].(string)),
 		}
 		ret = append(ret, &temp)
 	}

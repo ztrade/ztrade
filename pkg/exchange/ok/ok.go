@@ -33,7 +33,7 @@ import (
 var (
 	background = context.Background()
 
-	ApiAddr       = "https://www.okx.com/"
+	ApiAddr       = "https://aws.okx.com/"
 	WSOkexPUbilc  = "wss://wsaws.okx.com:8443/ws/v5/public"
 	WSOkexPrivate = "wss://wsaws.okx.com:8443/ws/v5/private"
 
