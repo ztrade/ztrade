@@ -170,10 +170,10 @@ func (b *BinanceTrade) GetKline(symbol, bSize string, start, end time.Time) (dat
 }
 
 // WatchKline watch kline changes
-func (b *BinanceTrade) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, stopC chan struct{}, err error) {
+func (b *BinanceTrade) WatchKline(symbol SymbolInfo, cb func() error) (datas chan *CandleInfo, stopC chan struct{}, err error) {
 	f := newKlineFilter(b.Name, symbol.Resolutions)
 	datas = f.GetData()
-	doneC, stopC, err := futures.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError("watchKline"))
+	doneC, stopC, err := futures.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError("watchKline", cb))
 	go func() {
 		select {
 		case <-doneC:
@@ -188,9 +188,12 @@ func (b *BinanceTrade) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, st
 	return
 }
 
-func (b *BinanceTrade) handleError(typ string) func(error) {
+func (b *BinanceTrade) handleError(typ string, cb func() error) func(error) {
 	return func(err error) {
-		log.Errorf("binance %s error:%s", typ, err.Error())
+		log.Errorf("binance %s error:%s, call callback", typ, err.Error())
+		if cb != nil {
+			cb()
+		}
 	}
 }
 func (b *BinanceTrade) handleAggTradeEvent(evt *futures.WsAggTradeEvent) {
@@ -247,6 +250,18 @@ func (b *BinanceTrade) handleDepth(evt *futures.WsDepthEvent) {
 	b.datas <- temp
 }
 
+func (b *BinanceTrade) retry(param WatchParam) func() error {
+	return func() error {
+		// retry when error cause
+		select {
+		case <-b.closeCh:
+			return nil
+		default:
+		}
+		return b.Watch(param)
+	}
+}
+
 func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 	symbol := param.Extra.(string)
 	var stopC chan struct{}
@@ -259,7 +274,7 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 		}
 		symbolInfo := SymbolInfo{Exchange: cParam.Exchange, Symbol: cParam.Symbol, Resolutions: cParam.BinSize}
 		var datas chan *CandleInfo
-		datas, _, err = b.WatchKline(symbolInfo)
+		datas, _, err = b.WatchKline(symbolInfo, b.retry(param))
 		if err != nil {
 			log.Errorf("emitCandles wathKline failed: %s", err.Error())
 			return
@@ -294,9 +309,9 @@ func (b *BinanceTrade) Watch(param WatchParam) (err error) {
 		}()
 
 	case EventDepth:
-		_, stopC, err = futures.WsPartialDepthServe(symbol, 10, b.handleDepth, b.handleError("depth"))
+		_, stopC, err = futures.WsPartialDepthServe(symbol, 10, b.handleDepth, b.handleError("depth", b.retry(param)))
 	case EventTradeMarket:
-		_, stopC, err = futures.WsAggTradeServe(symbol, b.handleAggTradeEvent, b.handleError("aggTrade"))
+		_, stopC, err = futures.WsAggTradeServe(symbol, b.handleAggTradeEvent, b.handleError("aggTrade", b.retry(param)))
 	default:
 		err = fmt.Errorf("unknown wathc param: %s", param.Type)
 	}

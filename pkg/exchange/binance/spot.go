@@ -182,10 +182,10 @@ func (b *BinanceSpot) GetKline(symbol, bSize string, start, end time.Time) (data
 }
 
 // WatchKline watch kline changes
-func (b *BinanceSpot) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, stopC chan struct{}, err error) {
+func (b *BinanceSpot) WatchKline(symbol SymbolInfo, cb func() error) (datas chan *CandleInfo, stopC chan struct{}, err error) {
 	f := newSpotKlineFilter(b.Name, symbol.Resolutions)
 	datas = f.GetData()
-	doneC, stopC, err := gobinance.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError("watchKline"))
+	doneC, stopC, err := gobinance.WsKlineServe(symbol.Symbol, symbol.Resolutions, f.ProcessEvent, b.handleError("watchKline", cb))
 	go func() {
 		select {
 		case <-doneC:
@@ -200,9 +200,24 @@ func (b *BinanceSpot) WatchKline(symbol SymbolInfo) (datas chan *CandleInfo, sto
 	return
 }
 
-func (b *BinanceSpot) handleError(typ string) func(error) {
+func (b *BinanceSpot) handleError(typ string, cb func() error) func(error) {
 	return func(err error) {
 		log.Errorf("binance %s error:%s", typ, err.Error())
+		if cb != nil {
+			cb()
+		}
+	}
+}
+
+func (b *BinanceSpot) retry(param WatchParam) func() error {
+	return func() error {
+		// retry when error cause
+		select {
+		case <-b.closeCh:
+			return nil
+		default:
+		}
+		return b.Watch(param)
 	}
 }
 
@@ -218,7 +233,7 @@ func (b *BinanceSpot) Watch(param WatchParam) (err error) {
 		}
 		symbolInfo := SymbolInfo{Exchange: cParam.Exchange, Symbol: cParam.Symbol, Resolutions: cParam.BinSize}
 		var datas chan *CandleInfo
-		datas, _, err = b.WatchKline(symbolInfo)
+		datas, _, err = b.WatchKline(symbolInfo, b.retry(param))
 		if err != nil {
 			log.Errorf("emitCandles wathKline failed: %s", err.Error())
 			return
