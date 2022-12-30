@@ -13,6 +13,7 @@ import (
 	_ "github.com/goplus/igop/pkg/encoding/json"
 	_ "github.com/goplus/igop/pkg/fmt"
 	_ "github.com/goplus/igop/pkg/math"
+	_ "github.com/goplus/igop/pkg/time"
 	"github.com/ztrade/base/common"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 	"golang.org/x/tools/go/ssa"
@@ -126,7 +127,6 @@ func NewRunner(file string) (r engine.Runner, err error) {
 	var fn interface{}
 	for _, v := range typs {
 		fn, ok = interp.GetFunc(fmt.Sprintf("New%s", v))
-		fmt.Println(v, fn, ok)
 		if !ok {
 			continue
 		}
