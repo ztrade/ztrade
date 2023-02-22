@@ -27,6 +27,7 @@ type Report struct {
 	actions          []TradeAction
 	trades           []Trade
 	balanceInit      float64
+	balanceEnd       float64
 	profit           float64
 	maxLose          float64
 	winRate          float64
@@ -45,6 +46,7 @@ type RptAct struct {
 	TotalProfit float64 // total profit,sum of all history profits,if action is open, total profit is zero
 	Profit      float64 // profit, if action is open, profit is zero
 	Fee         float64
+	IsFinish    bool
 }
 
 func NewReportSimple() *Report {
@@ -87,7 +89,7 @@ func (r *Report) Analyzer() (err error) {
 	bal := common.NewVBalance()
 	bal.Set(r.balanceInit)
 	bal.SetFee(r.fee)
-	//	startBalance := bal.Get()
+	// startBalance := bal.Get()
 
 	for _, v := range r.trades {
 		profit, fee, err = bal.AddTrade(v)
@@ -109,13 +111,15 @@ func (r *Report) Analyzer() (err error) {
 
 		r.totalAction++
 		tmplData = &RptAct{Trade: v,
-			Total:  bal.Get(),
-			Profit: profit,
-			Fee:    fee,
+			Total:    bal.Get(),
+			Profit:   profit,
+			Fee:      fee,
+			IsFinish: false,
 		}
 		r.tmplDatas = append(r.tmplDatas, tmplData)
 		// one round finish
 		if longAmount == shortAmount {
+			tmplData.IsFinish = true
 			if lastTmplData != nil {
 				tmplData.TotalProfit = lastTmplData.TotalProfit
 			}
@@ -140,6 +144,7 @@ func (r *Report) Analyzer() (err error) {
 				}
 			}
 			costOnce = 0
+			r.balanceEnd = bal.Get()
 		}
 		if tmplData.TotalProfit != 0 {
 			lastTmplData = tmplData
@@ -151,16 +156,13 @@ func (r *Report) Analyzer() (err error) {
 			if tmplData.TotalProfit < lastMinTotal {
 				lastMinTotal = tmplData.TotalProfit
 			}
-			if lastMaxTotal != 0 {
-				drawdownValue = common.FloatSub(lastMaxTotal, lastMinTotal)
-				if drawdownValue > r.maxDrawdownValue {
-					r.maxDrawdownValue = drawdownValue
-				}
-
-				drawdown = common.FloatDiv(common.FloatMul(drawdownValue, 100), lastMaxTotal)
-				if drawdown > r.maxDrawdown {
-					r.maxDrawdown = drawdown
-				}
+			drawdownValue = common.FloatSub(lastMaxTotal, lastMinTotal)
+			if drawdownValue > r.maxDrawdownValue {
+				r.maxDrawdownValue = drawdownValue
+			}
+			drawdown = common.FloatDiv(common.FloatMul(drawdownValue, 100), lastMaxTotal+r.balanceInit)
+			if drawdown > r.maxDrawdown {
+				r.maxDrawdown = drawdown
 			}
 		}
 	}
@@ -190,8 +192,16 @@ func (r *Report) Profit() (profit float64) {
 	return
 }
 
+func (r *Report) ProfitPercent() float64 {
+	return common.FormatFloat((r.EndBalance()*100)/r.balanceInit, 4)
+}
+
+func (r *Report) EndBalance() float64 {
+	return common.FormatFloat(r.balanceEnd, 4)
+}
+
 func (r *Report) ProfitLoseRatio() float64 {
-	return r.profitLoseRatio
+	return common.FormatFloat(r.profitLoseRatio, 4)
 }
 
 // MaxLose max total lose
@@ -219,6 +229,9 @@ func (r *Report) GetReport() (report string) {
 	buf.WriteString(fmt.Sprintf("Max drawdown percent:%f%%\n", r.MaxDrawdown()))
 	buf.WriteString(fmt.Sprintf("Max drawdown value :%f\n", r.MaxDrawdown()))
 	buf.WriteString(fmt.Sprintf("Profit lose ratio: %f\n", r.ProfitLoseRatio()))
+	buf.WriteString(fmt.Sprintf("StartBalance: %f\n", r.balanceInit))
+	buf.WriteString(fmt.Sprintf("EndBalance: %f\n", r.EndBalance()))
+	buf.WriteString(fmt.Sprintf("ProfitPercent:%f\n", r.ProfitPercent()))
 	data, _ := json.Marshal(r.profitHistory)
 	buf.WriteString(string(data))
 	report = buf.String()
@@ -245,11 +258,15 @@ func (r *Report) GenHTML(w io.Writer) (err error) {
 	data["totalAction"] = r.totalAction
 	data["winRate"] = r.WinRate()
 	data["profit"] = r.Profit()
+
 	data["maxLose"] = r.MaxLose()
 	data["actions"] = r.tmplDatas
 	data["maxDrawdown"] = r.MaxDrawdown()
 	data["maxDrawdownValue"] = r.MaxDrawdownValue()
 	data["profitLoseRatio"] = r.ProfitLoseRatio()
+	data["startBalance"] = r.balanceInit
+	data["endBalance"] = r.EndBalance()
+	data["profitPercent"] = r.ProfitPercent()
 	err = tmpl.Execute(w, data)
 	return
 }
