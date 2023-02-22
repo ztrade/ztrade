@@ -30,6 +30,8 @@ const (
 	EventWatchCandle = "watch_candle"
 
 	EventNotify = "notify"
+
+	EventError = "error"
 )
 
 var (

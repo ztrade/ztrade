@@ -2,12 +2,17 @@ package event
 
 import (
 	"time"
+
+	"github.com/ztrade/ztrade/pkg/core"
 )
+
+type ErrorCallback func(error)
 
 // Processers processers
 type Processers struct {
 	handlers []Processer
 	bus      *Bus
+	errorCb  ErrorCallback
 }
 
 // NewProcessers create default Processers
@@ -22,6 +27,20 @@ func NewSyncProcessers() *Processers {
 	p := new(Processers)
 	p.bus = NewSyncBus()
 	return p
+}
+
+func (h *Processers) SetErrorCallback(fn ErrorCallback) {
+	h.errorCb = fn
+
+}
+
+func (h *Processers) onError(e *Event) error {
+	errInfo := e.Data.Data.(error)
+	if h.errorCb == nil {
+		return nil
+	}
+	h.errorCb(errInfo)
+	return nil
 }
 
 // Adds add processer
@@ -49,6 +68,7 @@ func (h *Processers) Start() (err error) {
 			return
 		}
 	}
+	h.bus.Subscribe("Processers", core.EventError, h.onError)
 	h.bus.Start()
 	for _, p := range h.handlers {
 		err = p.Start()

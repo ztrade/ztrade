@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	EventError string = "error"
-	eventPool         = sync.Pool{New: func() interface{} {
+	eventPool = sync.Pool{New: func() interface{} {
 		return new(Event)
 	}}
 )
@@ -21,10 +20,11 @@ type Event struct {
 	From string
 }
 
-func NewErrorEvent(from, msg string) *Event {
+func NewErrorEvent(from, msg string, err error) *Event {
 	e := new(Event)
 	e.Name = msg
-	e.Data.Type = EventError
+	e.Data.Type = core.EventError
+	e.Data.Data = err
 	e.From = from
 	// e.Time = time.Now()
 	return e

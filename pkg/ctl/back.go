@@ -1,6 +1,7 @@
 package ctl
 
 import (
+	"sync"
 	"time"
 
 	. "github.com/ztrade/ztrade/pkg/core"
@@ -104,6 +105,17 @@ func (b *Backtest) Run() (err error) {
 	processers.Add(ex)
 	processers.Add(engine)
 	processers.Add(r)
+
+	var stopOnce sync.Once
+	errorCh := make(chan bool)
+	processers.SetErrorCallback(func(err error) {
+		stopOnce.Do(func() {
+			log.Errorf("got error: %s, just exit", err.Error())
+			processers.Stop()
+			errorCh <- true
+		})
+	})
+
 	processers.Start()
 
 	param.Send("balance_init", EventBalanceInit, &BalanceInfo{Balance: b.balanceInit, Fee: b.fee})
@@ -117,7 +129,11 @@ func (b *Backtest) Run() (err error) {
 	log.Info("backtest candle param:", candleParam)
 	param.Send("load_candle", EventWatch, NewWatchCandle(&candleParam))
 	// TODO wait for finish
-	<-closeCh
+	select {
+	case <-closeCh:
+	case <-errorCh:
+		// FIXME: tbl maybe not close
+	}
 	if b.closeAllWhenFinished {
 		time.Sleep(time.Second * 10)
 		ex.CloseAll()

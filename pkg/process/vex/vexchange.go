@@ -52,7 +52,7 @@ func (ex *VExchange) Start() (err error) {
 	ex.Send(ex.symbol, EventBalance, &Balance{Balance: ex.balance.Get()})
 	return
 }
-func (ex *VExchange) processCandle(candle Candle) {
+func (ex *VExchange) processCandle(candle Candle) (err error) {
 	if ex.orders.Len() == 0 {
 		return
 	}
@@ -138,10 +138,10 @@ func (ex *VExchange) processCandle(candle Candle) {
 			Side:   side,
 			Remark: ""}
 		// fix size
-		_, _, err := ex.balance.AddTrade(tr)
+		_, _, err = ex.balance.AddTrade(tr)
 		if err != nil {
-			log.Errorf("vexchange balance AddTrade error:%s %f %f", err.Error(), v.Price, v.Amount)
-			continue
+			// log.Errorf("vexchange balance AddTrade error:%s %f %f", err.Error(), v.Price, v.Amount)
+			return
 		}
 		ex.trades = append(ex.trades, tr)
 		tradeEvent := ex.CreateEvent("trade", EventTrade, &tr)
@@ -170,6 +170,7 @@ func (ex *VExchange) processCandle(candle Candle) {
 			ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
 		}
 	}
+	return nil
 }
 
 func (ex *VExchange) onEventCandle(e *Event) (err error) {
@@ -186,7 +187,7 @@ func (ex *VExchange) onEventCandle(e *Event) (err error) {
 
 	ex.candle = candle
 	ex.orderIndex = 0
-	ex.processCandle(*candle)
+	err = ex.processCandle(*candle)
 	return
 }
 

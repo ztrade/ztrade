@@ -67,8 +67,8 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 		for _, p := range procs {
 			err = p.Cb(e)
 			if err != nil {
-				// b.Send(NewErrorEvent(err.Error(), p.Name))
-				log.Errorf("subscribe %s process error: %s", sub, err.Error())
+				b.Send(NewErrorEvent(p.Name, err.Error(), err))
+				// log.Errorf("process %s error: %s", sub, err.Error())
 				continue
 			}
 		}
@@ -113,7 +113,8 @@ func (b *Bus) sendSync(procs ProcessList, e *Event) (err error) {
 	for _, p := range procs {
 		err = p.Cb(e)
 		if err != nil {
-			log.Errorf("subscribe %s process error: %s", e.GetType(), err.Error())
+			// log.Errorf("subscribe %s process error: %s", e.GetType(), err.Error())
+			b.Send(NewErrorEvent(p.Name, err.Error(), err))
 			continue
 		}
 	}
