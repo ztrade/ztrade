@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/adshao/go-binance/v2 v2.3.5
 	github.com/bitly/go-simplejson v0.5.0
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/cosmos72/gomacro v0.0.0-20220226114457-23a0d19a6b1e
 	github.com/deepmap/oapi-codegen v1.10.1
 	github.com/getkin/kin-openapi v0.94.0
@@ -17,10 +16,10 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
+	github.com/shopspring/decimal v1.3.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.11.0
-	github.com/stretchr/testify v1.7.1
 	github.com/tidwall/gjson v1.14.1
 	github.com/ztrade/base v0.1.6
 	github.com/ztrade/ctp v0.0.2
@@ -33,7 +32,6 @@ require (
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -46,8 +44,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/kr/pretty v0.3.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
@@ -58,11 +54,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/peterh/liner v1.2.2 // indirect
 	github.com/petermattis/goid v0.0.0-20220824145935-af5520614cb6 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
@@ -73,10 +66,9 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/visualfc/funcval v0.1.3 // indirect
 	github.com/visualfc/goembed v0.2.2 // indirect
-	github.com/visualfc/gomod v0.1.2 // indirect
 	github.com/visualfc/xtype v0.1.0 // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.3.8 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
