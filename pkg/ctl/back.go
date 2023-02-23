@@ -1,9 +1,11 @@
 package ctl
 
 import (
+	"errors"
 	"sync"
 	"time"
 
+	"github.com/ztrade/base/common"
 	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
@@ -109,11 +111,13 @@ func (b *Backtest) Run() (err error) {
 	var stopOnce sync.Once
 	errorCh := make(chan bool)
 	processers.SetErrorCallback(func(err error) {
-		stopOnce.Do(func() {
-			log.Errorf("got error: %s, just exit", err.Error())
-			processers.Stop()
-			errorCh <- true
-		})
+		if errors.Is(err, common.ErrNoBalance) {
+			stopOnce.Do(func() {
+				log.Errorf("got error: %s, just exit", err.Error())
+				processers.Stop()
+				errorCh <- true
+			})
+		}
 	})
 
 	processers.Start()
