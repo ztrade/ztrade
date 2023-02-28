@@ -598,10 +598,14 @@ github.com/ztrade/exchange v0.0.0-20230228110502-176fafe6cb07 h1:K28zCLsEghRGOnX
 github.com/ztrade/exchange v0.0.0-20230228110502-176fafe6cb07/go.mod h1:tDQqq11sDEW5zKGEfzZIz4fdV28+/Ls5Ew/PkcmX9Z8=
 github.com/ztrade/exchange v0.0.0-20230228110943-0297f34427b3 h1:oKVUCh/9zZGkbQyB4EJ7A7MHtd1PcLEOx6oQFyeDbNo=
 github.com/ztrade/exchange v0.0.0-20230228110943-0297f34427b3/go.mod h1:tDQqq11sDEW5zKGEfzZIz4fdV28+/Ls5Ew/PkcmX9Z8=
+github.com/ztrade/exchange v0.0.0-20230228121203-555de113e7a9 h1:JcSFANqvD/1fK+H/pOUHxqxUTsPJgbLhUh2drrQujd8=
+github.com/ztrade/exchange v0.0.0-20230228121203-555de113e7a9/go.mod h1:tDQqq11sDEW5zKGEfzZIz4fdV28+/Ls5Ew/PkcmX9Z8=
 github.com/ztrade/indicator v1.1.1 h1:SoY+7KwXG4gCqqsng//SwUvyo88ZRM3YMJMqkgeRqig=
 github.com/ztrade/indicator v1.1.1/go.mod h1:6Eh2RrKaKU0dHoDD9M9wUq12EGTWJi7WlpMHJoKb8Po=
 github.com/ztrade/trademodel v1.1.5 h1:r5M5vfbdBSzEheetXunw2WxTxE9e5ZeKe8psjOvASmw=
 github.com/ztrade/trademodel v1.1.5/go.mod h1:iIdDUPeAjlmQ2D7dxqrwwFwGCFOdk35eogvWGkf+0Lw=
+github.com/ztrade/trademodel v1.1.6 h1:4TnVtlPY9sk6dIIVNtVK6B46mw8+0x+Nc7h4gBLn7Gk=
+github.com/ztrade/trademodel v1.1.6/go.mod h1:iIdDUPeAjlmQ2D7dxqrwwFwGCFOdk35eogvWGkf+0Lw=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
