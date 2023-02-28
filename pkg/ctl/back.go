@@ -31,6 +31,7 @@ type Backtest struct {
 	balanceInit float64
 	loadDBOnce  int
 	fee         float64
+	lever       float64
 
 	closeAllWhenFinished bool
 }
@@ -60,6 +61,10 @@ func (b *Backtest) SetLoadDBOnce(loadOnce int) {
 func (b *Backtest) SetBalanceInit(balanceInit, fee float64) {
 	b.balanceInit = balanceInit
 	b.fee = fee
+}
+
+func (b *Backtest) SetLever(lever float64) {
+	b.lever = lever
 }
 
 func (b *Backtest) SetScript(scriptFile string) {
@@ -123,6 +128,7 @@ func (b *Backtest) Run() (err error) {
 	processers.Start()
 
 	param.Send("balance_init", EventBalanceInit, &BalanceInfo{Balance: b.balanceInit, Fee: b.fee})
+	param.Send("risk_init", EventRiskLimit, &RiskLimit{Lever: b.lever})
 	candleParam := CandleParam{
 		Start:   b.start,
 		End:     b.end,

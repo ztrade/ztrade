@@ -38,6 +38,8 @@ type Report struct {
 	maxDrawdownValue float64
 	fee              float64
 	profitLoseRatio  float64
+
+	lever float64
 }
 
 type RptAct struct {
@@ -65,6 +67,10 @@ func (r *Report) SetFee(fee float64) {
 	r.fee = fee
 }
 
+func (r *Report) SetLever(lever float64) {
+	r.lever = lever
+}
+
 func (r *Report) Analyzer() (err error) {
 	nLen := len(r.trades)
 	if nLen == 0 {
@@ -86,9 +92,10 @@ func (r *Report) Analyzer() (err error) {
 	var tmplData, lastTmplData *RptAct
 	var lastMaxTotal, lastMinTotal, drawdown, drawdownValue float64
 	var profit, fee float64
-	bal := common.NewVBalance()
+	bal := common.NewLeverBalance()
 	bal.Set(r.balanceInit)
 	bal.SetFee(r.fee)
+	bal.SetLever(r.lever)
 	// startBalance := bal.Get()
 
 	for _, v := range r.trades {
