@@ -16,8 +16,9 @@ func init() {
 		Name: "trademodel",
 		Path: "github.com/ztrade/trademodel",
 		Deps: map[string]string{
-			"fmt":  "fmt",
-			"time": "time",
+			"fmt":     "fmt",
+			"strings": "strings",
+			"time":    "time",
 		},
 		Interfaces: map[string]reflect.Type{},
 		NamedTypes: map[string]reflect.Type{
@@ -62,8 +63,11 @@ func init() {
 			"StopShort":   {reflect.TypeOf(q.StopShort), constant.MakeInt64(int64(q.StopShort))},
 		},
 		UntypedConsts: map[string]igop.UntypedConst{
-			"Long":  {"untyped int", constant.MakeInt64(int64(q.Long))},
-			"Short": {"untyped int", constant.MakeInt64(int64(q.Short))},
+			"Long":              {"untyped int", constant.MakeInt64(int64(q.Long))},
+			"Short":             {"untyped int", constant.MakeInt64(int64(q.Short))},
+			"SymbolTypeFutures": {"untyped string", constant.MakeString(string(q.SymbolTypeFutures))},
+			"SymbolTypeIndex":   {"untyped string", constant.MakeString(string(q.SymbolTypeIndex))},
+			"SymbolTypeSpot":    {"untyped string", constant.MakeString(string(q.SymbolTypeSpot))},
 		},
 	})
 }

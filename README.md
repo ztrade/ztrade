@@ -8,7 +8,7 @@ I hope ztrade is "The last trade app you need" !
 1. Develop/write strategy with only go language,no other script need
 2. Event base framework,easy to extend
 3. Support binance,okx,ctp
-4. use [gomacro](https://github.com/cosmos72/gomacro) as script engine
+4. use[goplus](https://goplus.org/)as script engine
 5. can build strategy to go golang plugin,best performance
 
 # build
@@ -57,6 +57,6 @@ show examples:
 
 ## Thanks
 
-[gomacro](https://github.com/cosmos72/gomacro)
+[goplus](https://goplus.org/)
 
 [vnpy](https://github.com/vnpy/vnpy)

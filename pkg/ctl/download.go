@@ -6,8 +6,8 @@ import (
 
 	// . "github.com/ztrade/ztrade/pkg/define"
 
+	"github.com/ztrade/exchange"
 	"github.com/ztrade/trademodel"
-	"github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
 
 	log "github.com/sirupsen/logrus"
@@ -101,12 +101,12 @@ func (d *DataDownload) Run() (err error) {
 
 func (d *DataDownload) download(start, end time.Time) (err error) {
 	log.Info("begin download candle:", start, end, d.symbol, d.binSize)
-	ex, err := core.NewExchange(d.exchange, d.cfg, d.exchange)
+	ex, err := exchange.NewExchange(d.exchange, exchange.WrapViper(d.cfg), d.exchange)
 	if err != nil {
 		return
 	}
 	tbl := d.db.GetKlineTbl(d.exchange, d.symbol, d.binSize)
-	klines, errChan := ex.GetKline(d.symbol, d.binSize, start, end)
+	klines, errChan := exchange.KlineChan(ex, d.symbol, d.binSize, start, end)
 	var t time.Time
 	cache := make([]interface{}, 1024)
 	i := 0

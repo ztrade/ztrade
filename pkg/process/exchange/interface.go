@@ -2,11 +2,11 @@ package exchange
 
 import (
 	"github.com/spf13/viper"
-	. "github.com/ztrade/ztrade/pkg/core"
+	"github.com/ztrade/exchange"
 )
 
 func GetTradeExchange(name string, cfg *viper.Viper, cltName, symbol string) (t *TradeExchange, err error) {
-	ex, err := NewExchange(name, cfg, cltName)
+	ex, err := exchange.NewExchange(name, exchange.WrapViper(cfg), cltName)
 	if err != nil {
 		return
 	}

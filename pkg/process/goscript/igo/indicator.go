@@ -15,11 +15,12 @@ func init() {
 		Name: "indicator",
 		Path: "github.com/ztrade/indicator",
 		Deps: map[string]string{
-			"encoding/json": "json",
-			"fmt":           "fmt",
-			"math":          "math",
-			"reflect":       "reflect",
-			"strings":       "strings",
+			"encoding/json":                 "json",
+			"fmt":                           "fmt",
+			"github.com/shopspring/decimal": "decimal",
+			"math":                          "math",
+			"reflect":                       "reflect",
+			"strings":                       "strings",
 		},
 		Interfaces: map[string]reflect.Type{
 			"CommonIndicator": reflect.TypeOf((*q.CommonIndicator)(nil)).Elem(),
