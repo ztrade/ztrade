@@ -69,6 +69,13 @@ func (b *TradeExchange) Start() (err error) {
 	b.impl.Watch(exchange.WatchParam{Type: exchange.WatchTypePosition}, func(data interface{}) {
 		b.datas <- data
 	})
+	b.impl.Watch(exchange.WatchParam{Type: exchange.WatchTypeTrade}, func(data interface{}) {
+		b.datas <- data
+	})
+	err = b.impl.Start()
+	if err != nil {
+		return err
+	}
 	go b.recvDatas()
 	go b.orderRoutine()
 	return
