@@ -139,6 +139,9 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 			Amount: v.Amount,
 			Side:   side,
 			Remark: ""}
+		if v.ID != "" {
+			tr.ID = v.ID
+		}
 		// fix size
 		_, _, err = ex.balance.AddTrade(tr)
 		if err != nil {
@@ -203,6 +206,15 @@ func (ex *VExchange) onEventOrder(e *Event) (err error) {
 	}
 	if act.Action == trademodel.CancelAll {
 		ex.orders = list.New()
+		return
+	} else if act.Action == trademodel.CancelOne {
+		for item := ex.orders.Front(); item != nil; item.Next() {
+			od := item.Value.(TradeAction)
+			if od.ID == act.ID {
+				ex.orders.Remove(item)
+				return
+			}
+		}
 		return
 	}
 	if ex.candle != nil {
