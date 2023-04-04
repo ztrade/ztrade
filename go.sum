@@ -597,7 +597,10 @@ github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxt
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
 github.com/ztrade/base v0.1.6 h1:Fq+xJm1uZAlr0r3j7orOSZ1Ils9M96kVMQkFTaXDUtI=
 github.com/ztrade/base v0.1.6/go.mod h1:ekfMerUheppWuKZ9Uxt0XOetYw5DVb/kw7TtWmAfpN4=
+github.com/ztrade/base v0.1.7 h1:VxwhS6k92NzMSzPml0xT0Pfk/n4tv4/1iwnGlOhSUHI=
 github.com/ztrade/base v0.1.7/go.mod h1:ekfMerUheppWuKZ9Uxt0XOetYw5DVb/kw7TtWmAfpN4=
+github.com/ztrade/base v0.1.8 h1:1oNxLwDwtw5z9DBoVWG1MN5FZuoLip+MhQcB2lLPv3I=
+github.com/ztrade/base v0.1.8/go.mod h1:ekfMerUheppWuKZ9Uxt0XOetYw5DVb/kw7TtWmAfpN4=
 github.com/ztrade/exchange v0.0.0-20230228033548-d87736a7b3e2 h1:S7tUdsv8L/RRNgKcFz+AlqFMJTKobZ3DKkD/vk4pPTk=
 github.com/ztrade/exchange v0.0.0-20230228033548-d87736a7b3e2/go.mod h1:tDQqq11sDEW5zKGEfzZIz4fdV28+/Ls5Ew/PkcmX9Z8=
 github.com/ztrade/exchange v0.0.0-20230228110502-176fafe6cb07 h1:K28zCLsEghRGOnXS2n+Pdc3P8N9hKbRLAm5Pz4ikL/Y=

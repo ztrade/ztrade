@@ -153,6 +153,7 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 		trades = append(trades, tradeEvent)
 
 		posChange = true
+		ex.position = ex.balance.Pos()
 		pos.Price = tr.Price
 		deleteElems = append(deleteElems, elem)
 	}
@@ -166,7 +167,6 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 		}
 	}
 	if posChange {
-		ex.position = ex.balance.Pos()
 		pos.Symbol = ex.symbol
 		pos.Hold = ex.position
 		//		ex.Send(ex.symbol, EventCurPosition, pos)
