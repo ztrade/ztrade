@@ -613,6 +613,8 @@ github.com/ztrade/exchange v0.0.0-20230327013721-520a26f63e9d h1:jSWgdU3+z8nt0Fm
 github.com/ztrade/exchange v0.0.0-20230327013721-520a26f63e9d/go.mod h1:tDQqq11sDEW5zKGEfzZIz4fdV28+/Ls5Ew/PkcmX9Z8=
 github.com/ztrade/exchange v0.0.0-20230409173534-e0e31f724596 h1:KIkzb5fEnx+uCvG9xqX9m5HmcSHmUCKCYg0bXJDWHiY=
 github.com/ztrade/exchange v0.0.0-20230409173534-e0e31f724596/go.mod h1:tDQqq11sDEW5zKGEfzZIz4fdV28+/Ls5Ew/PkcmX9Z8=
+github.com/ztrade/exchange v0.0.0-20230411155312-6d311f617353 h1:b7kcKlNnZ2o+JjNbVjZCeFEF6szUdCZBcIwoPc9UE9U=
+github.com/ztrade/exchange v0.0.0-20230411155312-6d311f617353/go.mod h1:tDQqq11sDEW5zKGEfzZIz4fdV28+/Ls5Ew/PkcmX9Z8=
 github.com/ztrade/indicator v1.1.1 h1:SoY+7KwXG4gCqqsng//SwUvyo88ZRM3YMJMqkgeRqig=
 github.com/ztrade/indicator v1.1.1/go.mod h1:6Eh2RrKaKU0dHoDD9M9wUq12EGTWJi7WlpMHJoKb8Po=
 github.com/ztrade/trademodel v1.1.5 h1:r5M5vfbdBSzEheetXunw2WxTxE9e5ZeKe8psjOvASmw=

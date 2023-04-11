@@ -101,7 +101,9 @@ func (d *DataDownload) Run() (err error) {
 
 func (d *DataDownload) download(start, end time.Time) (err error) {
 	log.Info("begin download candle:", start, end, d.symbol, d.binSize)
-	ex, err := exchange.NewExchange(d.exchange, exchange.WrapViper(d.cfg), d.exchange)
+	exchangeType := viper.GetString(fmt.Sprintf("exchanges.%s.type", d.exchange))
+	fmt.Println(d.exchange, exchangeType)
+	ex, err := exchange.NewExchange(exchangeType, exchange.WrapViper(d.cfg), d.exchange)
 	if err != nil {
 		return
 	}

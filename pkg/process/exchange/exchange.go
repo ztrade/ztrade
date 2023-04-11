@@ -2,10 +2,10 @@ package exchange
 
 import (
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/exchange"
 	"github.com/ztrade/trademodel"
@@ -34,11 +34,15 @@ type TradeExchange struct {
 
 	closeCh chan bool
 
+	pos            Position
 	positionUpdate int64
 	exchangeName   string
 	symbol         string
 
 	candleParam CandleParam
+
+	localStopOrder bool
+	stopOrders     sync.Map
 }
 
 func NewTradeExchange(exName string, impl exchange.Exchange, symbol string) *TradeExchange {
@@ -53,6 +57,13 @@ func NewTradeExchange(exName string, impl exchange.Exchange, symbol string) *Tra
 	te.symbol = symbol
 	te.datas = make(chan interface{}, 1024)
 	return te
+}
+
+func (b *TradeExchange) UseLocalStopOrder(enable bool) {
+	b.localStopOrder = enable
+	if enable {
+		log.Warnf("%s TradeExchange use local stop order", b.impl.Info().Name)
+	}
 }
 
 func (b *TradeExchange) Init(bus *Bus) (err error) {
@@ -119,6 +130,7 @@ Out:
 				log.Infof("TradeExchange ignore event: %#v, exchange symbol: %s, data symbol: %s", value, b.symbol, value.Symbol)
 				continue
 			}
+			b.pos = *value
 			posTime = time.Now().Unix()
 			atomic.StoreInt64(&b.positionUpdate, posTime)
 			b.Send(value.Symbol, EventPosition, value)
@@ -147,6 +159,7 @@ Out:
 		case *Depth:
 			b.Send(b.exchangeName, EventDepth, value)
 		case *Trade:
+			b.onEventTradeMarket(value)
 			b.Send(b.exchangeName, EventTradeMarket, value)
 		default:
 			log.Errorf("unsupport exchange data: %##v", value)
@@ -170,14 +183,54 @@ func (b *TradeExchange) onEventCandleParam(e *Event) (err error) {
 }
 
 func (b *TradeExchange) onEventOrder(e *Event) (err error) {
-	var act TradeAction
-	err = mapstructure.Decode(e.GetData(), &act)
-	if err != nil {
+	act := e.GetData().(*TradeAction)
+	b.actChan <- *act
+	return
+}
+
+func (b *TradeExchange) onEventTradeMarket(trade *Trade) {
+	if !b.localStopOrder || b.pos.Hold == 0 {
 		return
 	}
-
-	b.actChan <- act
-	return
+	var deleteOrders []string
+	b.stopOrders.Range(func(key, value any) bool {
+		id := key.(string)
+		act := value.(TradeAction)
+		if b.pos.Hold > 0 && act.Action == StopLong && trade.Price < act.Price {
+			// do stop long
+			newAct := TradeAction{
+				ID:     id + "_stop",
+				Action: CloseLong,
+				Amount: act.Amount,
+				Price:  act.Price,
+				Time:   act.Time,
+				Symbol: act.Symbol,
+			}
+			log.Infof("TradeEvent local stopLong order trigger: %#v", newAct)
+			deleteOrders = append(deleteOrders, id)
+			b.actChan <- newAct
+			return true
+		}
+		if b.pos.Hold < 0 && act.Action == StopShort && trade.Price > act.Price {
+			// do stop short
+			newAct := TradeAction{
+				ID:     id + "_stop",
+				Action: CloseShort,
+				Amount: act.Amount,
+				Price:  act.Price,
+				Time:   act.Time,
+				Symbol: act.Symbol,
+			}
+			log.Infof("TradeEvent local stopShort order trigger: %#v", newAct)
+			deleteOrders = append(deleteOrders, id)
+			b.actChan <- newAct
+			return true
+		}
+		return true
+	})
+	for _, v := range deleteOrders {
+		b.stopOrders.Delete(v)
+	}
 }
 
 func (b *TradeExchange) onEventWatch(e *Event) (err error) {
@@ -205,11 +258,21 @@ func (b *TradeExchange) onEventWatch(e *Event) (err error) {
 func (b *TradeExchange) orderRoutine() {
 	var err error
 	var ret interface{}
+	var exist bool
 	for v := range b.actChan {
-		if v.Action == trademodel.CancelAll {
+		// hook the stop order when localStopOrder enabled
+		if v.Action.IsStop() && b.localStopOrder {
+			b.stopOrders.Store(v.ID, v)
+			continue
+		} else if v.Action == trademodel.CancelAll {
 			b.cancelAllOrder()
+			b.stopOrders = sync.Map{}
 			continue
 		} else if v.Action == trademodel.CancelOne {
+			_, exist = b.stopOrders.LoadAndDelete(v.ID)
+			if exist {
+				continue
+			}
 			oi, ok := b.localOrderIndex[v.ID]
 			if !ok {
 				log.Errorf("local order: %s not found", v.ID)
