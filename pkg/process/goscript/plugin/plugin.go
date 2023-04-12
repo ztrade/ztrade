@@ -63,8 +63,7 @@ func (sp *StrategyPlugin) Param() (paramInfo []common.Param, err error) {
 	return
 }
 func (sp *StrategyPlugin) Init(engine bengine.Engine, params common.ParamData) (err error) {
-	sp.Runner.Init(engine, params)
-	return
+	return sp.Runner.Init(engine, params)
 }
 func (sp *StrategyPlugin) OnCandle(candle *Candle) (err error) {
 	sp.Runner.OnCandle(candle)

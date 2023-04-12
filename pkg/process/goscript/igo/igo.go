@@ -11,6 +11,7 @@ import (
 
 	"github.com/goplus/igop"
 	_ "github.com/goplus/igop/pkg/encoding/json"
+	_ "github.com/goplus/igop/pkg/errors"
 	_ "github.com/goplus/igop/pkg/fmt"
 	_ "github.com/goplus/igop/pkg/math"
 	_ "github.com/goplus/igop/pkg/time"
@@ -142,6 +143,7 @@ func NewRunner(file string) (r engine.Runner, err error) {
 		}
 	}
 	if temp == nil {
+		err = fmt.Errorf("no available script impl")
 		return
 	}
 	r = &igoRunner{impl: temp, name: name}

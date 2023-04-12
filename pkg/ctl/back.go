@@ -125,7 +125,10 @@ func (b *Backtest) Run() (err error) {
 		}
 	})
 
-	processers.Start()
+	err = processers.Start()
+	if err != nil {
+		return
+	}
 
 	param.Send("balance_init", EventBalanceInit, &BalanceInfo{Balance: b.balanceInit, Fee: b.fee})
 	param.Send("risk_init", EventRiskLimit, &RiskLimit{Lever: b.lever})
