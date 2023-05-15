@@ -68,7 +68,10 @@ func (s *GoEngine) Start() (err error) {
 		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl, VmID: k}
 		tempEng.Cb = s.updateScriptStatus
 		v.wrap = &tempEng
-		v.Init(&tempEng, v.params)
+		err = v.Init(&tempEng, v.params)
+		if err != nil {
+			return err
+		}
 	}
 	return
 }
@@ -137,7 +140,11 @@ func (s *GoEngine) doAddScript(name, src, param string) (err error) {
 		tempEng := engine.EngineWrapper{EngineImpl: s.engine.EngineImpl, VmID: name}
 		tempEng.Cb = s.updateScriptStatus
 		si.wrap = &tempEng
-		si.Runner.Init(&tempEng, paramData)
+		err = si.Runner.Init(&tempEng, paramData)
+		if err != nil {
+			log.Errorf("GoEngine doAddScript Init failed:", err.Error())
+			return err
+		}
 	}
 	return
 }

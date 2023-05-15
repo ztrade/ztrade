@@ -14,6 +14,7 @@ import (
 type Reporter interface {
 	OnTrade(Trade)
 	OnBalanceInit(balance, fee float64) (err error)
+	SetLever(float64)
 }
 
 type Rpt struct {
@@ -31,6 +32,7 @@ func (rpt *Rpt) Init(bus *Bus) (err error) {
 	rpt.BaseProcesser.Init(bus)
 	rpt.Subscribe(EventTrade, rpt.OnEventTrade)
 	rpt.Subscribe(EventBalanceInit, rpt.OnEventBalanceInit)
+	rpt.Subscribe(EventRiskLimit, rpt.OnEventRiskLimit)
 	return
 }
 
@@ -64,6 +66,18 @@ func (rpt *Rpt) OnEventBalanceInit(e *Event) (err error) {
 	}
 	if rpt.rpt != nil {
 		rpt.rpt.OnBalanceInit(balance.Balance, balance.Fee)
+	}
+	return
+}
+func (rpt *Rpt) OnEventRiskLimit(e *Event) (err error) {
+	info := e.GetData().(*RiskLimit)
+	if info == nil {
+		err = fmt.Errorf("Rpt OnEventRiskLimit error %w", err)
+		log.Error(err.Error())
+		return
+	}
+	if rpt.rpt != nil {
+		rpt.rpt.SetLever(info.Lever)
 	}
 	return
 }

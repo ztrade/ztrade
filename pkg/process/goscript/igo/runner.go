@@ -9,7 +9,7 @@ import (
 
 type igoImpl interface {
 	Param() (paramInfo []common.Param)
-	Init(engine engine.Engine, params common.ParamData)
+	Init(engine engine.Engine, params common.ParamData) error
 	OnCandle(candle *Candle)
 	OnPosition(pos, price float64)
 	OnTrade(trade *Trade)
@@ -20,6 +20,7 @@ type igoImpl interface {
 }
 
 type igoRunner struct {
+	name string
 	impl igoImpl
 }
 
@@ -29,8 +30,7 @@ func (r *igoRunner) Param() (paramInfo []common.Param, err error) {
 }
 
 func (r *igoRunner) Init(engine engine.Engine, params common.ParamData) (err error) {
-	r.impl.Init(engine, params)
-	return
+	return r.impl.Init(engine, params)
 }
 
 func (r *igoRunner) OnCandle(candle *Candle) (err error) {
@@ -63,6 +63,5 @@ func (r *igoRunner) OnEvent(e *Event) (err error) {
 }
 
 func (r *igoRunner) GetName() string {
-	// return r.impl.GetName()
-	return ""
+	return r.name
 }

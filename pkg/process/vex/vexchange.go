@@ -25,7 +25,7 @@ type VExchange struct {
 	orders   *list.List
 	position float64
 	symbol   string
-	balance  *common.VBalance
+	balance  *common.LeverBalance
 	// order index in same candle
 	orderIndex int
 	orderMutex sync.Mutex
@@ -36,7 +36,7 @@ func NewVExchange(symbol string) *VExchange {
 	ex.Name = "VExchange"
 	ex.orders = list.New()
 	ex.symbol = symbol
-	ex.balance = common.NewVBalance()
+	ex.balance = common.NewLeverBalance()
 	return ex
 }
 
@@ -45,6 +45,7 @@ func (b *VExchange) Init(bus *Bus) (err error) {
 	b.Subscribe(EventCandle, b.onEventCandle)
 	b.Subscribe(EventOrder, b.onEventOrder)
 	b.Subscribe(EventBalanceInit, b.onEventBalanceInit)
+	b.Subscribe(EventRiskLimit, b.onEventRiskLimit)
 	return
 }
 
@@ -53,6 +54,7 @@ func (ex *VExchange) Start() (err error) {
 	return
 }
 func (ex *VExchange) processCandle(candle Candle) (err error) {
+	// TODO: check if liq
 	if ex.orders.Len() == 0 {
 		return
 	}
@@ -137,6 +139,9 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 			Amount: v.Amount,
 			Side:   side,
 			Remark: ""}
+		if v.ID != "" {
+			tr.ID = v.ID
+		}
 		// fix size
 		_, _, err = ex.balance.AddTrade(tr)
 		if err != nil {
@@ -148,6 +153,7 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 		trades = append(trades, tradeEvent)
 
 		posChange = true
+		ex.position = ex.balance.Pos()
 		pos.Price = tr.Price
 		deleteElems = append(deleteElems, elem)
 	}
@@ -161,7 +167,6 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 		}
 	}
 	if posChange {
-		ex.position = ex.balance.Pos()
 		pos.Symbol = ex.symbol
 		pos.Hold = ex.position
 		//		ex.Send(ex.symbol, EventCurPosition, pos)
@@ -202,6 +207,15 @@ func (ex *VExchange) onEventOrder(e *Event) (err error) {
 	if act.Action == trademodel.CancelAll {
 		ex.orders = list.New()
 		return
+	} else if act.Action == trademodel.CancelOne {
+		for item := ex.orders.Front(); item != nil; item.Next() {
+			od := item.Value.(TradeAction)
+			if od.ID == act.ID {
+				ex.orders.Remove(item)
+				return
+			}
+		}
+		return
 	}
 	if ex.candle != nil {
 		act.Time = ex.candle.Time().Add(time.Second * time.Duration(ex.orderIndex))
@@ -223,6 +237,17 @@ func (ex *VExchange) onEventBalanceInit(e *Event) (err error) {
 	ex.balance.Set(balance.Balance)
 	ex.balance.SetFee(balance.Fee)
 	ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
+	return
+}
+
+func (ex *VExchange) onEventRiskLimit(e *Event) (err error) {
+	info := e.GetData().(*RiskLimit)
+	if info == nil {
+		err = fmt.Errorf("VExchange OnEventRiskLimit error %w", err)
+		log.Error(err.Error())
+		return
+	}
+	ex.balance.SetLever(info.Lever)
 	return
 }
 

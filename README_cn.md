@@ -6,7 +6,7 @@
 1. 使用go语言来开发/运行策略，不需要其他脚本语言
 2. 基于事件模型，方便扩展
 3. 支持币安,okx,ctp
-4. 使用[gomacro](https://github.com/cosmos72/gomacro)作为脚本引擎
+4. 使用[goplus](https://goplus.org/)作为脚本引擎
 5. 可以将策略编译为go plugin,执行效率高
 
 # 编译
@@ -56,6 +56,6 @@ cd dist
 
 ## 鸣谢
 
-[gomacro](https://github.com/cosmos72/gomacro)
+[goplus](https://goplus.org/)
 
 [vnpy](https://github.com/vnpy/vnpy)

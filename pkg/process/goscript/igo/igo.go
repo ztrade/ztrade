@@ -11,6 +11,7 @@ import (
 
 	"github.com/goplus/igop"
 	_ "github.com/goplus/igop/pkg/encoding/json"
+	_ "github.com/goplus/igop/pkg/errors"
 	_ "github.com/goplus/igop/pkg/fmt"
 	_ "github.com/goplus/igop/pkg/math"
 	_ "github.com/goplus/igop/pkg/time"
@@ -125,12 +126,13 @@ func NewRunner(file string) (r engine.Runner, err error) {
 	var ok bool
 	var temp igoImpl
 	var fn interface{}
+	var name string
 	for _, v := range typs {
 		fn, ok = interp.GetFunc(fmt.Sprintf("New%s", v))
 		if !ok {
 			continue
 		}
-
+		name = v
 		rets := reflect.ValueOf(fn).Call([]reflect.Value{})
 		if len(rets) != 1 {
 			continue
@@ -141,8 +143,9 @@ func NewRunner(file string) (r engine.Runner, err error) {
 		}
 	}
 	if temp == nil {
+		err = fmt.Errorf("no available script impl")
 		return
 	}
-	r = &igoRunner{impl: temp}
+	r = &igoRunner{impl: temp, name: name}
 	return
 }

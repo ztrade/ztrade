@@ -8,7 +8,7 @@ import (
 
 type Runner interface {
 	Param() (paramInfo []common.Param)
-	Init(engine Engine, params common.ParamData)
+	Init(engine Engine, params common.ParamData) error
 	OnCandle(candle *Candle)
 	OnPosition(pos, price float64)
 	OnTrade(trade *Trade)

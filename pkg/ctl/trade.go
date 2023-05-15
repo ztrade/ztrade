@@ -152,7 +152,7 @@ func (b *Trade) init() (err error) {
 	log.Info("real trade watch trade_market")
 	param.Send("trade", EventWatch, &WatchParam{Type: EventTradeMarket, Extra: b.symbol, Data: map[string]interface{}{"name": "market"}})
 	log.Info("real trade watch depth")
-	param.Send("trade", EventWatch, &WatchParam{Type: EventDepth, Extra: b.symbol, Data: map[string]interface{}{"name": "depth"}})
+	param.Send("depth", EventWatch, &WatchParam{Type: EventDepth, Extra: b.symbol, Data: map[string]interface{}{"name": "depth"}})
 	return
 }
 

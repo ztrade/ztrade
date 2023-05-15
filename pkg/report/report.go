@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/montanaflynn/stats"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/base/common"
@@ -38,6 +39,11 @@ type Report struct {
 	maxDrawdownValue float64
 	fee              float64
 	profitLoseRatio  float64
+
+	profitVariance float64
+	loseVariance   float64
+
+	lever float64
 }
 
 type RptAct struct {
@@ -65,6 +71,10 @@ func (r *Report) SetFee(fee float64) {
 	r.fee = fee
 }
 
+func (r *Report) SetLever(lever float64) {
+	r.lever = lever
+}
+
 func (r *Report) Analyzer() (err error) {
 	nLen := len(r.trades)
 	if nLen == 0 {
@@ -86,9 +96,11 @@ func (r *Report) Analyzer() (err error) {
 	var tmplData, lastTmplData *RptAct
 	var lastMaxTotal, lastMinTotal, drawdown, drawdownValue float64
 	var profit, fee float64
-	bal := common.NewVBalance()
+	var profitArray, loseArray []float64
+	bal := common.NewLeverBalance()
 	bal.Set(r.balanceInit)
 	bal.SetFee(r.fee)
+	bal.SetLever(r.lever)
 	// startBalance := bal.Get()
 
 	for _, v := range r.trades {
@@ -125,8 +137,10 @@ func (r *Report) Analyzer() (err error) {
 			}
 			tmplData.Profit = profit
 			if profit > 0 {
+				profitArray = append(profitArray, profit)
 				profitTotal = profitTotal.Add(decimal.NewFromFloat(profit))
 			} else {
+				loseArray = append(loseArray, profit)
 				loseTotal = loseTotal.Add(decimal.NewFromFloat(profit))
 			}
 			tmplData.TotalProfit = common.FloatAdd(tmplData.TotalProfit, tmplData.Profit)
@@ -179,6 +193,11 @@ func (r *Report) Analyzer() (err error) {
 	} else {
 		r.profitLoseRatio, _ = profitTotal.Float64()
 	}
+	r.profitVariance, err = stats.Variance(profitArray)
+	if err != nil {
+		return err
+	}
+	r.loseVariance, err = stats.Variance(loseArray)
 	return
 }
 
@@ -194,6 +213,14 @@ func (r *Report) Profit() (profit float64) {
 
 func (r *Report) ProfitPercent() float64 {
 	return common.FormatFloat((r.EndBalance()*100)/r.balanceInit, 4)
+}
+
+func (r *Report) ProfitVariance() float64 {
+	return common.FormatFloat(r.profitVariance, 4)
+}
+
+func (r *Report) LoseVariance() float64 {
+	return common.FormatFloat(r.loseVariance, 4)
 }
 
 func (r *Report) EndBalance() float64 {
@@ -232,6 +259,8 @@ func (r *Report) GetReport() (report string) {
 	buf.WriteString(fmt.Sprintf("StartBalance: %f\n", r.balanceInit))
 	buf.WriteString(fmt.Sprintf("EndBalance: %f\n", r.EndBalance()))
 	buf.WriteString(fmt.Sprintf("ProfitPercent:%f\n", r.ProfitPercent()))
+	buf.WriteString(fmt.Sprintf("ProfitVariance:%f\n", r.ProfitVariance()))
+	buf.WriteString(fmt.Sprintf("LoseVariance:%f\n", r.LoseVariance()))
 	data, _ := json.Marshal(r.profitHistory)
 	buf.WriteString(string(data))
 	report = buf.String()
@@ -267,6 +296,8 @@ func (r *Report) GenHTML(w io.Writer) (err error) {
 	data["startBalance"] = r.balanceInit
 	data["endBalance"] = r.EndBalance()
 	data["profitPercent"] = r.ProfitPercent()
+	data["profitVariance"] = r.ProfitVariance()
+	data["loseVariance"] = r.LoseVariance()
 	err = tmpl.Execute(w, data)
 	return
 }
@@ -311,6 +342,9 @@ func (r *Report) GetResult() (ret ReportResult, err error) {
 	ret.MaxLose = r.MaxLose()
 	ret.MaxDrawdown = r.MaxDrawdown()
 	ret.MaxDrawDownValue = r.MaxDrawdownValue()
+	ret.ProfitPercent = r.ProfitPercent()
+	ret.ProfitVariance = r.ProfitVariance()
+	ret.LoseVariance = r.LoseVariance()
 	return
 }
 
@@ -344,4 +378,9 @@ type ReportResult struct {
 	MaxDrawDownValue float64
 	Actions          []*RptAct `json:"-"`
 	TotalFee         float64
+	StartBalance     float64
+	EndBalance       float64
+	ProfitPercent    float64
+	ProfitVariance   float64
+	LoseVariance     float64
 }

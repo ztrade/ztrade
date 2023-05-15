@@ -26,6 +26,7 @@ var (
 	param        string
 	loadOnce     int
 	fee          float64
+	lever        float64
 	simpleReport bool
 
 	rptDB string
@@ -48,6 +49,7 @@ func init() {
 	backtestCmd.PersistentFlags().StringVar(&param, "param", "", "param json string")
 	backtestCmd.PersistentFlags().IntVarP(&loadOnce, "load", "", 50000, "load db once limit")
 	backtestCmd.PersistentFlags().Float64VarP(&fee, "fee", "", 0.0001, "fee")
+	backtestCmd.PersistentFlags().Float64VarP(&lever, "lever", "", 1, "lever")
 	backtestCmd.PersistentFlags().BoolVarP(&simpleReport, "console", "", false, "print report to console")
 	backtestCmd.PersistentFlags().StringVarP(&rptDB, "reportDB", "d", "", "save all actions to sqlite db")
 	initTimerange(backtestCmd)
@@ -78,6 +80,7 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	back.SetReporter(r)
 	back.SetBalanceInit(balanceInit, fee)
 	back.SetLoadDBOnce(loadOnce)
+	back.SetLever(lever)
 
 	err = back.Run()
 
