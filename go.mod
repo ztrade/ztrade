@@ -16,7 +16,7 @@ require (
 	github.com/spf13/viper v1.15.0
 	github.com/tidwall/gjson v1.14.4
 	github.com/ztrade/base v0.1.8
-	github.com/ztrade/exchange v0.0.1
+	github.com/ztrade/exchange v0.0.2
 	github.com/ztrade/indicator v1.1.1
 	github.com/ztrade/trademodel v1.1.6
 	golang.org/x/mod v0.8.0
