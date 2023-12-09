@@ -10,6 +10,7 @@ import (
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/exchange"
 	"github.com/ztrade/ztrade/pkg/process/goscript"
+	"github.com/ztrade/ztrade/pkg/process/notify"
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 
 	log "github.com/sirupsen/logrus"
@@ -34,10 +35,8 @@ type Trade struct {
 	rpt          rpt.Reporter
 	proc         *event.Processers
 	engine       *goscript.GoEngine
-	r            *rpt.Rpt
 	wg           sync.WaitGroup
 	loadRecent   time.Duration
-	statusCh     chan *goscript.Status
 }
 
 // NewTrade constructor of Trade
@@ -116,16 +115,16 @@ func (b *Trade) init() (err error) {
 		err = fmt.Errorf("creat exchange trade %s failed:%s", b.exchangeName, err.Error())
 		return
 	}
-	// notify, err := wxworkbot.NewWXWork(true)
-	// if err != nil {
-	// log.Errorf("creat wxworkbot failed:%s", err.Error())
-	// err = nil
-	// }
+	notify, err := notify.NewNotify(cfg)
+	if err != nil {
+		log.Errorf("creat notify failed:%s", err.Error())
+		err = nil
+	}
 	b.proc = event.NewProcessers()
 	procs := []event.Processer{param, ex, b.engine}
-	// if notify != nil {
-	// procs = append(procs, notify)
-	// }
+	if notify != nil {
+		procs = append(procs, notify)
+	}
 	if b.rpt != nil {
 		r := rpt.NewRpt(b.rpt)
 		procs = append(procs, r)

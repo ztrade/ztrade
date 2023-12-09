@@ -163,7 +163,7 @@ type Engine interface {
     // 添加新的订阅事件，当前无需调用
 	Watch(watchType string)
     // 发送消息通知，需要添加消息类型的processer才会生效
-	SendNotify(content, contentType string)
+	SendNotify(title, content, contentType string)
     // 合并K线，src是原始级别，这里固定是1m,dst是目标级别，fn是回调函数
 	Merge(src, dst string, fn common.CandleFn)
     // 设置余额，仅在回测时有用

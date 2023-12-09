@@ -67,6 +67,7 @@ type CandleParam struct {
 // NotifyEvent event to send notify
 type NotifyEvent struct {
 	Type    string // text,markdown
+	Title   string
 	Content string
 }
 
