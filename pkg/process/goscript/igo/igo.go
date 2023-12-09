@@ -14,6 +14,7 @@ import (
 	_ "github.com/goplus/igop/pkg/errors"
 	_ "github.com/goplus/igop/pkg/fmt"
 	_ "github.com/goplus/igop/pkg/math"
+	_ "github.com/goplus/igop/pkg/net/http"
 	_ "github.com/goplus/igop/pkg/time"
 	"github.com/ztrade/base/common"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"

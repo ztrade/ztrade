@@ -140,11 +140,11 @@ func (e *EngineImpl) Watch(watchType string) {
 	e.proc.Send(EventWatch, EventWatch, &param)
 }
 
-func (e *EngineImpl) SendNotify(content, contentType string) {
+func (e *EngineImpl) SendNotify(title, content, contentType string) {
 	if contentType == "" {
 		contentType = "text"
 	}
-	data := NotifyEvent{Type: contentType, Content: content}
+	data := NotifyEvent{Title: title, Type: contentType, Content: content}
 	e.proc.Send("notify", EventNotify, &data)
 }
 
