@@ -12,6 +12,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	"github.com/ztrade/exchange"
 	"github.com/ztrade/ztrade/pkg/ctl"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
 
@@ -129,7 +130,7 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
-		ctl.SetConfig(viper.GetViper())
+		ctl.SetConfig(exchange.WrapViper(viper.GetViper()))
 	}
 }
 

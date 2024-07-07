@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	zexchange "github.com/ztrade/exchange"
 	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/exchange"
@@ -14,14 +15,13 @@ import (
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 var (
-	cfg *viper.Viper
+	cfg zexchange.Config
 )
 
-func SetConfig(c *viper.Viper) {
+func SetConfig(c zexchange.Config) {
 	cfg = c
 }
 

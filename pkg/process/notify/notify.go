@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"github.com/ztrade/exchange"
 	. "github.com/ztrade/trademodel"
 	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
@@ -38,7 +38,7 @@ type Notify struct {
 	bodyTmpl *template.Template
 }
 
-func NewNotify(cfg *viper.Viper) (n *Notify, err error) {
+func NewNotify(cfg exchange.Config) (n *Notify, err error) {
 	var nCfg = defaultNotifyConfig
 	err = cfg.UnmarshalKey("notify", &nCfg)
 	if err != nil {
