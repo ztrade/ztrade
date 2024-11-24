@@ -1,6 +1,7 @@
 package event
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ztrade/ztrade/pkg/core"
@@ -73,6 +74,7 @@ func (h *Processers) Start() (err error) {
 	for _, p := range h.handlers {
 		err = p.Start()
 		if err != nil {
+			err = fmt.Errorf("start processer %s failed:%s", p.GetName(), err.Error())
 			return
 		}
 	}
