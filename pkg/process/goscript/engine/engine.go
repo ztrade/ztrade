@@ -74,26 +74,26 @@ func NewEngineImpl(proc *BaseProcesser, symbol string) *EngineImpl {
 	return e
 }
 
-func (e *EngineImpl) OpenLong(price, amount float64) string {
+func (e *EngineWrapper) OpenLong(price, amount float64) string {
 	return e.addOrder(price, amount, OpenLong)
 }
-func (e *EngineImpl) CloseLong(price, amount float64) string {
+func (e *EngineWrapper) CloseLong(price, amount float64) string {
 	return e.addOrder(price, amount, CloseLong)
 }
-func (e *EngineImpl) OpenShort(price, amount float64) string {
+func (e *EngineWrapper) OpenShort(price, amount float64) string {
 	return e.addOrder(price, amount, OpenShort)
 }
-func (e *EngineImpl) CloseShort(price, amount float64) string {
+func (e *EngineWrapper) CloseShort(price, amount float64) string {
 	return e.addOrder(price, amount, CloseShort)
 }
-func (e *EngineImpl) StopLong(price, amount float64) string {
+func (e *EngineWrapper) StopLong(price, amount float64) string {
 	return e.addOrder(price, amount, StopLong)
 }
-func (e *EngineImpl) StopShort(price, amount float64) string {
+func (e *EngineWrapper) StopShort(price, amount float64) string {
 	return e.addOrder(price, amount, StopShort)
 }
 
-func (e *EngineImpl) DoOrder(typ TradeType, price, amount float64) string {
+func (e *EngineWrapper) DoOrder(typ TradeType, price, amount float64) string {
 	return e.addOrder(price, amount, typ)
 }
 
@@ -127,9 +127,9 @@ func (e *EngineImpl) Log(v ...interface{}) {
 	fmt.Println(v...)
 }
 
-func (e *EngineImpl) addOrder(price, amount float64, orderType TradeType) (id string) {
+func (e *EngineWrapper) addOrder(price, amount float64, orderType TradeType) (id string) {
 	// FixMe: in backtest, time may be the time of candle
-	id = getActionID()
+	id = fmt.Sprintf("%s-%s", e.VmID, getActionID())
 	act := TradeAction{ID: id, Action: orderType, Symbol: e.symbol, Amount: amount, Price: price, Time: time.Now()}
 	e.proc.Send(EventOrder, EventOrder, &act)
 	return

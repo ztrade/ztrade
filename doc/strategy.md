@@ -23,7 +23,7 @@ touch demo.go
 
 
 ## 策略
-没一个策略，都是一个go的struct，这个struct一般长这个样子:
+每一个策略，都是一个go的struct，这个struct一般长这个样子:
 
 ```
 package strategy
