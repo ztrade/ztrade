@@ -142,7 +142,7 @@ func (s *GoEngine) doAddScript(name, src, param string) (err error) {
 		si.wrap = &tempEng
 		err = si.Runner.Init(&tempEng, paramData)
 		if err != nil {
-			log.Errorf("GoEngine doAddScript Init failed:", err.Error())
+			log.Error("GoEngine doAddScript Init failed:", err.Error())
 			return err
 		}
 	}
