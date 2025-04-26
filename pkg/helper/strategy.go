@@ -22,7 +22,7 @@ func (s *DemoStrategy) Param() (paramInfo []Param) {
 }
 
 // Init strategy
-func (s *DemoStrategy) Init(engine Engine, params ParamData) {
+func (s *DemoStrategy) Init(engine Engine, params ParamData) (err error) {
 	return
 }
 

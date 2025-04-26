@@ -8,12 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"text/template"
 
 	"github.com/ztrade/base/common"
-	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
 )
@@ -25,6 +25,9 @@ var (
 	defineGo string
 	//go:embed tmpl/export.go
 	exportGo string
+
+	// func (s *DemoStrategy) Init(engine Engine, params ParamData) (err error) {
+	nameReg = regexp.MustCompile(`func\s+\([^)]+\s+\*?(\w+)\)`)
 )
 
 type Builder struct {
@@ -76,12 +79,6 @@ func (b *Builder) Build() (err error) {
 		err = fmt.Errorf("write tmpl file define.go failed: %w", err)
 		return
 	}
-	runner, err := engine.NewRunner(b.source)
-	if err != nil {
-		err = fmt.Errorf("export.go error: %w", err.Error())
-		return
-	}
-
 	// fTmpl := filepath.Join(common.GetExecDir(), "tmpl", "export.go")
 	// tmpl, err := template.ParseFiles(fTmpl)
 	tmpl, err := template.New("export").Parse(exportGo)
@@ -94,7 +91,13 @@ func (b *Builder) Build() (err error) {
 		err = fmt.Errorf("create export.go error: %w", err)
 		return
 	}
-	err = tmpl.Execute(fExport, map[string]string{"Name": runner.GetName()})
+	name, err := b.getName(b.source)
+	if err != nil {
+		err = fmt.Errorf("get name error: %w", err)
+		return
+	}
+	fmt.Println("find strategy name: ", name)
+	err = tmpl.Execute(fExport, map[string]string{"Name": name})
 	if err != nil {
 		err = fmt.Errorf("create export.go error: %w", err)
 		return
@@ -186,6 +189,25 @@ func (b *Builder) fixGoMod(dir string) (hasFixed bool, err error) {
 	f.Close()
 	hasFixed = true
 	return
+}
+
+func (b *Builder) getName(src string) (name string, err error) {
+	buf, err := os.ReadFile(src)
+	if err != nil {
+		return
+	}
+	lines := strings.Split(string(buf), "\n")
+	for _, v := range lines {
+		if strings.Contains(v, "Init(") {
+			rets := nameReg.FindStringSubmatch(v)
+			if len(rets) > 1 {
+				name = rets[1]
+				return
+			}
+			return
+		}
+	}
+	return "", errors.New("can't find init function")
 }
 
 func fixRequireVersion(modPath string) (ver string) {
