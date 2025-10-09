@@ -9,30 +9,30 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/goplus/igop"
-	_ "github.com/goplus/igop/pkg/encoding/json"
-	_ "github.com/goplus/igop/pkg/errors"
-	_ "github.com/goplus/igop/pkg/fmt"
-	_ "github.com/goplus/igop/pkg/math"
-	_ "github.com/goplus/igop/pkg/net/http"
-	_ "github.com/goplus/igop/pkg/time"
+	"github.com/goplus/ixgo"
+	_ "github.com/goplus/ixgo/pkg/encoding/json"
+	_ "github.com/goplus/ixgo/pkg/errors"
+	_ "github.com/goplus/ixgo/pkg/fmt"
+	_ "github.com/goplus/ixgo/pkg/math"
+	_ "github.com/goplus/ixgo/pkg/net/http"
+	_ "github.com/goplus/ixgo/pkg/time"
 	"github.com/ztrade/base/common"
 	"github.com/ztrade/ztrade/pkg/process/goscript/engine"
 	"golang.org/x/tools/go/ssa"
 )
 
 func init() {
-	igop.RegisterCustomBuiltin("min", min)
-	igop.RegisterCustomBuiltin("max", max)
-	igop.RegisterCustomBuiltin("formatFloat", common.FormatFloat)
-	igop.RegisterCustomBuiltin("FloatAdd", common.FloatAdd)
-	igop.RegisterCustomBuiltin("FloatSub", common.FloatSub)
-	igop.RegisterCustomBuiltin("FloatMul", common.FloatMul)
-	igop.RegisterCustomBuiltin("FloatDiv", common.FloatDiv)
-	igop.RegisterCustomBuiltin("StringParam", common.StringParam)
-	igop.RegisterCustomBuiltin("FloatParam", common.FloatParam)
-	igop.RegisterCustomBuiltin("IntParam", common.IntParam)
-	igop.RegisterCustomBuiltin("BoolParam", common.BoolParam)
+	ixgo.RegisterCustomBuiltin("min", min)
+	ixgo.RegisterCustomBuiltin("max", max)
+	ixgo.RegisterCustomBuiltin("formatFloat", common.FormatFloat)
+	ixgo.RegisterCustomBuiltin("FloatAdd", common.FloatAdd)
+	ixgo.RegisterCustomBuiltin("FloatSub", common.FloatSub)
+	ixgo.RegisterCustomBuiltin("FloatMul", common.FloatMul)
+	ixgo.RegisterCustomBuiltin("FloatDiv", common.FloatDiv)
+	ixgo.RegisterCustomBuiltin("StringParam", common.StringParam)
+	ixgo.RegisterCustomBuiltin("FloatParam", common.FloatParam)
+	ixgo.RegisterCustomBuiltin("IntParam", common.IntParam)
+	ixgo.RegisterCustomBuiltin("BoolParam", common.BoolParam)
 }
 func min(a, b float64) float64 {
 	if a < b {
@@ -102,10 +102,10 @@ func NewRunner(file string) (r engine.Runner, err error) {
 	if err != nil {
 		return
 	}
-	ctx := igop.NewContext(0)
+	ctx := ixgo.NewContext(0)
 	pkg, err := ctx.LoadFile(filepath.Base(file), source)
 	if err != nil {
-		err = fmt.Errorf("igop parse file failed: %s", err.Error())
+		err = fmt.Errorf("ixgo parse file failed: %s", err.Error())
 		return
 	}
 	// pkg.Members["Engine"] = s
@@ -120,7 +120,7 @@ func NewRunner(file string) (r engine.Runner, err error) {
 
 	interp, err := ctx.NewInterp(pkg)
 	if err != nil {
-		err = fmt.Errorf("igop NewInterp failed: %s", err.Error())
+		err = fmt.Errorf("ixgo NewInterp failed: %s", err.Error())
 		return
 	}
 

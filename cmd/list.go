@@ -41,7 +41,7 @@ func runList(cmd *cobra.Command, args []string) {
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Exchange", "Symbol", "Binsize", "Start", "End"})
+	table.Header([]string{"Exchange", "Symbol", "Binsize", "Start", "End"})
 
 	for _, v := range infos {
 		table.Append([]string{v.Exchange, v.Symbol, v.BinSize, v.Start.String(), v.End.String()})

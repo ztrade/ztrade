@@ -1,4 +1,4 @@
-// export by github.com/goplus/igop/cmd/qexp
+// export by github.com/goplus/ixgo/cmd/qexp
 
 package igo
 
@@ -8,11 +8,11 @@ import (
 	"go/constant"
 	"reflect"
 
-	"github.com/goplus/igop"
+	"github.com/goplus/ixgo"
 )
 
 func init() {
-	igop.RegisterPackage(&igop.Package{
+	ixgo.RegisterPackage(&ixgo.Package{
 		Name: "trademodel",
 		Path: "github.com/ztrade/trademodel",
 		Deps: map[string]string{
@@ -45,7 +45,7 @@ func init() {
 		Funcs: map[string]reflect.Value{
 			"NewTradeType": reflect.ValueOf(q.NewTradeType),
 		},
-		TypedConsts: map[string]igop.TypedConst{
+		TypedConsts: map[string]ixgo.TypedConst{
 			"CancelAll":   {reflect.TypeOf(q.CancelAll), constant.MakeInt64(int64(q.CancelAll))},
 			"CancelOne":   {reflect.TypeOf(q.CancelOne), constant.MakeInt64(int64(q.CancelOne))},
 			"Close":       {reflect.TypeOf(q.Close), constant.MakeInt64(int64(q.Close))},
@@ -62,7 +62,7 @@ func init() {
 			"StopLong":    {reflect.TypeOf(q.StopLong), constant.MakeInt64(int64(q.StopLong))},
 			"StopShort":   {reflect.TypeOf(q.StopShort), constant.MakeInt64(int64(q.StopShort))},
 		},
-		UntypedConsts: map[string]igop.UntypedConst{
+		UntypedConsts: map[string]ixgo.UntypedConst{
 			"Long":              {"untyped int", constant.MakeInt64(int64(q.Long))},
 			"Short":             {"untyped int", constant.MakeInt64(int64(q.Short))},
 			"SymbolTypeFutures": {"untyped string", constant.MakeString(string(q.SymbolTypeFutures))},

@@ -8,11 +8,11 @@ import (
 	"go/constant"
 	"reflect"
 
-	"github.com/goplus/igop"
+	"github.com/goplus/ixgo"
 )
 
 func init() {
-	igop.RegisterPackage(&igop.Package{
+	ixgo.RegisterPackage(&ixgo.Package{
 		Name: "common",
 		Path: "github.com/ztrade/base/common",
 		Deps: map[string]string{
@@ -73,8 +73,8 @@ func init() {
 			"ParseParams":        reflect.ValueOf(q.ParseParams),
 			"StringParam":        reflect.ValueOf(q.StringParam),
 		},
-		TypedConsts: map[string]igop.TypedConst{},
-		UntypedConsts: map[string]igop.UntypedConst{
+		TypedConsts: map[string]ixgo.TypedConst{},
+		UntypedConsts: map[string]ixgo.UntypedConst{
 			"DefaultBinSizes": {"untyped string", constant.MakeString(string(q.DefaultBinSizes))},
 		},
 	})
