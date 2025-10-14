@@ -4,7 +4,7 @@ import "strings"
 
 // SymbolInfo symbol infos
 type SymbolInfo struct {
-	ID          int64  `xorm:"pk autoincr null 'id'"`
+	ID          int64  `xorm:"pk autoincr 'id'"`
 	Exchange    string `xorm:"notnull unique(esr)  'exchange'"`
 	Symbol      string `xorm:"notnull unique(esr) 'symbol'"`
 	Resolutions string `xorm:"notnull unique(esr) 'resolutions'"`

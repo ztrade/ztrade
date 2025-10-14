@@ -89,73 +89,127 @@ function drawChart(domID, source, attr, title) {
       <div class="form-group row">
             <label for="totalAction" class="col-sm-6 col-form-label text-right">Total Actions:</label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="totalAction" value="{{.totalAction}}">
+                <input type="text" readonly class="form-control-plaintext" id="totalAction" value="{{.TotalAction}}">
               </div>
       </div>
       <div class="form-group row">
             <label for="winRate" class="col-sm-6 col-form-label text-right">Win Rate:</label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="winRate" value="{{.winRate}}">
+                <input type="text" readonly class="form-control-plaintext" id="winRate" value="{{.WinRate}}">
               </div>
       </div>
       <div class="form-group row">
             <label for="profit" class="col-sm-6 col-form-label text-right">Profit:</label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="profit" value="{{.profit}}">
+                <input type="text" readonly class="form-control-plaintext" id="profit" value="{{.TotalProfit}}">
               </div>
       </div>
       <div class="form-group row">
             <label for="maxDrawdown" class="col-sm-6 col-form-label text-right">Max drawdown percent: </label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.maxDrawdown}}%">
-              </div>
-      </div>
-      <div class="form-group row">
-            <label for="maxDrawdownValue" class="col-sm-6 col-form-label text-right">Max drawdown value: </label>
-            <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.maxDrawdownValue}}">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.MaxDrawdown}}%">
               </div>
       </div>
       <div class="form-group row">
             <label for="maxLose" class="col-sm-6 col-form-label text-right">Max lose percent per round: </label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.maxLose}}%">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.MaxLose}}%">
               </div>
       </div>
       <div class="form-group row">
             <label for="profitLoseRatio" class="col-sm-6 col-form-label text-right">Profit lose ratio: </label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.profitLoseRatio}}">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.ProfitFactor}}">
               </div>
       </div>
       <div class="form-group row">
        <label for="startBalance" class="col-sm-6 col-form-label text-right">Start Balance: </label>
        <div class="col-sm-4">
-           <input type="text" readonly class="form-control-plaintext" id="startBalance" value="{{.startBalance}}">
+           <input type="text" readonly class="form-control-plaintext" id="startBalance" value="{{.StartBalance}}">
          </div>
       </div>
       <div class="form-group row">
             <label for="endBalance" class="col-sm-6 col-form-label text-right">End Balance: </label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="endBalance" value="{{.endBalance}}">
+                <input type="text" readonly class="form-control-plaintext" id="endBalance" value="{{.EndBalance}}">
               </div>
       </div>
       <div class="form-group row">
             <label for="profitPercent" class="col-sm-6 col-form-label text-right">Profit Percent: </label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="profitPercent" value="{{.profitPercent}}%">
+                <input type="text" readonly class="form-control-plaintext" id="profitPercent" value="{{.TotalReturn}}%">
               </div>
       </div>
       <div class="form-group row">
             <label for="profitVariance" class="col-sm-6 col-form-label text-right">Profit Variance: </label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="profitVariance" value="{{.profitVariance}}">
+                <input type="text" readonly class="form-control-plaintext" id="profitVariance" value="{{.ProfitVariance}}">
               </div>
       </div>
       <div class="form-group row">
             <label for="loseVariance" class="col-sm-6 col-form-label text-right">Lose Variance: </label>
             <div class="col-sm-4">
-                <input type="text" readonly class="form-control-plaintext" id="loseVariance" value="{{.loseVariance}}">
+                <input type="text" readonly class="form-control-plaintext" id="loseVariance" value="{{.LoseVariance}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="TotalReturn" class="col-sm-6 col-form-label text-right">Total Return: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="TotalReturn" value="{{.TotalReturn}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="AnnualReturn" class="col-sm-6 col-form-label text-right">Annual Return: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="AnnualReturn" value="{{.AnnualReturn}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="SharpeRatio" class="col-sm-6 col-form-label text-right">Sharpe Ratio: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="SharpeRatio" value="{{.SharpeRatio}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="SortinoRatio" class="col-sm-6 col-form-label text-right">Sortino Ratio: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="SortinoRatio" value="{{.SortinoRatio}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="Volatility" class="col-sm-6 col-form-label text-right">Volatility: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="Volatility" value="{{.Volatility}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="ProfitFactor" class="col-sm-6 col-form-label text-right">Profit Factor: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="ProfitFactor" value="{{.ProfitFactor}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="CalmarRatio" class="col-sm-6 col-form-label text-right">Calmar Ratio: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="CalmarRatio" value="{{.CalmarRatio}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="ConsistencyScore" class="col-sm-6 col-form-label text-right">Consistency Score: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="ConsistencyScore" value="{{.ConsistencyScore}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="SmoothnessScore" class="col-sm-6 col-form-label text-right">Smoothness Score: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="SmoothnessScore" value="{{.SmoothnessScore}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="OverallScore" class="col-sm-6 col-form-label text-right">Overall Score: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="OverallScore" value="{{.OverallScore}}">
               </div>
       </div>
       </div>
@@ -172,18 +226,21 @@ function drawChart(domID, source, attr, title) {
             <th scope="col">Price</th>
             <th scope="col">Amount</th>
             <th scope="col">Total</th>
+                        <th scope="col">TotalProfit</th>
+
             <th scope="col">Profit</th>
             <th scope="col">Fee</th>
           </tr>
     </thead>
     <tbody>
-          {{range .actions}}
+          {{range .Actions}}
           <tr>
             <td>{{.Time}}</td>
             <td>{{.Action}}</td>
             <td>{{.Price}}</td>
             <td>{{.Amount}}</td>
             <td>{{.Total}}</td>
+            <td>{{.TotalProfit}}</td>
             <td>{{.Profit}}</td>
             <td>{{.Fee}}</td>
           </tr>
@@ -191,7 +248,7 @@ function drawChart(domID, source, attr, title) {
       </table>
     </div>
   <script>
-  var actions = {{.actions}};
+  var actions = {{.Actions}};
     // drawProfit("profitChat", actions);
     drawChart("profitChart", actions, "Profit", "Profit");
     drawChart("totalProfitChart", actions, "TotalProfit", "TotalProfit");

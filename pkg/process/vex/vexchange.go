@@ -143,7 +143,7 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 			tr.ID = v.ID
 		}
 		// fix size
-		_, _, err = ex.balance.AddTrade(tr)
+		_, _, _, err = ex.balance.AddTrade(tr)
 		if err != nil {
 			// log.Errorf("vexchange balance AddTrade error:%s %f %f", err.Error(), v.Price, v.Amount)
 			return
@@ -276,7 +276,7 @@ func (ex *VExchange) CloseAll() (err error) {
 	}
 	tradeEvent := ex.CreateEvent("trade", EventTrade, &tr)
 	ex.Bus.Send(tradeEvent)
-	_, _, err = ex.balance.AddTrade(tr)
+	_, _, _, err = ex.balance.AddTrade(tr)
 	if err != nil {
 		log.Errorf("vexchange CloseALll balance AddTrade error:%s %f %f", err.Error(), tr.Price, tr.Amount)
 		return

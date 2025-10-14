@@ -2,6 +2,7 @@ package rpt
 
 import (
 	"fmt"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	. "github.com/ztrade/ztrade/pkg/core"
@@ -12,6 +13,7 @@ import (
 
 // Reporter report generater
 type Reporter interface {
+	SetTimeRange(start, end time.Time)
 	OnTrade(Trade)
 	OnBalanceInit(balance, fee float64) (err error)
 	SetLever(float64)

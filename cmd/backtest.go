@@ -76,6 +76,7 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("init backtest failed:", err.Error())
 	}
+	r.SetTimeRange(startTime, endTime)
 	back.SetScript(scriptFile)
 	back.SetReporter(r)
 	back.SetBalanceInit(balanceInit, fee)

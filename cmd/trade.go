@@ -49,10 +49,15 @@ func runTrade(cmd *cobra.Command, args []string) {
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
 	real, err := ctl.NewTrade(exchangeName, symbol)
+	if err != nil {
+		log.Fatal("trade error:", err.Error())
+		return
+	}
 	if recentDay != 0 {
 		real.SetLoadRecent(time.Duration(recentDay) * time.Hour * 24)
 	}
 	r := report.NewReportSimple()
+	tStart := time.Now()
 	real.SetReporter(r)
 	paramData := make(map[string]interface{})
 	if param != "" {
@@ -78,11 +83,15 @@ func runTrade(cmd *cobra.Command, args []string) {
 	}
 	real.Wait()
 	fmt.Println("begin to geneate report to ", rptFile)
+	r.SetTimeRange(tStart, time.Now())
 	err = r.GenRPT(rptFile)
 	if err != nil {
 		return
 	}
 	fmt.Println("open report ", rptFile)
 	err = common.OpenURL(rptFile)
+	if err != nil {
+		log.Fatal("open report failed:", err.Error())
+	}
 	return
 }
