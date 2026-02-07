@@ -31,6 +31,7 @@ type TradeExchange struct {
 
 	orders          map[string]*OrderInfo
 	localOrderIndex map[string]*OrderInfo
+	ordersMutex     sync.RWMutex
 
 	closeCh chan bool
 
@@ -43,6 +44,8 @@ type TradeExchange struct {
 
 	localStopOrder bool
 	stopOrders     sync.Map
+	stopped        int32
+	stopCh         chan struct{}
 }
 
 func NewTradeExchange(exName string, impl exchange.Exchange, symbol string) *TradeExchange {
@@ -56,6 +59,7 @@ func NewTradeExchange(exName string, impl exchange.Exchange, symbol string) *Tra
 	te.closeCh = make(chan bool)
 	te.symbol = symbol
 	te.datas = make(chan interface{}, 1024)
+	te.stopCh = make(chan struct{})
 	return te
 }
 
@@ -74,6 +78,7 @@ func (b *TradeExchange) Init(bus *Bus) (err error) {
 }
 
 func (b *TradeExchange) Start() (err error) {
+	atomic.StoreInt32(&b.stopped, 0)
 	b.impl.Watch(exchange.WatchParam{Type: exchange.WatchTypeBalance}, func(data interface{}) {
 		b.datas <- data
 	})
@@ -93,13 +98,51 @@ func (b *TradeExchange) Start() (err error) {
 }
 
 func (b *TradeExchange) Stop() (err error) {
+	if !atomic.CompareAndSwapInt32(&b.stopped, 0, 1) {
+		return
+	}
+	close(b.stopCh)
 	err = b.impl.Stop()
-	close(b.actChan)
 	return
 }
 
+func (b *TradeExchange) storeOrderInfo(localID string, od *Order, action TradeType) {
+	oi := &OrderInfo{Order: *od, Action: action, LocalID: localID}
+	b.ordersMutex.Lock()
+	b.orders[od.OrderID] = oi
+	b.localOrderIndex[localID] = oi
+	b.ordersMutex.Unlock()
+}
+
+func (b *TradeExchange) getOrderInfo(orderID string) (*OrderInfo, bool) {
+	b.ordersMutex.RLock()
+	oi, ok := b.orders[orderID]
+	b.ordersMutex.RUnlock()
+	return oi, ok
+}
+
+func (b *TradeExchange) getLocalOrderInfo(localID string) (*OrderInfo, bool) {
+	b.ordersMutex.RLock()
+	oi, ok := b.localOrderIndex[localID]
+	b.ordersMutex.RUnlock()
+	return oi, ok
+}
+
+func (b *TradeExchange) enqueueAction(act TradeAction) {
+	if atomic.LoadInt32(&b.stopped) == 1 {
+		log.Warnf("TradeExchange stopped, ignore action: %s %s", act.ID, act.Action)
+		return
+	}
+	select {
+	case b.actChan <- act:
+	case <-b.stopCh:
+		log.Warnf("TradeExchange stopping, ignore action: %s %s", act.ID, act.Action)
+	default:
+		log.Errorf("TradeExchange action queue full, drop action: id=%s action=%s symbol=%s price=%f amount=%f", act.ID, act.Action, act.Symbol, act.Price, act.Amount)
+	}
+}
+
 func (b *TradeExchange) recvDatas() {
-	var ok bool
 	var posTime int64
 	var o *OrderInfo
 	bFirst := true
@@ -115,10 +158,9 @@ Out:
 				param.End = value.Time().Add(-1 * time.Second)
 				tFirstLastStart, err = b.emitRecentCandles(param)
 				if err != nil {
-					log.Errorf("TradeExchange recv data: %s", err.Error())
-					panic(err.Error())
-				}
-				if value.Start <= tFirstLastStart {
+					log.Errorf("TradeExchange recv data load recent candles failed: %s", err.Error())
+					// on error, skip dedup filter and forward all incoming candles
+				} else if value.Start <= tFirstLastStart {
 					continue
 				}
 			}
@@ -139,15 +181,20 @@ Out:
 				log.Infof("TradeExchange ignore event: %#v, exchange symbol: %s, data symbol: %s", value, b.symbol, value.Symbol)
 				continue
 			}
-			o, ok = b.orders[value.OrderID]
-			if !ok || o.Filled {
+			b.ordersMutex.Lock()
+			o = b.orders[value.OrderID]
+			if o == nil || o.Filled {
+				b.ordersMutex.Unlock()
 				continue Out
 			}
 			o.Order = *value
+			if value.Status == OrderStatusFilled {
+				o.Filled = true
+			}
+			b.ordersMutex.Unlock()
 			if value.Status != OrderStatusFilled {
 				continue Out
 			}
-			o.Filled = true
 			tr := Trade{ID: o.LocalID,
 				Action: o.Action,
 				Time:   o.Time,
@@ -184,7 +231,7 @@ func (b *TradeExchange) onEventCandleParam(e *Event) (err error) {
 
 func (b *TradeExchange) onEventOrder(e *Event) (err error) {
 	act := e.GetData().(*TradeAction)
-	b.actChan <- *act
+	b.enqueueAction(*act)
 	return
 }
 
@@ -208,7 +255,7 @@ func (b *TradeExchange) onEventTradeMarket(trade *Trade) {
 			}
 			log.Infof("TradeEvent local stopLong order trigger: %#v", newAct)
 			deleteOrders = append(deleteOrders, id)
-			b.actChan <- newAct
+			b.enqueueAction(newAct)
 			return true
 		}
 		if b.pos.Hold < 0 && act.Action == StopShort && trade.Price > act.Price {
@@ -223,7 +270,7 @@ func (b *TradeExchange) onEventTradeMarket(trade *Trade) {
 			}
 			log.Infof("TradeEvent local stopShort order trigger: %#v", newAct)
 			deleteOrders = append(deleteOrders, id)
-			b.actChan <- newAct
+			b.enqueueAction(newAct)
 			return true
 		}
 		return true
@@ -259,53 +306,68 @@ func (b *TradeExchange) orderRoutine() {
 	var err error
 	var ret interface{}
 	var exist bool
-	for v := range b.actChan {
-		// hook the stop order when localStopOrder enabled
-		if v.Action.IsStop() && b.localStopOrder {
-			b.stopOrders.Store(v.ID, v)
-			continue
-		} else if v.Action == trademodel.CancelAll {
-			b.cancelAllOrder()
-			b.stopOrders = sync.Map{}
-			continue
-		} else if v.Action == trademodel.CancelOne {
-			_, exist = b.stopOrders.LoadAndDelete(v.ID)
-			if exist {
-				continue
+	for {
+		select {
+		case <-b.stopCh:
+			// drain remaining actions before exit
+			for {
+				select {
+				case v := <-b.actChan:
+					b.processAction(v, &err, &ret, &exist)
+				default:
+					return
+				}
 			}
-			oi, ok := b.localOrderIndex[v.ID]
-			if !ok {
-				log.Errorf("local order: %s not found", v.ID)
-				continue
-			}
-			_, err = doOrderWithRetry(10, func() (interface{}, error) {
-				return b.impl.CancelOrder(&oi.Order)
-			})
-			if err != nil {
-				log.Errorf("cancel order local %s, id %s failed: %s", oi.LocalID, oi.OrderID, err.Error())
-			}
-			continue
+		case v := <-b.actChan:
+			b.processAction(v, &err, &ret, &exist)
 		}
-		ret, err = doOrderWithRetry(10, func() (interface{}, error) {
-			order, e := b.impl.ProcessOrder(v)
-			return order, e
-		})
-		if err == nil {
-			od := ret.(*Order)
-			oi := &OrderInfo{Order: *od, Action: v.Action, LocalID: v.ID}
-			b.orders[od.OrderID] = oi
-			b.localOrderIndex[v.ID] = oi
-		} else {
-			tr := Trade{ID: v.ID,
-				Action: v.Action,
-				Time:   v.Time,
-				Price:  v.Price,
-				Amount: v.Amount,
-				// Side:   v.Action,
-				Remark: "failed:" + err.Error()}
-			b.Send(v.ID, EventTrade, &tr)
-		}
+	}
+}
 
+func (b *TradeExchange) processAction(v TradeAction, errp *error, retp *interface{}, existp *bool) {
+	var err error
+	var ret interface{}
+	// hook the stop order when localStopOrder enabled
+	if v.Action.IsStop() && b.localStopOrder {
+		b.stopOrders.Store(v.ID, v)
+		return
+	} else if v.Action == trademodel.CancelAll {
+		b.cancelAllOrder()
+		b.stopOrders = sync.Map{}
+		return
+	} else if v.Action == trademodel.CancelOne {
+		_, exist := b.stopOrders.LoadAndDelete(v.ID)
+		if exist {
+			return
+		}
+		oi, ok := b.getLocalOrderInfo(v.ID)
+		if !ok {
+			log.Errorf("local order: %s not found", v.ID)
+			return
+		}
+		_, err = doOrderWithRetry(10, func() (interface{}, error) {
+			return b.impl.CancelOrder(&oi.Order)
+		})
+		if err != nil {
+			log.Errorf("cancel order local %s, id %s failed: %s", oi.LocalID, oi.OrderID, err.Error())
+		}
+		return
+	}
+	ret, err = doOrderWithRetry(10, func() (interface{}, error) {
+		order, e := b.impl.ProcessOrder(v)
+		return order, e
+	})
+	if err == nil {
+		od := ret.(*Order)
+		b.storeOrderInfo(v.ID, od, v.Action)
+	} else {
+		tr := Trade{ID: v.ID,
+			Action: v.Action,
+			Time:   v.Time,
+			Price:  v.Price,
+			Amount: v.Amount,
+			Remark: "failed:" + err.Error()}
+		b.Send(v.ID, EventTrade, &tr)
 	}
 }
 
