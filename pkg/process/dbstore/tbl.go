@@ -29,14 +29,15 @@ type DataCreator interface {
 
 // TimeTbl tbl with time info
 type TimeTbl struct {
-	db       *DBStore
-	exchange string
-	symbol   string
-	binSize  string
-	table    string
-	creator  DataCreator
-	closeCh  chan bool
-	loadOnce int
+	db           *DBStore
+	exchange     string
+	symbol       string
+	binSize      string
+	table        string
+	creator      DataCreator
+	closeCh      chan bool
+	loadOnce     int
+	tableCreated bool
 }
 
 // NewTimeTbl create new time table
@@ -65,8 +66,13 @@ func (t *TimeTbl) SetCloseCh(closeCh chan bool) {
 }
 
 func (t *TimeTbl) getTable() (sess *xorm.Session) {
+	if t.tableCreated {
+		sess = t.db.getTblSess(t.table)
+		return
+	}
 	data := t.creator.Sing()
 	sess = t.db.GetTableSession(t.table, data)
+	t.tableCreated = true
 	return
 }
 
