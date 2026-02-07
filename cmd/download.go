@@ -26,6 +26,7 @@ var (
 func init() {
 	rootCmd.AddCommand(downloadCmd)
 	initTimerange(downloadCmd)
+	downloadCmd.PersistentFlags().StringVarP(&binSize, "binSize", "b", "1m", "binSize of kline to download: 1m,5m,15m,1h,1d")
 	bAuto = downloadCmd.PersistentFlags().BoolP("auto", "a", false, "auto download")
 }
 

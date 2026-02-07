@@ -2,6 +2,7 @@ package ctl
 
 import (
 	"errors"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -9,10 +10,11 @@ import (
 	. "github.com/ztrade/ztrade/pkg/core"
 	"github.com/ztrade/ztrade/pkg/event"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
+	"github.com/ztrade/ztrade/pkg/process/goscript"
+	"github.com/ztrade/ztrade/pkg/process/risk"
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 	"github.com/ztrade/ztrade/pkg/process/vex"
 
-	// . "github.com/ztrade/trademodel"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,6 +34,7 @@ type Backtest struct {
 	loadDBOnce  int
 	fee         float64
 	lever       float64
+	riskConfig  *risk.RiskConfig
 
 	closeAllWhenFinished bool
 }
@@ -68,6 +71,10 @@ func (b *Backtest) SetLever(lever float64) {
 	b.lever = lever
 }
 
+func (b *Backtest) SetRiskConfig(cfg *risk.RiskConfig) {
+	b.riskConfig = cfg
+}
+
 func (b *Backtest) SetScript(scriptFile string) {
 	b.scriptFile = scriptFile
 }
@@ -83,26 +90,39 @@ func (b *Backtest) Start() (err error) {
 	return
 }
 
-// Stop stop backtest
+// Stop stop backtest (non-blocking, consistent with Trade.Stop)
 func (b *Backtest) Stop() (err error) {
-	b.stop <- true
+	select {
+	case b.stop <- true:
+	default:
+	}
 	return
 }
 
-// Run !TODO need support multi binsizes
+// Run run backtest. Always uses 1m as base data.
+// Strategies should use engine.Merge() to synthesize larger timeframes (5m, 1h, etc.).
 func (b *Backtest) Run() (err error) {
 	defer func() {
 		b.running = false
 	}()
-	closeCh := make(chan bool)
+
+	closeCh := make(chan bool, 1)
 	param := event.NewBaseProcesser("param")
-	bSize := "1m"
-	tbl := b.db.NewKlineTbl(b.exchange, b.symbol, bSize)
+
+	// Always use 1m as base data; strategies use engine.Merge() for larger timeframes.
+	const binSize = "1m"
+	tbl := b.db.NewKlineTbl(b.exchange, b.symbol, binSize)
 	tbl.SetLoadOnce(b.loadDBOnce)
 	tbl.SetLoadDataMode(true)
 	tbl.SetCloseCh(closeCh)
+
 	ex := vex.NewVExchange(b.symbol)
-	engine, err := NewScript(b.scriptFile, b.paramData, b.symbol)
+	// Use GoEngine + AddScript directly (same pattern as Trade)
+	gEngine, err := goscript.NewGoEngine(b.symbol)
+	if err != nil {
+		return
+	}
+	err = gEngine.AddScript(filepath.Base(b.scriptFile), b.scriptFile, b.paramData)
 	if err != nil {
 		return
 	}
@@ -111,7 +131,11 @@ func (b *Backtest) Run() (err error) {
 	processers.Add(param)
 	processers.Add(tbl)
 	processers.Add(ex)
-	processers.Add(engine)
+	if b.riskConfig != nil {
+		rm := risk.NewRiskManager(b.symbol, *b.riskConfig)
+		processers.Add(rm)
+	}
+	processers.Add(gEngine)
 	processers.Add(r)
 
 	var stopOnce sync.Once
@@ -133,13 +157,13 @@ func (b *Backtest) Run() (err error) {
 
 	param.Send("balance_init", EventBalanceInit, &BalanceInfo{Balance: b.balanceInit, Fee: b.fee})
 	param.Send("risk_init", EventRiskLimit, &RiskLimit{Lever: b.lever})
+
 	candleParam := CandleParam{
 		Start:   b.start,
 		End:     b.end,
 		Symbol:  b.symbol,
-		BinSize: bSize,
+		BinSize: binSize,
 	}
-
 	log.Info("backtest candle param:", candleParam)
 	param.Send("load_candle", EventWatch, NewWatchCandle(&candleParam))
 	// TODO wait for finish
@@ -168,9 +192,17 @@ func (b *Backtest) IsRunning() (ret bool) {
 	return b.running
 }
 
-// Result return the result of current backtest
-// must call after end of the backtest
-func (b *Backtest) Result() (err error) {
-
+// Result return the result of current backtest.
+// If the Reporter implements rpt.ResultProvider, returns the structured result.
+// Must be called after the backtest has finished.
+func (b *Backtest) Result() (result any, err error) {
+	if b.rpt == nil {
+		err = errors.New("no reporter set")
+		return
+	}
+	if provider, ok := b.rpt.(rpt.ResultProvider); ok {
+		return provider.ProvideResult()
+	}
+	err = errors.New("reporter does not implement ResultProvider")
 	return
 }

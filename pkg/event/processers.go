@@ -1,9 +1,11 @@
 package event
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/ztrade/pkg/core"
 )
 
@@ -81,19 +83,30 @@ func (h *Processers) Start() (err error) {
 	return
 }
 
-// Stop stop all processers
+// Stop stop all processers in reverse order (downstream consumers first)
 func (h *Processers) Stop() (err error) {
-	for _, p := range h.handlers {
-		err = p.Stop()
-		if err != nil {
-			return
+	var errs []error
+	for i := len(h.handlers) - 1; i >= 0; i-- {
+		if e := h.handlers[i].Stop(); e != nil {
+			errs = append(errs, fmt.Errorf("stop %s: %w", h.handlers[i].GetName(), e))
 		}
 	}
-	return
+	return errors.Join(errs...)
 }
 
-// WaitClose wait for duration after bus is empty,and then close
-func (h *Processers) WaitClose(duration time.Duration) {
-	time.Sleep(duration)
-	h.bus.Close()
+// WaitClose wait for bus event queue to drain, then close with timeout safety
+func (h *Processers) WaitClose(timeout time.Duration) {
+	// Wait for the bus event queue to drain (with timeout)
+	h.bus.WaitEmpty(timeout / 2)
+	// Close the bus (waits for goroutines to finish)
+	done := make(chan struct{})
+	go func() {
+		h.bus.Close()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(timeout / 2):
+		log.Warn("Processers.WaitClose timeout, bus may not be fully closed")
+	}
 }

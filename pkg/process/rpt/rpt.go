@@ -19,6 +19,12 @@ type Reporter interface {
 	SetLever(float64)
 }
 
+// ResultProvider is an optional interface that Reporter implementations
+// can implement to provide structured backtest results.
+type ResultProvider interface {
+	ProvideResult() (any, error)
+}
+
 type Rpt struct {
 	BaseProcesser
 	rpt Reporter

@@ -2,6 +2,7 @@ package dbstore
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/ztrade/ztrade/pkg/core"
 	. "github.com/ztrade/ztrade/pkg/event"
@@ -68,7 +69,7 @@ func (tbl *KlineTbl) emitCandles(param CandleParam) {
 	for v := range candles {
 		for _, c := range v {
 			candle = c.(*Candle)
-			tbl.Bus.WaitEmpty()
+			tbl.Bus.WaitEmpty(time.Minute)
 			tbl.SendWithExtra("candle", EventCandle, candle, param.BinSize)
 		}
 	}

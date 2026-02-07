@@ -673,6 +673,11 @@ func (r *Report) GetResult() (ret ReportResult, err error) {
 	return
 }
 
+// ProvideResult implements rpt.ResultProvider interface.
+func (r *Report) ProvideResult() (any, error) {
+	return r.GetResult()
+}
+
 func (r *Report) ExportToDB(dbPath string) (err error) {
 	eng, err := xorm.NewEngine("sqlite", dbPath)
 	if err != nil {

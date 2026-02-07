@@ -12,43 +12,56 @@ import (
 	"github.com/ztrade/ztrade/pkg/process/exchange"
 	"github.com/ztrade/ztrade/pkg/process/goscript"
 	"github.com/ztrade/ztrade/pkg/process/notify"
+	"github.com/ztrade/ztrade/pkg/process/risk"
 	"github.com/ztrade/ztrade/pkg/process/rpt"
 
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	cfg zexchange.Config
+	globalCfg zexchange.Config
 )
 
+// SetConfig sets the global config for backward compatibility.
+// Prefer using NewTradeWithConfig for explicit config injection.
 func SetConfig(c zexchange.Config) {
-	cfg = c
+	globalCfg = c
 }
 
 // Trade trade with multi scripts
 type Trade struct {
+	cfg          zexchange.Config
 	exchangeType string
 	exchangeName string
 	symbol       string
 	running      bool
 	stop         chan bool
+	errorCh      chan error
 	rpt          rpt.Reporter
 	proc         *event.Processers
 	engine       *goscript.GoEngine
 	wg           sync.WaitGroup
 	loadRecent   time.Duration
+	riskConfig   *risk.RiskConfig
 }
 
-// NewTrade constructor of Trade
+// NewTrade constructor of Trade, uses global config set by SetConfig.
+// Prefer NewTradeWithConfig for explicit config injection.
 func NewTrade(exchange, symbol string) (b *Trade, err error) {
+	return NewTradeWithConfig(globalCfg, exchange, symbol)
+}
+
+// NewTradeWithConfig constructor of Trade with explicit config injection.
+func NewTradeWithConfig(cfg zexchange.Config, exchange, symbol string) (b *Trade, err error) {
 	if cfg == nil {
 		err = errors.New("config is not initialized, please set --config or put ztrade.yaml in config paths")
 		return
 	}
 	b = new(Trade)
+	b.cfg = cfg
 	b.exchangeName = exchange
 	b.symbol = symbol
-	b.exchangeType = cfg.GetString(fmt.Sprintf("exchanges.%s.type", b.exchangeName))
+	b.exchangeType = b.cfg.GetString(fmt.Sprintf("exchanges.%s.type", b.exchangeName))
 	if b.exchangeType == "" {
 		err = fmt.Errorf("exchange %s type is empty in config", b.exchangeName)
 		return
@@ -64,6 +77,10 @@ func NewTrade(exchange, symbol string) (b *Trade, err error) {
 
 func (b *Trade) SetLoadRecent(recent time.Duration) {
 	b.loadRecent = recent
+}
+
+func (b *Trade) SetRiskConfig(cfg *risk.RiskConfig) {
+	b.riskConfig = cfg
 }
 
 func (b *Trade) SetStatusCh(ch chan *goscript.Status) {
@@ -122,19 +139,25 @@ func (b *Trade) Stop() (err error) {
 
 func (b *Trade) init() (err error) {
 	b.stop = make(chan bool, 1)
+	b.errorCh = make(chan error, 1)
 	param := event.NewBaseProcesser("param")
-	ex, err := exchange.GetTradeExchange(b.exchangeType, cfg, b.exchangeName, b.symbol)
+	ex, err := exchange.GetTradeExchange(b.exchangeType, b.cfg, b.exchangeName, b.symbol)
 	if err != nil {
 		err = fmt.Errorf("creat exchange trade %s failed:%s", b.exchangeName, err.Error())
 		return
 	}
-	notify, err := notify.NewNotify(cfg)
+	notify, err := notify.NewNotify(b.cfg)
 	if err != nil {
 		log.Errorf("creat notify failed:%s", err.Error())
 		err = nil
 	}
 	b.proc = event.NewProcessers()
-	procs := []event.Processer{param, ex, b.engine}
+	procs := []event.Processer{param, ex}
+	if b.riskConfig != nil {
+		rm := risk.NewRiskManager(b.symbol, *b.riskConfig)
+		procs = append(procs, rm)
+	}
+	procs = append(procs, b.engine)
 	if notify != nil {
 		procs = append(procs, notify)
 	}
@@ -148,6 +171,13 @@ func (b *Trade) init() (err error) {
 		log.Error("add processers error:", err.Error())
 		return
 	}
+	b.proc.SetErrorCallback(func(err error) {
+		log.Errorf("Trade processer error: %s", err.Error())
+		select {
+		case b.errorCh <- err:
+		default:
+		}
+	})
 	err = b.proc.Start()
 	if err != nil {
 		log.Error("start processers error:", err.Error())
@@ -175,8 +205,14 @@ func (b *Trade) Wait() (err error) {
 
 func (b *Trade) Run() (err error) {
 	defer b.wg.Done()
-	// TODO wait for finish
-	<-b.stop
+	select {
+	case <-b.stop:
+		log.Info("Trade received stop signal")
+	case err = <-b.errorCh:
+		log.Errorf("Trade exiting due to error: %v", err)
+		b.proc.Stop()
+	}
 	b.proc.WaitClose(time.Second * 10)
+	b.running = false
 	return
 }

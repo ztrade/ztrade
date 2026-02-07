@@ -36,7 +36,7 @@ var (
 var backtestCmd = &cobra.Command{
 	Use:   "backtest",
 	Short: "backtest with script",
-	Long:  `backtest a script between start and end`,
+	Long:  `Backtest a strategy script between start and end time. Always uses 1m klines as base data; use engine.Merge() in your strategy to synthesize larger timeframes (5m, 1h, etc.).`,
 	Run:   runBacktest,
 }
 

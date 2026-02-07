@@ -15,3 +15,8 @@
 # vendor/
 dist/*
 ztrade
+
+# Config files may contain secrets (API keys, DB credentials)
+# Use configs/ztrade.yaml.example as template
+configs/*.yaml
+!configs/*.yaml.example

@@ -1,0 +1,19 @@
+exchanges:
+  binance:
+    type: binance
+    kind: spot
+    key: YOUR_API_KEY_HERE
+    secret: YOUR_API_SECRET_HERE
+    timeout: 30s
+db:
+  type: mysql
+  uri: root:password@tcp(127.0.0.1:3306)/exchange
+
+# cert:
+#   ca: perm/ca.crt
+#   cert: perm/server.crt
+#   key: perm/server.key
+# mode: full
+# name: trendtracking
+
+#proxy: socks5://127.0.0.1:1080

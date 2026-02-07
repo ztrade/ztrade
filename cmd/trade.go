@@ -21,7 +21,7 @@ import (
 var tradeCmd = &cobra.Command{
 	Use:   "trade",
 	Short: "trade with script",
-	Long:  `trade with script`,
+	Long:  `Live trade with a strategy script. Always subscribes to 1m klines; use engine.Merge() in your strategy to synthesize larger timeframes (5m, 1h, etc.).`,
 	Run:   runTrade,
 }
 
@@ -33,7 +33,6 @@ func init() {
 	rootCmd.AddCommand(tradeCmd)
 	tradeCmd.PersistentFlags().StringVar(&scriptFile, "script", "", "script file to backtest")
 	tradeCmd.PersistentFlags().StringVarP(&rptFile, "report", "o", "report.html", "output report html file path")
-	tradeCmd.PersistentFlags().StringVarP(&binSize, "binSize", "b", "1m", "binSize: 1m,5m,15m,1h,1d")
 	tradeCmd.PersistentFlags().StringVar(&symbol, "symbol", "XBTUSD", "symbol")
 	tradeCmd.PersistentFlags().StringVar(&exchangeName, "exchange", "bitmex", "exchange name, only support bitmex current now")
 	tradeCmd.PersistentFlags().IntVarP(&recentDay, "recent", "r", 1, "load recent (n) day datas,default 1")

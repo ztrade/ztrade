@@ -122,12 +122,19 @@ func (b *Bus) sendSync(procs ProcessList, e *Event) (err error) {
 	return
 }
 
-func (b *Bus) WaitEmpty() {
-	//	time.Sleep(time.Millisecond)
-	value := atomic.LoadInt64(&b.processEvent)
-	for value != 0 {
-		time.Sleep(time.Millisecond)
-		value = atomic.LoadInt64(&b.processEvent)
+func (b *Bus) WaitEmpty(timeout time.Duration) bool {
+	deadline := time.After(timeout)
+	for {
+		value := atomic.LoadInt64(&b.processEvent)
+		if value == 0 {
+			return true
+		}
+		select {
+		case <-deadline:
+			log.Warnf("Bus.WaitEmpty timeout after %s, %d events remaining", timeout, value)
+			return false
+		case <-time.After(time.Millisecond):
+		}
 	}
 }
 

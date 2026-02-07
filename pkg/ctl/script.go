@@ -14,6 +14,8 @@ type Scripter interface {
 	ScriptCount() int
 }
 
+// Deprecated: Use goscript.NewGoEngine + AddScript directly for consistent
+// initialization between backtest and live trading.
 func NewScript(file, param, symbol string) (s Scripter, err error) {
 	var gEngine *goscript.GoEngine
 	gEngine, err = goscript.NewGoEngine(symbol)
