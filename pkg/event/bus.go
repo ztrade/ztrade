@@ -56,9 +56,7 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 	defer atomic.AddInt32(&b.routines, -1)
 	log.Debug("Bus runProc of ", sub)
 	if ch == nil {
-		err = fmt.Errorf("no such event channel: %s", sub)
-		panic(err.Error())
-		return
+		panic(fmt.Sprintf("no such event channel: %s", sub))
 	}
 	// NOTE: all Subscribe calls must happen before bus.Start().
 	// Read once here; the slice reference won't change after Start.

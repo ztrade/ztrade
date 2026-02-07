@@ -115,7 +115,7 @@ Out:
 				param.End = value.Time().Add(-1 * time.Second)
 				tFirstLastStart, err = b.emitRecentCandles(param)
 				if err != nil {
-					log.Errorf("TradeExchange recv data:", err.Error())
+					log.Errorf("TradeExchange recv data: %s", err.Error())
 					panic(err.Error())
 				}
 				if value.Start <= tFirstLastStart {
@@ -333,7 +333,7 @@ func (b *TradeExchange) emitCandles(param CandleParam) {
 		b.datas <- candle
 	})
 	if err != nil {
-		log.Errorf("emitCandles wathKline failed:", err.Error())
+		log.Errorf("emitCandles watchKline failed: %s", err.Error())
 		return
 	}
 }
