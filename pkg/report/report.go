@@ -144,6 +144,7 @@ func (r *Report) Analyzer() (err error) {
 			log.Error("Report add trade error:", err.Error())
 			return
 		}
+		r.result.TotalFee = common.FloatAdd(r.result.TotalFee, fee)
 		actTotal = common.FloatMul(v.Price, v.Amount)
 		if v.Action.IsLong() {
 			longAmount = common.FloatAdd(longAmount, v.Amount)
@@ -274,18 +275,18 @@ func (r *Report) calculateAnnualReturn(equity []float64) float64 {
 	if len(equity) < 2 {
 		return 0
 	}
-	fmt.Println("startTime:", r.startTime)
-	fmt.Println("endTime:", r.endTime)
-	fmt.Println("equity[len(equity)-1]:", equity[len(equity)-1])
-	fmt.Println("equity[0]:", equity[0])
+	// fmt.Println("startTime:", r.startTime)
+	// fmt.Println("endTime:", r.endTime)
+	// fmt.Println("equity[len(equity)-1]:", equity[len(equity)-1])
+	// fmt.Println("equity[0]:", equity[0])
 	totalReturn := equity[len(equity)-1]/equity[0] - 1
 	// 计算回测期间的年数
 	years := r.endTime.Sub(r.startTime).Hours() / (24 * 365.25)
 	if years == 0 {
 		years = 1
 	}
-	fmt.Println("totalReturn:", totalReturn)
-	fmt.Println("years:", years)
+	// fmt.Println("totalReturn:", totalReturn)
+	// fmt.Println("years:", years)
 	return math.Pow(1+totalReturn, 1/years) - 1
 }
 func (r *Report) calculateReturns() []float64 {

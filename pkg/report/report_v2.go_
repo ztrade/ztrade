@@ -1,0 +1,540 @@
+package worker
+
+import (
+	"fmt"
+	"math"
+	"sort"
+	"time"
+
+	. "github.com/ztrade/trademodel"
+)
+
+// PositionReport 持仓信息
+type PositionReport struct {
+	Type      TradeType
+	OpenPrice float64
+	OpenTime  time.Time
+	Amount    float64
+}
+
+// ProcessedTrade 处理后的交易记录，包含收益率信息
+type ProcessedTrade struct {
+	OriginalTrade Trade
+	Return        float64
+	IsClose       bool
+}
+
+// StrategyMetrics 存储策略的各项指标
+type StrategyMetrics struct {
+	TotalReturn      float64
+	AnnualReturn     float64
+	SharpeRatio      float64
+	SortinoRatio     float64
+	MaxDrawdown      float64
+	Volatility       float64
+	WinRate          float64
+	ProfitFactor     float64
+	CalmarRatio      float64
+	ConsistencyScore float64
+	SmoothnessScore  float64
+	OverallScore     float64
+	TotalTrades      int
+	LongTrades       int
+	ShortTrades      int
+}
+
+// StrategyEvaluator 策略评估器
+type StrategyEvaluator struct {
+	Trades         []Trade
+	RiskFreeRate   float64
+	StartTime      time.Time
+	EndTime        time.Time
+	InitialCapital float64
+}
+
+func NewStrategyEvaluatorSimple() *StrategyEvaluator {
+	return &StrategyEvaluator{RiskFreeRate: 0.02}
+}
+
+// NewStrategyEvaluator 创建策略评估器
+func NewStrategyEvaluator(trades []Trade, riskFreeRate float64, initialCapital float64) *StrategyEvaluator {
+	if len(trades) == 0 {
+		return &StrategyEvaluator{
+			Trades:         trades,
+			RiskFreeRate:   riskFreeRate,
+			InitialCapital: initialCapital,
+		}
+	}
+
+	// 按时间排序
+	sortedTrades := make([]Trade, len(trades))
+	copy(sortedTrades, trades)
+	sort.Slice(sortedTrades, func(i, j int) bool {
+		return sortedTrades[i].Time.Before(sortedTrades[j].Time)
+	})
+
+	return &StrategyEvaluator{
+		Trades:         sortedTrades,
+		RiskFreeRate:   riskFreeRate,
+		StartTime:      sortedTrades[0].Time,
+		EndTime:        sortedTrades[len(sortedTrades)-1].Time,
+		InitialCapital: initialCapital,
+	}
+}
+
+// OnTrade 处理交易记录
+func (se *StrategyEvaluator) OnTrade(trade Trade) {
+	se.Trades = append(se.Trades, trade)
+}
+
+// OnBalanceInit 初始化账户余额和手续费
+func (se *StrategyEvaluator) OnBalanceInit(balance, fee float64) (err error) {
+	se.InitialCapital = balance
+	return
+}
+
+// SetLever 设置杠杆倍数
+func (se *StrategyEvaluator) SetLever(lever float64) {
+	se.RiskFreeRate = lever * se.RiskFreeRate
+}
+
+// processTrades 处理交易记录，计算收益率
+func (se *StrategyEvaluator) processTrades() []ProcessedTrade {
+	processed := make([]ProcessedTrade, 0)
+	positions := make(map[TradeType]*PositionReport)
+
+	for i := 0; i < len(se.Trades); i++ {
+		trade := se.Trades[i]
+
+		switch trade.Action {
+		case OpenLong, OpenShort:
+			// 开仓操作
+			positions[trade.Action] = &PositionReport{
+				Type:      trade.Action,
+				OpenPrice: trade.Price,
+				OpenTime:  trade.Time,
+				Amount:    trade.Amount,
+			}
+
+		case CloseLong, CloseShort:
+			// 平仓操作，计算收益率
+			var openAction TradeType
+			if trade.Action == CloseLong {
+				openAction = OpenLong
+			} else {
+				openAction = OpenShort
+			}
+
+			if position, exists := positions[openAction]; exists {
+				var returnRate float64
+				if trade.Action == CloseLong {
+					// 做多收益率 = (平仓价 - 开仓价) / 开仓价
+					returnRate = (trade.Price - position.OpenPrice) / position.OpenPrice
+				} else {
+					// 做空收益率 = (开仓价 - 平仓价) / 开仓价
+					returnRate = (position.OpenPrice - trade.Price) / position.OpenPrice
+				}
+
+				processed = append(processed, ProcessedTrade{
+					OriginalTrade: trade,
+					Return:        returnRate,
+					IsClose:       true,
+				})
+
+				delete(positions, openAction)
+			}
+
+		case CancelOne, CancelAll:
+			// 取消订单，不计算收益率但记录
+			processed = append(processed, ProcessedTrade{
+				OriginalTrade: trade,
+				Return:        0,
+				IsClose:       false,
+			})
+		}
+	}
+
+	return processed
+}
+
+// CalculateEquityCurve 计算净值曲线
+func (se *StrategyEvaluator) CalculateEquityCurve() ([]float64, []ProcessedTrade) {
+	processedTrades := se.processTrades()
+	equity := make([]float64, len(processedTrades)+1)
+	equity[0] = se.InitialCapital
+
+	for i, pt := range processedTrades {
+		if pt.IsClose {
+			// 只有平仓交易才影响净值
+			pnl := equity[i] * pt.Return
+			equity[i+1] = equity[i] + pnl
+		} else {
+			// 非平仓交易，净值不变
+			equity[i+1] = equity[i]
+		}
+	}
+
+	return equity, processedTrades
+}
+
+// CalculateMetrics 计算所有指标
+func (se *StrategyEvaluator) CalculateMetrics() StrategyMetrics {
+	if len(se.Trades) == 0 {
+		return StrategyMetrics{}
+	}
+
+	equity, processedTrades := se.CalculateEquityCurve()
+	returns := se.calculateReturns(processedTrades)
+
+	metrics := StrategyMetrics{
+		TotalReturn:  equity[len(equity)-1]/se.InitialCapital - 1,
+		AnnualReturn: se.calculateAnnualReturn(equity),
+		MaxDrawdown:  se.calculateMaxDrawdown(equity),
+		WinRate:      se.calculateWinRate(processedTrades),
+		ProfitFactor: se.calculateProfitFactor(processedTrades),
+	}
+
+	metrics.Volatility = se.calculateVolatility(returns)
+	metrics.SharpeRatio = se.calculateSharpeRatio(metrics.AnnualReturn, metrics.Volatility)
+	metrics.SortinoRatio = se.calculateSortinoRatio(returns, metrics.AnnualReturn)
+	metrics.CalmarRatio = se.calculateCalmarRatio(metrics.AnnualReturn, metrics.MaxDrawdown)
+	metrics.ConsistencyScore = se.calculateConsistencyScore(returns)
+	metrics.SmoothnessScore = se.calculateSmoothnessScore(equity)
+
+	// 统计交易数量
+	metrics.TotalTrades = len(processedTrades)
+	metrics.LongTrades, metrics.ShortTrades = se.countTradeTypes(processedTrades)
+
+	metrics.OverallScore = se.calculateOverallScore(metrics)
+
+	return metrics
+}
+
+// calculateReturns 从处理后的交易计算收益率序列
+func (se *StrategyEvaluator) calculateReturns(processedTrades []ProcessedTrade) []float64 {
+	returns := make([]float64, 0)
+	for _, pt := range processedTrades {
+		if pt.IsClose {
+			returns = append(returns, pt.Return)
+		}
+	}
+	return returns
+}
+
+// calculateAnnualReturn 计算年化收益率
+func (se *StrategyEvaluator) calculateAnnualReturn(equity []float64) float64 {
+	if len(equity) < 2 {
+		return 0
+	}
+
+	totalReturn := equity[len(equity)-1]/equity[0] - 1
+
+	// 计算回测期间的年数
+	years := se.EndTime.Sub(se.StartTime).Hours() / (24 * 365.25)
+	if years == 0 {
+		years = 1
+	}
+
+	return math.Pow(1+totalReturn, 1/years) - 1
+}
+
+// calculateMaxDrawdown 计算最大回撤
+func (se *StrategyEvaluator) calculateMaxDrawdown(equity []float64) float64 {
+	maxDrawdown := 0.0
+	peak := equity[0]
+
+	for i := 1; i < len(equity); i++ {
+		if equity[i] > peak {
+			peak = equity[i]
+		}
+		drawdown := (peak - equity[i]) / peak
+		if drawdown > maxDrawdown {
+			maxDrawdown = drawdown
+		}
+	}
+
+	return maxDrawdown
+}
+
+// calculateVolatility 计算年化波动率
+func (se *StrategyEvaluator) calculateVolatility(returns []float64) float64 {
+	if len(returns) < 2 {
+		return 0
+	}
+
+	var sum float64
+	for _, r := range returns {
+		sum += r
+	}
+	mean := sum / float64(len(returns))
+
+	var variance float64
+	for _, r := range returns {
+		variance += (r - mean) * (r - mean)
+	}
+	variance /= float64(len(returns) - 1)
+
+	stdDev := math.Sqrt(variance)
+
+	// 年化波动率
+	years := se.EndTime.Sub(se.StartTime).Hours() / (24 * 365.25)
+	if years == 0 {
+		years = 1
+	}
+	tradesPerYear := float64(len(returns)) / years
+
+	return stdDev * math.Sqrt(tradesPerYear)
+}
+
+// calculateSharpeRatio 计算夏普比率
+func (se *StrategyEvaluator) calculateSharpeRatio(annualReturn, volatility float64) float64 {
+	if volatility == 0 {
+		return 0
+	}
+	return (annualReturn - se.RiskFreeRate) / volatility
+}
+
+// calculateSortinoRatio 计算索提诺比率
+func (se *StrategyEvaluator) calculateSortinoRatio(returns []float64, annualReturn float64) float64 {
+	if len(returns) == 0 {
+		return 0
+	}
+
+	var downsideSum float64
+	for _, r := range returns {
+		if r < 0 {
+			downsideSum += r * r
+		}
+	}
+
+	downsideVariance := downsideSum / float64(len(returns))
+	downsideStdDev := math.Sqrt(downsideVariance)
+
+	if downsideStdDev == 0 {
+		return 0
+	}
+
+	// 年化下行风险
+	years := se.EndTime.Sub(se.StartTime).Hours() / (24 * 365.25)
+	if years == 0 {
+		years = 1
+	}
+	tradesPerYear := float64(len(returns)) / years
+	annualDownsideRisk := downsideStdDev * math.Sqrt(tradesPerYear)
+
+	return (annualReturn - se.RiskFreeRate) / annualDownsideRisk
+}
+
+// calculateWinRate 计算胜率
+func (se *StrategyEvaluator) calculateWinRate(processedTrades []ProcessedTrade) float64 {
+	if len(processedTrades) == 0 {
+		return 0
+	}
+
+	wins := 0
+	totalCloseTrades := 0
+	for _, pt := range processedTrades {
+		if pt.IsClose {
+			totalCloseTrades++
+			if pt.Return > 0 {
+				wins++
+			}
+		}
+	}
+
+	if totalCloseTrades == 0 {
+		return 0
+	}
+	return float64(wins) / float64(totalCloseTrades)
+}
+
+// calculateProfitFactor 计算盈亏比
+func (se *StrategyEvaluator) calculateProfitFactor(processedTrades []ProcessedTrade) float64 {
+	var grossProfit, grossLoss float64
+
+	for _, pt := range processedTrades {
+		if pt.IsClose {
+			if pt.Return > 0 {
+				grossProfit += pt.Return
+			} else {
+				grossLoss += math.Abs(pt.Return)
+			}
+		}
+	}
+
+	if grossLoss == 0 {
+		if grossProfit > 0 {
+			return math.Inf(1)
+		}
+		return 0
+	}
+
+	return grossProfit / grossLoss
+}
+
+// calculateCalmarRatio 计算Calmar比率
+func (se *StrategyEvaluator) calculateCalmarRatio(annualReturn, maxDrawdown float64) float64 {
+	if maxDrawdown == 0 {
+		if annualReturn > 0 {
+			return math.Inf(1)
+		}
+		return 0
+	}
+	return annualReturn / maxDrawdown
+}
+
+// calculateConsistencyScore 计算一致性评分
+func (se *StrategyEvaluator) calculateConsistencyScore(returns []float64) float64 {
+	if len(returns) < 2 {
+		return 0
+	}
+
+	// 计算正收益的连续性
+	positiveStreaks := 0
+	maxPositiveStreak := 0
+	currentStreak := 0
+
+	for _, r := range returns {
+		if r > 0 {
+			currentStreak++
+			if currentStreak > maxPositiveStreak {
+				maxPositiveStreak = currentStreak
+			}
+		} else {
+			positiveStreaks += currentStreak
+			currentStreak = 0
+		}
+	}
+	positiveStreaks += currentStreak
+
+	// 计算月度胜率的一致性（简化版）
+	monthlyWinRate := se.calculateWinRate(se.processTrades()) // 使用整体胜率作为近似
+
+	streakScore := float64(maxPositiveStreak) / float64(len(returns))
+
+	return (monthlyWinRate + streakScore) / 2
+}
+
+// calculateSmoothnessScore 计算平滑度评分
+func (se *StrategyEvaluator) calculateSmoothnessScore(equity []float64) float64 {
+	if len(equity) < 3 {
+		return 0
+	}
+
+	// 计算收益曲线的二阶导数（加速度）来衡量平滑度
+	var smoothnessSum float64
+	for i := 1; i < len(equity)-1; i++ {
+		acceleration := equity[i+1] - 2*equity[i] + equity[i-1]
+		smoothnessSum += math.Abs(acceleration)
+	}
+
+	avgAcceleration := smoothnessSum / float64(len(equity)-2)
+
+	// 计算回撤的严重程度
+	drawdownSeverity := 1.0 - se.calculateMaxDrawdown(equity)
+
+	// 结合加速度和回撤来计算平滑度
+	maxPossibleAcceleration := se.InitialCapital * 0.1 // 基于初始资本的10%
+	smoothnessFromAcceleration := 1.0 - math.Min(avgAcceleration/maxPossibleAcceleration, 1.0)
+
+	return (smoothnessFromAcceleration + drawdownSeverity) / 2
+}
+
+// countTradeTypes 统计交易类型数量
+func (se *StrategyEvaluator) countTradeTypes(processedTrades []ProcessedTrade) (int, int) {
+	longTrades := 0
+	shortTrades := 0
+
+	for _, pt := range processedTrades {
+		if pt.IsClose {
+			switch pt.OriginalTrade.Action {
+			case CloseLong:
+				longTrades++
+			case CloseShort:
+				shortTrades++
+			}
+		}
+	}
+
+	return longTrades, shortTrades
+}
+
+// calculateOverallScore 计算综合评分
+func (se *StrategyEvaluator) calculateOverallScore(metrics StrategyMetrics) float64 {
+	scores := []float64{
+		math.Max(0, metrics.SharpeRatio) / 2.0,
+		math.Max(0, metrics.SortinoRatio) / 2.5,
+		1.0 - metrics.MaxDrawdown,
+		metrics.WinRate,
+		math.Min(metrics.ProfitFactor/3.0, 1.0),
+		math.Max(0, metrics.CalmarRatio) / 3.0,
+		metrics.ConsistencyScore,
+		metrics.SmoothnessScore,
+	}
+
+	var totalScore float64
+	for _, score := range scores {
+		totalScore += math.Min(score, 1.0)
+	}
+
+	return totalScore / float64(len(scores))
+}
+
+// EvaluateStrategy 评估策略并返回结果
+func (se *StrategyEvaluator) EvaluateStrategy() {
+	metrics := se.CalculateMetrics()
+
+	fmt.Println("=== 加密货币交易策略评估结果 ===")
+	fmt.Printf("回测期间: %s 到 %s\n", se.StartTime.Format("2006-01-02"), se.EndTime.Format("2006-01-02"))
+	fmt.Printf("初始资金: $%.2f\n", se.InitialCapital)
+	fmt.Printf("最终资金: $%.2f\n", se.InitialCapital*(1+metrics.TotalReturn))
+	fmt.Printf("总收益率: %.2f%%\n", metrics.TotalReturn*100)
+	fmt.Printf("年化收益率: %.2f%%\n", metrics.AnnualReturn*100)
+	fmt.Printf("最大回撤: %.2f%%\n", metrics.MaxDrawdown*100)
+	fmt.Printf("年化波动率: %.2f%%\n", metrics.Volatility*100)
+	fmt.Printf("夏普比率: %.3f\n", metrics.SharpeRatio)
+	fmt.Printf("索提诺比率: %.3f\n", metrics.SortinoRatio)
+	fmt.Printf("胜率: %.2f%%\n", metrics.WinRate*100)
+	fmt.Printf("盈亏比: %.3f\n", metrics.ProfitFactor)
+	fmt.Printf("Calmar比率: %.3f\n", metrics.CalmarRatio)
+	fmt.Printf("总交易次数: %d (做多: %d, 做空: %d)\n", metrics.TotalTrades, metrics.LongTrades, metrics.ShortTrades)
+	fmt.Printf("一致性评分: %.3f\n", metrics.ConsistencyScore)
+	fmt.Printf("平滑度评分: %.3f\n", metrics.SmoothnessScore)
+	fmt.Printf("综合评分: %.3f/1.000\n", metrics.OverallScore)
+
+	// 给出评估结论
+	fmt.Println("\n=== 策略评估结论 ===")
+	if metrics.OverallScore >= 0.7 {
+		fmt.Println("✅ 策略表现优秀：收益曲线平滑且策略有效")
+	} else if metrics.OverallScore >= 0.5 {
+		fmt.Println("⚠️  策略表现一般：有改进空间")
+	} else {
+		fmt.Println("❌ 策略表现较差：需要重新优化")
+	}
+
+	// 关键指标检查
+	fmt.Println("\n=== 关键指标检查 ===")
+	if metrics.SharpeRatio > 1.0 {
+		fmt.Println("✅ 夏普比率 > 1.0：风险调整后收益良好")
+	} else {
+		fmt.Println("❌ 夏普比率 <= 1.0：风险调整后收益不足")
+	}
+
+	if metrics.MaxDrawdown < 0.2 {
+		fmt.Println("✅ 最大回撤 < 20%：风险控制良好")
+	} else {
+		fmt.Println("❌ 最大回撤 >= 20%：风险较大")
+	}
+
+	if metrics.SmoothnessScore > 0.6 {
+		fmt.Println("✅ 收益曲线平滑：策略稳定性好")
+	} else {
+		fmt.Println("❌ 收益曲线波动大：策略稳定性需改善")
+	}
+
+	if metrics.WinRate > 0.5 {
+		fmt.Println("✅ 胜率 > 50%：交易决策有效")
+	} else {
+		fmt.Println("❌ 胜率 <= 50%：交易决策需改进")
+	}
+}

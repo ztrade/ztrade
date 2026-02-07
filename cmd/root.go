@@ -94,7 +94,9 @@ func init() {
 			return
 		}
 		go func() {
-			http.ListenAndServe("0.0.0.0:8088", nil)
+			if err := http.ListenAndServe("127.0.0.1:8088", nil); err != nil {
+				log.Errorf("pprof server error: %s", err.Error())
+			}
 		}()
 
 	}

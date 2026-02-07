@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,7 +58,7 @@ func (b *Builder) Build() (err error) {
 	}
 	baseName := filepath.Base(b.source)
 	dir := baseName[0 : len(baseName)-len(filepath.Ext(b.source))]
-	tempDir, err := ioutil.TempDir("", dir)
+	tempDir, err := os.MkdirTemp("", dir)
 	if err != nil {
 		err = fmt.Errorf("create temp dir failed: %w", err)
 		return
@@ -73,7 +73,7 @@ func (b *Builder) Build() (err error) {
 		err = fmt.Errorf("copy file failed: %w", err)
 		return
 	}
-	err = ioutil.WriteFile(filepath.Join(tempDir, "define.go"), []byte(defineGo), 0644)
+	err = os.WriteFile(filepath.Join(tempDir, "define.go"), []byte(defineGo), 0644)
 	// err = common.CopyWithMainPkg(filepath.Join(tempDir, "define.go"), filepath.Join(common.GetExecDir(), "tmpl", "define.go"))
 	if err != nil {
 		err = fmt.Errorf("write tmpl file define.go failed: %w", err)
@@ -152,7 +152,7 @@ func (b *Builder) fixGoMod(dir string) (hasFixed bool, err error) {
 	if err != nil {
 		return
 	}
-	buf, err := ioutil.ReadAll(f)
+	buf, err := io.ReadAll(f)
 	if err != nil {
 		f.Close()
 		return

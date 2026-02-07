@@ -154,7 +154,7 @@ func (d *DataDownload) download(start, end time.Time) (err error) {
 
 // Progress return the progress of current backtest
 func (d *DataDownload) Progress() (progress int) {
-	return d.Progress()
+	return 0
 }
 
 // Result return the result of current backtest

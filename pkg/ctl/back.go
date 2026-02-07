@@ -47,6 +47,7 @@ func NewBacktest(db *dbstore.DBStore, exchange, symbol, param string, start time
 	b.balanceInit = 100000
 	b.loadDBOnce = 50000
 	b.paramData = param
+	b.stop = make(chan bool, 1)
 	return
 }
 

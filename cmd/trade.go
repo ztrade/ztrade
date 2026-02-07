@@ -45,9 +45,8 @@ func runTrade(cmd *cobra.Command, args []string) {
 		log.Fatal("strategy file can't be empty")
 		return
 	}
-	var gracefulStop = make(chan os.Signal)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
+	var gracefulStop = make(chan os.Signal, 1)
+	signal.Notify(gracefulStop, syscall.SIGTERM, syscall.SIGINT)
 	real, err := ctl.NewTrade(exchangeName, symbol)
 	if err != nil {
 		log.Fatal("trade error:", err.Error())

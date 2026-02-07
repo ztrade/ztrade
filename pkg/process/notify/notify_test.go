@@ -22,7 +22,7 @@ func TestSendNotify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	err = n.sendNotify(&NotifyEvent{
+	err = n.SendNotify(&NotifyEvent{
 		Title:   "hello",
 		Content: "just a test",
 	})

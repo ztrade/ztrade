@@ -2,7 +2,7 @@ package engine
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 	"time"
 
@@ -20,13 +20,9 @@ const letterBytes = "abcdefghijklmnopqrstuvwxyz123456789"
 func randStringBytes(n int) string {
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = letterBytes[rand.Int(len(letterBytes))]
 	}
 	return string(b)
-}
-
-func init() {
-	rand.Seed(time.Now().Unix())
 }
 
 func getActionID() string {

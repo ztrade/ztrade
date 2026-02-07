@@ -151,7 +151,7 @@ func (t *TimeTbl) CacheData(start, end time.Time, bSize string) (err error) {
 		}
 	}
 	if err != nil {
-		err = fmt.Errorf("TimeTbl DataChan getDatas failed:", err.Error())
+		err = fmt.Errorf("TimeTbl DataChan getDatas failed: %w", err)
 	} else {
 		t.db.dataCache.Store(key, caches)
 	}
@@ -349,6 +349,7 @@ func (t *TimeTbl) WriteDatas(datas []interface{}) (err error) {
 		return
 	}
 
+	var hasError bool
 	var v TimeData
 	for _, data := range datas {
 		v = data.(TimeData)
@@ -359,14 +360,25 @@ func (t *TimeTbl) WriteDatas(datas []interface{}) (err error) {
 				_, err = sess.Where("start=?", v.GetStart()).Update(data)
 				if err != nil {
 					log.Debugf("TimeTbl insert/update %s error:%#v", v, err)
+					hasError = true
 				}
 			} else {
 				log.Errorf("TimeTbl insert %s error:%#v", v, err)
+				hasError = true
 			}
 		}
 		err = nil
 	}
-	sess.Commit()
+	if hasError {
+		if rbErr := sess.Rollback(); rbErr != nil {
+			log.Errorf("TimeTbl rollback error: %s", rbErr.Error())
+		}
+		return
+	}
+	if cmErr := sess.Commit(); cmErr != nil {
+		log.Errorf("TimeTbl commit error: %s", cmErr.Error())
+		err = cmErr
+	}
 	return
 }
 

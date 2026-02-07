@@ -208,7 +208,7 @@ func (ex *VExchange) onEventOrder(e *Event) (err error) {
 		ex.orders = list.New()
 		return
 	} else if act.Action == trademodel.CancelOne {
-		for item := ex.orders.Front(); item != nil; item.Next() {
+		for item := ex.orders.Front(); item != nil; item = item.Next() {
 			od := item.Value.(TradeAction)
 			if od.ID == act.ID {
 				ex.orders.Remove(item)
