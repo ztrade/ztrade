@@ -112,6 +112,11 @@ func (r *Report) SetLever(lever float64) {
 }
 
 func (r *Report) Analyzer() (err error) {
+	r.tmplDatas = nil
+	r.profitHistory = nil
+	r.result = ReportResult{}
+	r.maxLose = 0
+	r.balanceEnd = r.balanceInit
 	nLen := len(r.trades)
 	if nLen == 0 {
 		return
@@ -210,14 +215,18 @@ func (r *Report) Analyzer() (err error) {
 		r.result.ProfitFactor, _ = profitTotal.Float64()
 		r.result.ProfitFactor = common.FormatFloat(r.result.ProfitFactor, 4)
 	}
-	r.result.ProfitVariance, err = stats.Variance(profitArray)
-	if err != nil {
-		return err
+	if len(profitArray) >= 2 {
+		r.result.ProfitVariance, err = stats.Variance(profitArray)
+		if err != nil {
+			return err
+		}
 	}
 	r.result.ProfitVariance = common.FormatFloat(r.result.ProfitVariance, 4)
-	r.result.LoseVariance, err = stats.Variance(loseArray)
-	if err != nil {
-		return err
+	if len(loseArray) >= 2 {
+		r.result.LoseVariance, err = stats.Variance(loseArray)
+		if err != nil {
+			return err
+		}
 	}
 	r.result.LoseVariance = common.FormatFloat(r.result.LoseVariance, 4)
 	r.result.Actions = r.tmplDatas
@@ -230,7 +239,7 @@ func (r *Report) Analyzer() (err error) {
 
 // CalculateMetrics 计算所有指标
 func (r *Report) CalculateMetrics(metrics *ReportResult) (err error) {
-	if len(r.trades) == 0 {
+	if len(r.trades) == 0 || len(r.tmplDatas) == 0 {
 		return
 	}
 

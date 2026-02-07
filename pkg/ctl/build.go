@@ -21,9 +21,9 @@ import (
 var (
 	buildInfo *debug.BuildInfo
 
-	//go:embed tmpl/define.go
+	//go:embed tmpl/define.go.tmpl
 	defineGo string
-	//go:embed tmpl/export.go
+	//go:embed tmpl/export.go.tmpl
 	exportGo string
 
 	// func (s *DemoStrategy) Init(engine Engine, params ParamData) (err error) {
@@ -211,6 +211,9 @@ func (b *Builder) getName(src string) (name string, err error) {
 }
 
 func fixRequireVersion(modPath string) (ver string) {
+	if buildInfo == nil {
+		return
+	}
 	for _, v := range buildInfo.Deps {
 		if v.Path == modPath {
 			return v.Version

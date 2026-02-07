@@ -16,7 +16,7 @@ type Scripter interface {
 
 func NewScript(file, param, symbol string) (s Scripter, err error) {
 	var gEngine *goscript.GoEngine
-	gEngine, err = goscript.NewDefaultGoEngine()
+	gEngine, err = goscript.NewGoEngine(symbol)
 	if err != nil {
 		return
 	}

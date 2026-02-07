@@ -147,6 +147,8 @@ func (b *Backtest) Run() (err error) {
 	case <-closeCh:
 	case <-errorCh:
 		// FIXME: tbl maybe not close
+	case <-b.stop:
+		processers.Stop()
 	}
 	if b.closeAllWhenFinished {
 		time.Sleep(time.Second * 10)

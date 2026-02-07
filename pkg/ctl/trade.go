@@ -41,10 +41,18 @@ type Trade struct {
 
 // NewTrade constructor of Trade
 func NewTrade(exchange, symbol string) (b *Trade, err error) {
+	if cfg == nil {
+		err = errors.New("config is not initialized, please set --config or put ztrade.yaml in config paths")
+		return
+	}
 	b = new(Trade)
 	b.exchangeName = exchange
 	b.symbol = symbol
 	b.exchangeType = cfg.GetString(fmt.Sprintf("exchanges.%s.type", b.exchangeName))
+	if b.exchangeType == "" {
+		err = fmt.Errorf("exchange %s type is empty in config", b.exchangeName)
+		return
+	}
 	gEngine, err := goscript.NewGoEngine(symbol)
 	if err != nil {
 		return
@@ -102,13 +110,18 @@ func (b *Trade) Start() (err error) {
 
 // Stop stop backtest
 func (b *Trade) Stop() (err error) {
-	b.proc.Stop()
-	b.stop <- true
+	if b.proc != nil {
+		err = b.proc.Stop()
+	}
+	select {
+	case b.stop <- true:
+	default:
+	}
 	return
 }
 
 func (b *Trade) init() (err error) {
-	b.stop = make(chan bool)
+	b.stop = make(chan bool, 1)
 	param := event.NewBaseProcesser("param")
 	ex, err := exchange.GetTradeExchange(b.exchangeType, cfg, b.exchangeName, b.symbol)
 	if err != nil {

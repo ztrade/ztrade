@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"text/template"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/ztrade/exchange"
@@ -48,8 +49,8 @@ func NewNotify(cfg exchange.Config) (n *Notify, err error) {
 	if err != nil {
 		return
 	}
-	fmt.Println(nCfg)
 	n = new(Notify)
+	n.clt = http.Client{Timeout: 10 * time.Second}
 	n.cfg = &nCfg
 	n.bodyTmpl = tpl
 	return
@@ -143,7 +144,7 @@ func (n *Notify) SendNotify(evt *NotifyEvent) (err error) {
 	if err != nil {
 		return
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		err = errors.New(string(body))
 	}
 	return

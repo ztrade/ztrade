@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	// . "github.com/ztrade/ztrade/pkg/define"
-
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/ztrade/exchange"
 	"github.com/ztrade/trademodel"
 	"github.com/ztrade/ztrade/pkg/process/dbstore"
-
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type DataDownload struct {
@@ -36,6 +33,7 @@ func NewDataDownloadAuto(cfg *viper.Viper, db *dbstore.DBStore, exchange, symbol
 	d.symbol = symbol
 	d.binSize = binSize
 	d.db = db
+	d.stop = make(chan bool, 1)
 	d.isAuto = true
 	return
 }
@@ -50,6 +48,7 @@ func NewDataDownload(cfg *viper.Viper, db *dbstore.DBStore, exchange, symbol, bi
 	d.symbol = symbol
 	d.binSize = binSize
 	d.db = db
+	d.stop = make(chan bool, 1)
 	return
 }
 
@@ -66,9 +65,13 @@ func (d *DataDownload) Start() (err error) {
 
 // Stop stop backtest
 func (d *DataDownload) Stop() (err error) {
-	d.stop <- true
+	select {
+	case d.stop <- true:
+	default:
+	}
 	return
 }
+
 func (d *DataDownload) AutoRun() (err error) {
 	tbl := d.db.GetKlineTbl(d.exchange, d.symbol, d.binSize)
 	var invalidTime time.Time
@@ -101,7 +104,7 @@ func (d *DataDownload) Run() (err error) {
 
 func (d *DataDownload) download(start, end time.Time) (err error) {
 	log.Info("begin download candle:", start, end, d.symbol, d.binSize)
-	exchangeType := viper.GetString(fmt.Sprintf("exchanges.%s.type", d.exchange))
+	exchangeType := d.cfg.GetString(fmt.Sprintf("exchanges.%s.type", d.exchange))
 	fmt.Println(d.exchange, exchangeType)
 	ex, err := exchange.NewExchange(exchangeType, exchange.WrapViper(d.cfg), d.exchange)
 	if err != nil {
@@ -112,43 +115,44 @@ func (d *DataDownload) download(start, end time.Time) (err error) {
 	var t time.Time
 	cache := make([]interface{}, 1024)
 	i := 0
-	for v := range klines {
-		cache[i] = v
-		i++
-		t = time.Now()
-		if i >= 1024 {
 
-			err = tbl.WriteDatas(cache)
-			if err != nil {
-				fmt.Printf("write %s - %s error: %s\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time(), err.Error())
-				log.Errorf("%s write error: %s value: %#v %s", time.Now().Format(time.RFC3339), time.Since(t), v, err.Error())
-				return
-			} else {
-				fmt.Printf("write %s - %s success\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time())
+	for {
+		select {
+		case <-d.stop:
+			err = fmt.Errorf("download stopped")
+			return
+		case v, ok := <-klines:
+			if !ok {
+				goto flush
 			}
-			i = 0
+			cache[i] = v
+			i++
+			t = time.Now()
+			if i >= len(cache) {
+				err = tbl.WriteDatas(cache)
+				if err != nil {
+					fmt.Printf("write %s - %s error: %s\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time(), err.Error())
+					log.Errorf("%s write error: %s value: %#v %s", time.Now().Format(time.RFC3339), time.Since(t), v, err.Error())
+					return
+				}
+				fmt.Printf("write %s - %s success\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time())
+				i = 0
+			}
 		}
-
-		// log.Infof("%s write finish: %s len: %d ", time.Now().Format(time.RFC3339), time.Since(t), len(v))
 	}
-	if i > 0 {
 
+flush:
+	if i > 0 {
 		err = tbl.WriteDatas(cache[0:i])
 		if err != nil {
 			fmt.Printf("write %s - %s error: %s\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time(), err.Error())
 			log.Errorf("%s write error: %s value: %#v %s", time.Now().Format(time.RFC3339), time.Since(t), len(cache), err.Error())
 			return
-		} else {
-			fmt.Printf("write %s - %s success\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time())
 		}
+		fmt.Printf("write %s - %s success\n", cache[0].(*trademodel.Candle).Time(), cache[i-1].(*trademodel.Candle).Time())
 	}
+
 	err = <-errChan
-	// log.Debugf("%s-%s %s %s %s data total %d stored\n", gStart,
-	// 	lastStart,
-	// 	d.source,
-	// 	d.symbol,
-	// 	d.binSize,
-	// 	total)
 	return
 }
 

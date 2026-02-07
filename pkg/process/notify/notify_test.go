@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
+	"github.com/ztrade/exchange"
 	. "github.com/ztrade/ztrade/pkg/core"
 )
 
@@ -16,9 +17,9 @@ func TestSendNotify(t *testing.T) {
 	viper.SetConfigType("yaml")
 	err := viper.ReadInConfig()
 	if err != nil {
-		t.Fatal(err)
+		t.Skipf("skip notify integration test without local config: %v", err)
 	}
-	n, err := NewNotify(viper.GetViper())
+	n, err := NewNotify(exchange.WrapViper(viper.GetViper()))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
