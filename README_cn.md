@@ -54,6 +54,11 @@ cd dist
 参考例子：
 [strategy](https://github.com/ztrade/strategy)
 
+## 策略教程
+
+- 中文: [doc/strategy_tutorial_cn.md](doc/strategy_tutorial_cn.md)
+- English: [doc/strategy_tutorial.md](doc/strategy_tutorial.md)
+
 ## 鸣谢
 
 [goplus](https://goplus.org/)

@@ -1,5 +1,10 @@
 # 策略说明
 
+本篇是策略开发的“接口说明 + 速查”。如果你需要从零写一个可跑策略、以及回测/实盘的完整命令示例，请直接看：
+
+- 中文教程: ../doc/strategy_tutorial_cn.md
+- English: ../doc/strategy_tutorial.md
+
 ## 创建策略项目
 创建策略项目可以直接使用模板，也可以全部手动创建
 ### 直接使用模板
@@ -11,12 +16,14 @@ cd strategy
 
 ### 手动创建项目
 
+你可以直接在任意目录新建一个 `demo.go` 策略文件即可（用于 `.so` 插件模式时，`ztrade build` 会自动生成所需的 `define.go/export.go` 并编译）。
+
+如果你想把策略作为一个独立 Go Module 来管理（方便 IDE、依赖管理），可以：
+
 ```
-mkdir strategy
-cd strategy
-go mod init strategy
-# 复制 helper.go，并且修改package
-cp $SRC/pkg/helper/helper.go ./define.go
+mkdir my-strategy
+cd my-strategy
+go mod init my-strategy
 # 创建新的策略
 touch demo.go
 ```
@@ -48,9 +55,9 @@ func NewDemo() *Demo {
 }
 
 // 这个函数提供策略需要的参数列表，供ztrade引擎调用
-// ztrade 可以通过在命令行直接输入参数的方式，来传递参数
-func (d *Demo) Param() []Param {
-	return []Param{
+// ztrade 通过 --param 传递 JSON 参数（见下文“参数传递”）
+func (d *Demo) Param() (paramInfo []Param) {
+	paramInfo = []Param{
 		// 这个函数有 5个参数:
 		// 1. 这个Param的key
 		// 2. 这个Param的中文简称
@@ -61,18 +68,21 @@ func (d *Demo) Param() []Param {
 		IntParam("intparam", "数字参数", "一个简单的数字参数 ", 12, &d.intParam),
 		FloatParam("floatparam", "浮点参数", "简单的浮点参数", 1, &d.floatParam),
 	}
+	return
 }
 
 // 这个函数是在策略初始化的时候调用的
 // engine就是ztrade引擎的接口
 // params是传入的参数信息
-func (d *Demo) Init(engine Engine, params ParamData) {
+// 注意：当前 Runner 接口要求 Init 返回 error
+func (d *Demo) Init(engine Engine, params ParamData) (err error) {
 	// 这里 d.strParam,d.intParam,d.floatParam已经自动解析了，无需再次解析
 	d.engine = engine
 	// 合并K线，第一个参数是原始K线级别，第二个参数是目标级别，第三个参数是K线合并完成后的回调函数
 	engine.Merge("1m", "30m", d.OnCandle30m)
 	// 合并K线，第一个参数是原始K线级别，第二个参数是目标级别，第三个参数是K线合并完成后的回调函数
 	engine.Merge("1m", "1h", d.OnCandle1h)
+	return
 }
 
 // 1m K线回调函数
@@ -118,6 +128,56 @@ func (d *Demo) OnCandle1h(candle *Candle) {
 	d.engine.OpenLong(candle.Close, 1)
 }
 
+```
+
+## 两种运行方式（非常重要）
+
+### 1) 插件模式（.so，默认推荐）
+
+这是默认构建出来的 `ztrade` 支持的方式：策略先编译成 Go plugin（`.so`），然后在回测/实盘中加载。
+
+关键点：
+
+- `ztrade build` 会把你的策略 `.go` 文件复制到临时目录、自动生成 `define.go` 与 `export.go`，再执行 `go build --buildmode=plugin`。
+- 所以你写策略时只需要实现 Runner 所需的方法；`NewStrategy` 导出函数不需要你手写（由 `export.go` 生成）。
+
+示例：
+
+```
+./ztrade build --script demo.go --output demo.so
+
+./ztrade backtest --script demo.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --exchange binance --symbol BTCUSDT --param '{"intparam":12,"floatparam":1,"str":"15m"}'
+
+./ztrade trade --script demo.so --exchange binance --symbol BTCUSDT --param '{"intparam":12,"floatparam":1,"str":"15m"}'
+```
+
+### 2) 源码模式（.go/.gop，需要 ixgo 构建）
+
+如果你用 `-tags ixgo` 构建 `ztrade`，引擎会支持直接加载 `.go` / `.gop` 源码策略（通过 ixgo 解释执行）。
+
+构建：
+
+```
+CGO_ENABLED=0 go build -ldflags="-checklinkname=0" -tags ixgo -o dist/ztrade ./
+```
+
+运行：
+
+```
+./ztrade backtest --script demo.go  ...
+./ztrade backtest --script demo.gop ...
+```
+
+说明：回测/实盘的数据订阅固定以 `1m` 为基础，策略需要用 `engine.Merge("1m", "15m", fn)` 之类的方法合成更大周期。
+
+## 参数传递（--param）
+
+`Param()` 返回的 `[]Param` 描述了参数的 key、默认值与绑定变量；引擎会用它来解析命令行的 `--param` JSON 并自动写入你 struct 的字段。
+
+例子：
+
+```
+./ztrade backtest --script demo.so ... --param '{"bin":15,"amount":1,"fast":7,"slow":30}'
 ```
 
 ## Engine说明

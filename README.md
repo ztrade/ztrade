@@ -54,6 +54,11 @@ show examples:
 
 [strategy](https://github.com/ztrade/strategy)
 
+## strategy tutorial
+
+- English: [doc/strategy_tutorial.md](doc/strategy_tutorial.md)
+- 中文: [doc/strategy_tutorial_cn.md](doc/strategy_tutorial_cn.md)
+
 
 ## Thanks
 
