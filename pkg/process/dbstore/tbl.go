@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	// . "github.com/ztrade/ztrade/pkg/core"
@@ -336,8 +335,14 @@ func (t *TimeTbl) WriteData(data interface{}) (err error) {
 	return
 }
 
-// WriteDatas write datas
+// WriteDatas write datas in batch.
+// To handle incomplete candle updates (duplicate start times), existing
+// conflicting records are deleted first, then all new records are batch
+// inserted. The whole operation is atomic within a single transaction.
 func (t *TimeTbl) WriteDatas(datas []interface{}) (err error) {
+	if len(datas) == 0 {
+		return
+	}
 	sess := t.getTable()
 	if sess == nil {
 		err = errors.New("no such table")
@@ -348,37 +353,37 @@ func (t *TimeTbl) WriteDatas(datas []interface{}) (err error) {
 	if err != nil {
 		return
 	}
-
-	var hasError bool
-	var v TimeData
-	for _, data := range datas {
-		v = data.(TimeData)
-		v.SetTable(t.table)
-		_, err = sess.Insert(data)
+	defer func() {
 		if err != nil {
-			if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE constraint") {
-				_, err = sess.Where("start=?", v.GetStart()).Update(data)
-				if err != nil {
-					log.Debugf("TimeTbl insert/update %s error:%#v", v, err)
-					hasError = true
-				}
-			} else {
-				log.Errorf("TimeTbl insert %s error:%#v", v, err)
-				hasError = true
+			if rbErr := sess.Rollback(); rbErr != nil {
+				log.Errorf("TimeTbl rollback error: %s", rbErr.Error())
 			}
 		}
-		err = nil
+	}()
+
+	// Prepare all data and collect start timestamps
+	starts := make([]interface{}, len(datas))
+	for i, data := range datas {
+		v := data.(TimeData)
+		v.SetTable(t.table)
+		starts[i] = v.GetStart()
 	}
-	if hasError {
-		if rbErr := sess.Rollback(); rbErr != nil {
-			log.Errorf("TimeTbl rollback error: %s", rbErr.Error())
-		}
+
+	// Batch delete existing records with conflicting start times
+	_, err = sess.Table(t.table).In("start", starts...).Delete(t.creator.Sing())
+	if err != nil {
+		log.Errorf("TimeTbl WriteDatas delete conflict error: %s", err.Error())
 		return
 	}
-	if cmErr := sess.Commit(); cmErr != nil {
-		log.Errorf("TimeTbl commit error: %s", cmErr.Error())
-		err = cmErr
+
+	// Batch insert all records
+	_, err = sess.Insert(datas...)
+	if err != nil {
+		log.Errorf("TimeTbl WriteDatas batch insert error: %s", err.Error())
+		return
 	}
+
+	err = sess.Commit()
 	return
 }
 

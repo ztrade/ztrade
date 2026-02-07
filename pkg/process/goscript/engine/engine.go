@@ -20,7 +20,7 @@ const letterBytes = "abcdefghijklmnopqrstuvwxyz123456789"
 func randStringBytes(n int) string {
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Int(len(letterBytes))]
+		b[i] = letterBytes[rand.IntN(len(letterBytes))]
 	}
 	return string(b)
 }

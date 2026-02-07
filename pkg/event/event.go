@@ -20,6 +20,9 @@ type Event struct {
 	From string
 }
 
+// NewErrorEvent creates an error event without using the object pool,
+// because error events may be referenced outside the Bus lifecycle
+// and cannot be safely released back to the pool.
 func NewErrorEvent(from, msg string, err error) *Event {
 	e := new(Event)
 	e.Name = msg

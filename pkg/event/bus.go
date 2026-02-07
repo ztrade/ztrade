@@ -60,6 +60,8 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 		panic(err.Error())
 		return
 	}
+	// NOTE: all Subscribe calls must happen before bus.Start().
+	// Read once here; the slice reference won't change after Start.
 	b.procsMutex.RLock()
 	procs := b.procs[sub]
 	b.procsMutex.RUnlock()
@@ -68,7 +70,6 @@ func (b *Bus) runProc(sub string, ch chan *Event) (err error) {
 			err = p.Cb(e)
 			if err != nil {
 				b.Send(NewErrorEvent(p.Name, err.Error(), err))
-				// log.Errorf("process %s error: %s", sub, err.Error())
 				continue
 			}
 		}

@@ -79,9 +79,8 @@ func (dr *DBStore) GetTableSession(tbl string, data TimeData) (sess *xorm.Sessio
 		log.Error("dbstore get table failed:", err.Error())
 	}
 	if !bExit {
-		log.Debugf("create table %s ", dr.table, reflect.TypeOf(data))
+		log.Debugf("create table %s %s", tbl, reflect.TypeOf(data))
 		data.SetTable(tbl)
-		fmt.Println(tbl, reflect.TypeOf(data))
 		dr.engine.Sync2(data)
 	}
 	sess = dr.engine.NewSession()

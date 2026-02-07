@@ -25,9 +25,9 @@ type NotifyConfig struct {
 	Method  string
 	Body    string
 	Notify  struct {
-		Trade  bool
-		Order  bool
-		Blance bool
+		Trade   bool
+		Order   bool
+		Balance bool
 	}
 }
 
@@ -100,7 +100,7 @@ func (n *Notify) OnEventOrder(e *Event) (err error) {
 }
 
 func (n *Notify) OnEventBalance(e *Event) (err error) {
-	if !n.cfg.Notify.Blance {
+	if !n.cfg.Notify.Balance {
 		return nil
 	}
 	balance, ok := e.GetData().(*Balance)
@@ -109,7 +109,7 @@ func (n *Notify) OnEventBalance(e *Event) (err error) {
 		return
 	}
 	msg := fmt.Sprintf("%s: %f", balance.Currency, balance.Balance)
-	return n.SendNotify(&NotifyEvent{Title: "Blance", Content: msg})
+	return n.SendNotify(&NotifyEvent{Title: "Balance", Content: msg})
 }
 
 func (n *Notify) OnEventNotify(e *Event) (err error) {
