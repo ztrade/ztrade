@@ -69,6 +69,7 @@ func (dr *DBStore) initDB() (err error) {
 		err = fmt.Errorf("init db failed:%s", err.Error())
 		return
 	}
+	dr.engine.ShowSQL(true)
 	dr.engine.SetQuotePolicy(dialects.QuotePolicyAlways)
 	err = dr.engine.Sync2(&SymbolInfo{})
 	return
