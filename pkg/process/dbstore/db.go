@@ -14,10 +14,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	_ "modernc.org/sqlite"
 	"xorm.io/xorm"
+	"xorm.io/xorm/dialects"
 )
 
 var (
-	tblRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)_([A-Za-z0-9\_\-]+)_([A-Za-z0-9]+)$`)
+	tblRegexp = regexp.MustCompile(`^([A-Za-z0-9\-]+)_([A-Za-z0-9\_\-]+)_([A-Za-z0-9]+)$`)
 )
 
 type TableInfo struct {
@@ -68,6 +69,7 @@ func (dr *DBStore) initDB() (err error) {
 		err = fmt.Errorf("init db failed:%s", err.Error())
 		return
 	}
+	dr.engine.SetQuotePolicy(dialects.QuotePolicyAlways)
 	err = dr.engine.Sync2(&SymbolInfo{})
 	return
 }
