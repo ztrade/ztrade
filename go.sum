@@ -342,6 +342,8 @@ github.com/ztrade/base v0.2.3 h1:b+e3yPqlgHo7pfHyWHS8sC3Tdvxv59x/99YYXpl4OFk=
 github.com/ztrade/base v0.2.3/go.mod h1:hrS35qpwTZ50MzK/DSotsK9Th8ijLu2gXgMaycSiKV0=
 github.com/ztrade/base v0.2.4 h1:U4GsQz2IDxJINYBtOZ17UwI3BiuAqEgrjA7e5caDu4E=
 github.com/ztrade/base v0.2.4/go.mod h1:mi5EStpxIAV0yrJgJdGqcPUP0xP347yfvBuyqP5ToO4=
+github.com/ztrade/base v0.2.5 h1:BYXcvm+OuXPT+V7xozNqrECYgRmzqyR2hmvKCoQz+2Q=
+github.com/ztrade/base v0.2.5/go.mod h1:j7eIHFgO8SIcAii8jNyZdELPphxATJAkiXcWUk/9Lmk=
 github.com/ztrade/ctp v0.0.4 h1:GmSuopx9OjhKm4/p550PqZprppUSK0PyPXZuN2onpmw=
 github.com/ztrade/ctp v0.0.4/go.mod h1:F6mY4Zoyo5kVecAQg08iwni5gIC5ISoFv6a09xZs+NQ=
 github.com/ztrade/exchange v0.1.0 h1:t9DWejb2OQr14Owzz3jXviaac3ma61fxNR4Z039PNr8=
@@ -354,6 +356,8 @@ github.com/ztrade/indicator v1.1.5 h1:q7p9+Hmt/nl/K64H8ZJgJ+Z9QuQhZheMz/wfVPYqRK
 github.com/ztrade/indicator v1.1.5/go.mod h1:6Eh2RrKaKU0dHoDD9M9wUq12EGTWJi7WlpMHJoKb8Po=
 github.com/ztrade/indicator v1.1.6 h1:WydjS+i45yVjFiPknIB1ORgbYGcn0sXYkf4399NyxYw=
 github.com/ztrade/indicator v1.1.6/go.mod h1:6Eh2RrKaKU0dHoDD9M9wUq12EGTWJi7WlpMHJoKb8Po=
+github.com/ztrade/indicator v1.1.7 h1:JdSf7r0yv1EYCnNLyWFwdTFoESRixbstVrf6XD6zoN8=
+github.com/ztrade/indicator v1.1.7/go.mod h1:6Eh2RrKaKU0dHoDD9M9wUq12EGTWJi7WlpMHJoKb8Po=
 github.com/ztrade/trademodel v1.1.8 h1:QFUfcRa8LOByBLB4q9jGH0fkGM0r0T07Lh0TsNtIX6g=
 github.com/ztrade/trademodel v1.1.8/go.mod h1:iIdDUPeAjlmQ2D7dxqrwwFwGCFOdk35eogvWGkf+0Lw=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
