@@ -147,5 +147,3 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	xorm.io/builder v0.3.13 // indirect
 )
-
-replace github.com/ztrade/trademodel => ../trademodel

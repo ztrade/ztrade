@@ -20,3 +20,5 @@ ztrade
 # Use configs/ztrade.yaml.example as template
 configs/*.yaml
 !configs/*.yaml.example
+report.html
+ztrade.log
