@@ -54,17 +54,40 @@ func (ex *VExchange) Start() (err error) {
 	return
 }
 func (ex *VExchange) processCandle(candle Candle) (err error) {
+	trades, pos, balance, err := ex.matchOrders(candle)
+	if err != nil {
+		return err
+	}
+
+	// keep trade time order
+	if len(trades) != 0 {
+		for i := len(trades) - 1; i >= 0; i-- {
+			ex.Bus.Send(trades[i])
+		}
+	}
+	if pos != nil {
+		//		ex.Send(ex.symbol, EventCurPosition, pos)
+		ex.Send(ex.symbol, EventPosition, pos)
+	}
+	if balance != nil {
+		ex.Send(ex.symbol, EventBalance, balance)
+	}
+	return nil
+}
+
+func (ex *VExchange) matchOrders(candle Candle) (trades []*Event, pos *Position, balance *Balance, err error) {
 	// TODO: check if liq
+	ex.orderMutex.Lock()
+	defer ex.orderMutex.Unlock()
+
 	if ex.orders.Len() == 0 {
 		return
 	}
-	ex.orderMutex.Lock()
-	defer ex.orderMutex.Unlock()
+
 	var posChange bool
 	var deleteElems []*list.Element
 	virtualTime := candle.Time()
-	var trades []*Event
-	var pos Position
+	var nextPos Position
 	var orderFilled bool
 	var side string
 	var price float64
@@ -154,28 +177,21 @@ func (ex *VExchange) processCandle(candle Candle) (err error) {
 
 		posChange = true
 		ex.position = ex.balance.Pos()
-		pos.Price = tr.Price
+		nextPos.Price = tr.Price
 		deleteElems = append(deleteElems, elem)
 	}
 	for _, v := range deleteElems {
 		ex.orders.Remove(v)
 	}
-	// keep trade time order
-	if len(trades) != 0 {
-		for i := len(trades) - 1; i >= 0; i-- {
-			ex.Bus.Send(trades[i])
-		}
-	}
 	if posChange {
-		pos.Symbol = ex.symbol
-		pos.Hold = ex.position
-		//		ex.Send(ex.symbol, EventCurPosition, pos)
-		ex.Send(ex.symbol, EventPosition, &pos)
-		if pos.Hold == 0 {
-			ex.Send(ex.symbol, EventBalance, &Balance{Currency: ex.symbol, Balance: ex.balance.Get()})
+		nextPos.Symbol = ex.symbol
+		nextPos.Hold = ex.position
+		pos = &nextPos
+		if nextPos.Hold == 0 {
+			balance = &Balance{Currency: ex.symbol, Balance: ex.balance.Get()}
 		}
 	}
-	return nil
+	return
 }
 
 func (ex *VExchange) onEventCandle(e *Event) (err error) {
@@ -190,8 +206,10 @@ func (ex *VExchange) onEventCandle(e *Event) (err error) {
 		return
 	}
 
+	ex.orderMutex.Lock()
 	ex.candle = candle
 	ex.orderIndex = 0
+	ex.orderMutex.Unlock()
 	err = ex.processCandle(*candle)
 	return
 }
