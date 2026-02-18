@@ -80,6 +80,13 @@ func (s *GoEngine) ScriptCount() int {
 	return len(s.vms)
 }
 
+func (s *GoEngine) GetLog() []string {
+	if s.engine == nil {
+		return nil
+	}
+	return s.engine.GetLog()
+}
+
 func (s *GoEngine) Stop() (err error) {
 	return
 }

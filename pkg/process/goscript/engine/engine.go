@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"math/rand/v2"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,6 +37,8 @@ type EngineImpl struct {
 	balance     float64
 	merges      map[string][]*KlinePlugin
 	mergesMutex sync.Mutex
+	logLines    []string
+	logMutex    sync.RWMutex
 	symbol      string
 }
 
@@ -120,7 +123,26 @@ func (e *EngineImpl) Position() (float64, float64) {
 }
 
 func (e *EngineImpl) Log(v ...interface{}) {
-	fmt.Println(v...)
+	out := fmt.Sprintln(v...)
+	// Keep existing behavior: print to stdout.
+	fmt.Print(out)
+
+	// Also store logs in memory so callers can retrieve them via GetLog().
+	out = strings.ReplaceAll(out, "\r\n", "\n")
+	out = strings.TrimSuffix(out, "\n")
+	lines := strings.Split(out, "\n")
+
+	e.logMutex.Lock()
+	e.logLines = append(e.logLines, lines...)
+	e.logMutex.Unlock()
+}
+
+func (e *EngineImpl) GetLog() []string {
+	e.logMutex.RLock()
+	defer e.logMutex.RUnlock()
+	logs := make([]string, len(e.logLines))
+	copy(logs, e.logLines)
+	return logs
 }
 
 func (e *EngineWrapper) addOrder(price, amount float64, orderType TradeType) (id string) {

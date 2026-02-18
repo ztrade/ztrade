@@ -35,6 +35,7 @@ type Backtest struct {
 	fee         float64
 	lever       float64
 	riskConfig  *risk.RiskConfig
+	engine      *goscript.GoEngine
 
 	closeAllWhenFinished bool
 }
@@ -122,6 +123,7 @@ func (b *Backtest) Run() (err error) {
 	if err != nil {
 		return
 	}
+	b.engine = gEngine
 	err = gEngine.AddScript(filepath.Base(b.scriptFile), b.scriptFile, b.paramData)
 	if err != nil {
 		return
@@ -190,6 +192,13 @@ func (b *Backtest) Progress() (progress int) {
 // IsRunning return if the backtest is running
 func (b *Backtest) IsRunning() (ret bool) {
 	return b.running
+}
+
+func (b *Backtest) GetLog() []string {
+	if b.engine == nil {
+		return nil
+	}
+	return b.engine.GetLog()
 }
 
 // Result return the result of current backtest.
