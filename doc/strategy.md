@@ -39,6 +39,10 @@ import (
 	. "github.com/ztrade/trademodel"
 )
 
+// 说明：ztrade build 会在临时编译目录生成 define.go，里面已经通过 type
+// 暴露了 Engine/Param/ParamData/CandleFn。策略里使用这些类型时，无需再
+// 额外引入 common/engine 等包。
+
 type Demo struct {
 	engine Engine // 这个是和引擎交互用的
 
@@ -140,11 +144,19 @@ func (d *Demo) OnCandle1h(candle *Candle) {
 
 - `ztrade build` 会把你的策略 `.go` 文件复制到临时目录、自动生成 `define.go` 与 `export.go`，再执行 `go build --buildmode=plugin`。
 - 所以你写策略时只需要实现 Runner 所需的方法；`NewStrategy` 导出函数不需要你手写（由 `export.go` 生成）。
+- `define.go` 已提供 `Engine/Param/ParamData/CandleFn` 的 type 定义，策略代码无需为了这些类型再引入额外包。
+- 默认会从策略源码所在目录开始，向上自动查找最近的 `go.mod`，并把其中的 `require` / `replace` / `go.sum` 合并到临时编译目录，方便策略使用本地依赖或私有库。
+- 如果你不希望使用源码目录或父目录里的 `go.mod`，可以在 `ztrade build` 时加 `--ignoreSourceModuleRoot`。
+- 如果你希望显式指定另一个依赖模块目录，可以使用 `--moduleRoot /path/to/deps-module`；该目录需要包含 `go.mod`，可选包含 `go.sum`，常用于通过 `replace` 引入本地私有库。
 
 示例：
 
 ```
 ./ztrade build --script demo.go --output demo.so
+
+./ztrade build --script demo.go --output demo.so --moduleRoot /path/to/private-deps
+
+./ztrade build --script demo.go --output demo.so --ignoreSourceModuleRoot
 
 ./ztrade backtest --script demo.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --exchange binance --symbol BTCUSDT --param '{"intparam":12,"floatparam":1,"str":"15m"}'
 

@@ -59,6 +59,14 @@ show examples:
 - English: [doc/strategy_tutorial.md](doc/strategy_tutorial.md)
 - 中文: [doc/strategy_tutorial_cn.md](doc/strategy_tutorial_cn.md)
 
+## build strategy with private deps
+
+``` shell
+./ztrade build --script /path/to/demo.go --output demo.so --moduleRoot /path/to/deps-module
+```
+
+By default, `ztrade build` searches upward from the strategy source directory for the nearest `go.mod`. Use `--ignoreSourceModuleRoot` if you want to disable that automatic discovery.
+
 
 ## Thanks
 

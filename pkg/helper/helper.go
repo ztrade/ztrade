@@ -1,10 +1,15 @@
 package helper
 
 // This package provides type aliases and placeholder functions for writing
-// strategy scripts. When strategies are compiled as Go plugins via the
-// "build" command, these stubs are replaced by real implementations from
-// the tmpl/define.go template. The return values here are never actually
-// called at runtime.
+// strategy scripts.
+//
+// During plugin build, ztrade generates define.go/export.go in the temporary
+// build directory with the same alias/stub contract. For types already
+// aliased here (Engine, Param, ParamData, CandleFn), strategy code should not
+// import extra packages just to reference those symbols.
+//
+// The return values in this file are compile-time stubs and are not used at
+// runtime.
 
 import (
 	"github.com/ztrade/base/common"

@@ -169,6 +169,18 @@ Indicator tips:
 ./ztrade build --script /path/to/demo.go --output demo.so
 ```
 
+If your strategy depends on a local Go module or private libraries, you can point ztrade to a separate dependency module:
+
+```bash
+./ztrade build --script /path/to/demo.go --output demo.so --moduleRoot /path/to/deps-module
+```
+
+By default, `ztrade build` walks upward from the strategy source directory and uses the nearest `go.mod` it finds. If you want to ignore `go.mod` files from the source directory or its parents, use:
+
+```bash
+./ztrade build --script /path/to/demo.go --output demo.so --ignoreSourceModuleRoot
+```
+
 Backtest with plugin:
 
 ```bash

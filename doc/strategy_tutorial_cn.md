@@ -209,6 +209,18 @@ ztrade 在回测/实盘都会先订阅 `1m` K 线。
 ./ztrade build --script /path/to/demo.go --output demo.so
 ```
 
+如果策略依赖本地 Go module 或私有库，可以额外指定依赖模块目录：
+
+```bash
+./ztrade build --script /path/to/demo.go --output demo.so --moduleRoot /path/to/deps-module
+```
+
+默认情况下，`ztrade build` 会从策略源码目录开始向上自动查找最近的 `go.mod`。如果你希望忽略源码目录及父目录里的 `go.mod`，可以加：
+
+```bash
+./ztrade build --script /path/to/demo.go --output demo.so --ignoreSourceModuleRoot
+```
+
 然后用 `.so` 回测：
 
 ```bash

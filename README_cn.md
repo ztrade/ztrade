@@ -59,6 +59,14 @@ cd dist
 - 中文: [doc/strategy_tutorial_cn.md](doc/strategy_tutorial_cn.md)
 - English: [doc/strategy_tutorial.md](doc/strategy_tutorial.md)
 
+## 带私有依赖编译策略
+
+``` shell
+./ztrade build --script /path/to/demo.go --output demo.so --moduleRoot /path/to/deps-module
+```
+
+默认情况下，`ztrade build` 会从策略源码目录开始向上查找最近的 `go.mod`。如果你希望忽略源码目录及父目录中的 `go.mod`，可以添加 `--ignoreSourceModuleRoot`。
+
 ## 鸣谢
 
 [goplus](https://goplus.org/)
