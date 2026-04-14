@@ -1,5 +1,8 @@
 # ztrade Strategy Tutorial (English)
 
+- English: [strategy_tutorial.md](strategy_tutorial.md)
+- 中文: [strategy_tutorial_cn.md](strategy_tutorial_cn.md)
+
 This guide shows how to write and run strategies in **ztrade**, based on the patterns used in the existing strategies (e.g. EMA cross, Bollinger-based strategies).
 
 > Key idea: ztrade is event-driven. The framework always provides **1m** candles as the base stream; you build higher timeframes (5m/15m/1h/…) inside your strategy via `engine.Merge()`.

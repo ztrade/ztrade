@@ -1,36 +1,39 @@
-# 策略说明
+# Strategy Reference
 
-本篇是策略开发的“接口说明 + 速查”。如果你需要从零写一个可跑策略、以及回测/实盘的完整命令示例，请直接看：
+- English: [strategy.md](strategy.md)
+- 中文: [strategy_cn.md](strategy_cn.md)
 
-- 中文教程: ../doc/strategy_tutorial_cn.md
-- English: ../doc/strategy_tutorial.md
+This page is an "API reference + quick lookup" for strategy development.
+If you need a full from-scratch guide (including complete backtest/live commands), read:
 
-## 创建策略项目
-创建策略项目可以直接使用模板，也可以全部手动创建
-### 直接使用模板
+- English tutorial: ../doc/strategy_tutorial.md
+
+## Create a strategy project
+You can start from a template or create everything manually.
+
+### Use template directly
 ```
 git clone https://github.com/ztrade/strategy
 cd strategy
-# 添加自定义策略
+# add your custom strategy
 ```
 
-### 手动创建项目
+### Create project manually
 
-你可以直接在任意目录新建一个 `demo.go` 策略文件即可（用于 `.so` 插件模式时，`ztrade build` 会自动生成所需的 `define.go/export.go` 并编译）。
+You can create a single `demo.go` strategy file in any directory (for plugin mode, `ztrade build` will auto-generate `define.go`/`export.go` and compile).
 
-如果你想把策略作为一个独立 Go Module 来管理（方便 IDE、依赖管理），可以：
+If you want to manage strategy as an independent Go module (better IDE support and dependency management):
 
 ```
 mkdir my-strategy
 cd my-strategy
 go mod init my-strategy
-# 创建新的策略
+# create strategy file
 touch demo.go
 ```
 
-
-## 策略
-每一个策略，都是一个go的struct，这个struct一般长这个样子:
+## Strategy skeleton
+Each strategy is a Go struct, usually like this:
 
 ```
 package strategy
@@ -39,117 +42,113 @@ import (
 	. "github.com/ztrade/trademodel"
 )
 
-// 说明：ztrade build 会在临时编译目录生成 define.go，里面已经通过 type
-// 暴露了 Engine/Param/ParamData/CandleFn。策略里使用这些类型时，无需再
-// 额外引入 common/engine 等包。
+// ztrade build generates define.go in a temporary build directory.
+// It already exposes Engine/Param/ParamData/CandleFn via type aliases,
+// so strategy code does not need extra imports for these types.
 
 type Demo struct {
-	engine Engine // 这个是和引擎交互用的
+	engine Engine // for interacting with engine
 
-	position float64 //仓位
+	position float64 // position
 
 	strParam   string
 	intParam   int
 	floatParam float64
 }
 
-// 这个是策略的创建函数，必须是下面这种格式： func  New{struct}() *{struct}
+// Constructor must follow: func New{Struct}() *{Struct}
 func NewDemo() *Demo {
 	return new(Demo)
 }
 
-// 这个函数提供策略需要的参数列表，供ztrade引擎调用
-// ztrade 通过 --param 传递 JSON 参数（见下文“参数传递”）
+// Param declares strategy params for ztrade engine.
+// ztrade passes JSON via --param (see "Parameter passing").
 func (d *Demo) Param() (paramInfo []Param) {
 	paramInfo = []Param{
-		// 这个函数有 5个参数:
-		// 1. 这个Param的key
-		// 2. 这个Param的中文简称
-		// 3. 这个Param的具体解释
-		// 4. 这个Param的默认值
-		// 5. 这个Param对应的变量的的指针
-		StringParam("str", "字符串参数", "只是一个简单的参数", "15m", &d.strParam),
-		IntParam("intparam", "数字参数", "一个简单的数字参数 ", 12, &d.intParam),
-		FloatParam("floatparam", "浮点参数", "简单的浮点参数", 1, &d.floatParam),
+		// 5 args:
+		// 1) param key
+		// 2) short display name
+		// 3) description
+		// 4) default value
+		// 5) pointer to target variable
+		StringParam("str", "string param", "example param", "15m", &d.strParam),
+		IntParam("intparam", "int param", "example integer", 12, &d.intParam),
+		FloatParam("floatparam", "float param", "example float", 1, &d.floatParam),
 	}
 	return
 }
 
-// 这个函数是在策略初始化的时候调用的
-// engine就是ztrade引擎的接口
-// params是传入的参数信息
-// 注意：当前 Runner 接口要求 Init 返回 error
+// Init is called on strategy initialization.
+// engine is the ztrade engine interface.
+// params is parsed parameter data.
+// Note: current Runner interface requires Init to return error.
 func (d *Demo) Init(engine Engine, params ParamData) (err error) {
-	// 这里 d.strParam,d.intParam,d.floatParam已经自动解析了，无需再次解析
+	// d.strParam/d.intParam/d.floatParam are already parsed and assigned.
 	d.engine = engine
-	// 合并K线，第一个参数是原始K线级别，第二个参数是目标级别，第三个参数是K线合并完成后的回调函数
+	// Merge K-lines: source timeframe, target timeframe, callback
 	engine.Merge("1m", "30m", d.OnCandle30m)
-	// 合并K线，第一个参数是原始K线级别，第二个参数是目标级别，第三个参数是K线合并完成后的回调函数
 	engine.Merge("1m", "1h", d.OnCandle1h)
 	return
 }
 
-// 1m K线回调函数
-// 在回测中,candle.ID是数据库中的ID
-// 在实盘中 candle.ID=-1表示是历史数据,非-1表示正常的实时K线
+// 1m candle callback
+// In backtest, candle.ID is DB record id.
+// In live trade, candle.ID=-1 means history replay; otherwise realtime candle.
 func (d *Demo) OnCandle(candle *Candle) {
 }
 
-// 仓位同步函数， pos 表示仓位， 正数表示多仓，负数表示空仓，price是开仓的价格
+// Position sync callback. pos>0 long, pos<0 short, price is entry price.
 func (d *Demo) OnPosition(pos, price float64) {
 	d.position = pos
 }
 
-// 自己的订单成交时候的回调函数
+// Callback when your own order is filled.
 func (d *Demo) OnTrade(trade *Trade) {
 
 }
 
-// 交易所中实时的成交信息
+// Realtime market trade callback from exchange.
 func (d *Demo) OnTradeMarket(trade *Trade) {
 
 }
 
-// 交易所中实时推送的深度信息，根据交易所限制不同，深度信息也不同
+// Realtime depth callback (depends on exchange capability).
 func (d *Demo) OnDepth(depth *Depth) {
 }
 
-// Init函数中定义的 30m K线回调函数
-// 在回测中,candle.ID是数据库中的ID
-// 在实盘中 candle.ID=-1表示是历史数据,非-1表示正常的实时K线
+// 30m callback declared in Init
 func (d *Demo) OnCandle30m(candle *Candle) {
 }
 
-// Init函数中定义的 1h K线回调函数
-// 在回测中,candle.ID是数据库中的ID
-// 在实盘中 candle.ID=-1表示是历史数据,非-1表示正常的实时K线
+// 1h callback declared in Init
 func (d *Demo) OnCandle1h(candle *Candle) {
-	// 自定义判断逻辑
-	//...
+	// custom logic
+	// ...
 
-	// 可以在策略启动后的任何地方调用交易函数
-	// OpenLong,CloseLong,OpenShort,CloseShort,StopLong,StopShort...
+	// You can place orders anywhere after strategy starts:
+	// OpenLong, CloseLong, OpenShort, CloseShort, StopLong, StopShort...
 	d.engine.OpenLong(candle.Close, 1)
 }
 
 ```
 
-## 两种运行方式（非常重要）
+## Two run modes (important)
 
-### 1) 插件模式（.so，默认推荐）
+### 1) Plugin mode (.so, default recommended)
 
-这是默认构建出来的 `ztrade` 支持的方式：策略先编译成 Go plugin（`.so`），然后在回测/实盘中加载。
+This is the mode supported by default ztrade builds:
+first compile strategy to a Go plugin (`.so`), then load it in backtest/live.
 
-关键点：
+Key points:
 
-- `ztrade build` 会把你的策略 `.go` 文件复制到临时目录、自动生成 `define.go` 与 `export.go`，再执行 `go build --buildmode=plugin`。
-- 所以你写策略时只需要实现 Runner 所需的方法；`NewStrategy` 导出函数不需要你手写（由 `export.go` 生成）。
-- `define.go` 已提供 `Engine/Param/ParamData/CandleFn` 的 type 定义，策略代码无需为了这些类型再引入额外包。
-- 默认会从策略源码所在目录开始，向上自动查找最近的 `go.mod`，并把其中的 `require` / `replace` / `go.sum` 合并到临时编译目录，方便策略使用本地依赖或私有库。
-- 如果你不希望使用源码目录或父目录里的 `go.mod`，可以在 `ztrade build` 时加 `--ignoreSourceModuleRoot`。
-- 如果你希望显式指定另一个依赖模块目录，可以使用 `--moduleRoot /path/to/deps-module`；该目录需要包含 `go.mod`，可选包含 `go.sum`，常用于通过 `replace` 引入本地私有库。
+- `ztrade build` copies your strategy `.go` file into a temp dir, auto-generates `define.go` and `export.go`, then runs `go build --buildmode=plugin`.
+- You only implement required Runner methods; no need to manually write `NewStrategy` export (generated by `export.go`).
+- `define.go` already provides type aliases for `Engine/Param/ParamData/CandleFn`.
+- By default, ztrade searches upward from strategy source dir for nearest `go.mod`, then merges `require`/`replace`/`go.sum` into temp build context.
+- If you do not want to use source-dir/parent `go.mod`, add `--ignoreSourceModuleRoot`.
+- If you want to force another dependency module root, use `--moduleRoot /path/to/deps-module` (must contain `go.mod`, optional `go.sum`).
 
-示例：
+Examples:
 
 ```
 ./ztrade build --script demo.go --output demo.so
@@ -163,127 +162,131 @@ func (d *Demo) OnCandle1h(candle *Candle) {
 ./ztrade trade --script demo.so --exchange binance --symbol BTCUSDT --param '{"intparam":12,"floatparam":1,"str":"15m"}'
 ```
 
-### 2) 源码模式（.go/.gop，需要 ixgo 构建）
+### 2) Source mode (.go/.gop, requires ixgo build)
 
-如果你用 `-tags ixgo` 构建 `ztrade`，引擎会支持直接加载 `.go` / `.gop` 源码策略（通过 ixgo 解释执行）。
+If ztrade is built with `-tags ixgo`, engine can load `.go`/`.gop` source directly (interpreted by ixgo).
 
-构建：
+Build:
 
 ```
 CGO_ENABLED=0 go build -ldflags="-checklinkname=0" -tags ixgo -o dist/ztrade ./
 ```
 
-运行：
+Run:
 
 ```
 ./ztrade backtest --script demo.go  ...
 ./ztrade backtest --script demo.gop ...
 ```
 
-说明：回测/实盘的数据订阅固定以 `1m` 为基础，策略需要用 `engine.Merge("1m", "15m", fn)` 之类的方法合成更大周期。
+Note: market subscription is fixed on base `1m` candles for both backtest/live.
+Use `engine.Merge("1m", "15m", fn)` to synthesize higher timeframes.
 
-## 参数传递（--param）
+## Parameter passing (--param)
 
-`Param()` 返回的 `[]Param` 描述了参数的 key、默认值与绑定变量；引擎会用它来解析命令行的 `--param` JSON 并自动写入你 struct 的字段。
+`Param()` returns `[]Param` describing key/default/binding-field.
+Engine uses it to parse `--param` JSON and writes values into your strategy struct.
 
-例子：
+Example:
 
 ```
 ./ztrade backtest --script demo.so ... --param '{"bin":15,"amount":1,"fast":7,"slow":30}'
 ```
 
-## Engine说明
-Engine的定义如下:
+## Engine reference
+Engine definition:
 
 ```
 const (
-    // 策略运行中
+    // running
 	StatusRunning = 0
-    // 策略成功
+    // success
 	StatusSuccess = 1
-    // 策略失败
+    // failed
 	StatusFail    = -1
 )
 
 type Engine interface {
-    // 开多，返回order id
+    // Open long, returns order id
 	OpenLong(price, amount float64) string
-    // 平多，返回order id
+    // Close long, returns order id
 	CloseLong(price, amount float64) string
-    // 开空，返回order id
+    // Open short, returns order id
 	OpenShort(price, amount float64) string
-    // 平空，返回order id
+    // Close short, returns order id
 	CloseShort(price, amount float64) string
-    // 发送 多单止损 订单，返回order id
+    // Long stop order, returns order id
 	StopLong(price, amount float64) string
-    // 发送 空单止损 订单，返回order id
+    // Short stop order, returns order id
 	StopShort(price, amount float64) string
-    // 取消某个订单，参数是order id
+    // Cancel one order by order id
 	CancelOrder(string)
-    // 取消所有订单
+    // Cancel all orders
 	CancelAllOrder()
-    // 执行订单，一般调用上面的就可以了，不用调用这个
+    // Execute low-level order. Usually use wrappers above.
 	DoOrder(typ trademodel.TradeType, price, amount float64) string
-    // 添加指标，指标具体文档在下面
+    // Add indicator. See indicator docs below.
 	AddIndicator(name string, params ...int) (ind indicator.CommonIndicator)
-    // 获取当前的仓位
+    // Current position
 	Position() (pos, price float64)
-    // 获取当前的余额
+    // Current balance
 	Balance() float64
-    // 日志
+    // Log
 	Log(v ...interface{})
-    // 添加新的订阅事件，当前无需调用
+    // Add subscription (usually not needed now)
 	Watch(watchType string)
-    // 发送消息通知，需要添加消息类型的processer才会生效
+    // Send notifications (requires corresponding processor)
 	SendNotify(title, content, contentType string)
-    // 合并K线，src是原始级别，这里固定是1m,dst是目标级别，fn是回调函数
+    // Merge K-line: src fixed to 1m, dst target timeframe, fn callback
 	Merge(src, dst string, fn common.CandleFn)
-    // 设置余额，仅在回测时有用
+    // Set balance (useful in backtest)
 	SetBalance(balance float64)
-    // 更新状态，一般无需调用，状态说明见上面的定义
+    // Update strategy status (normally not needed)
 	UpdateStatus(status int, msg string)
 }
 
 ```
 
-## 指标说明
-ztrade内置了一些常见的指标，代码详见 [indicator](https://github.com/ztrade/indicator)
+## Indicator reference
+ztrade includes common indicators, see [indicator](https://github.com/ztrade/indicator)
 
-| 名称     | 说明                      | 参数                                              | 例子                                                      |
-|----------|---------------------------|---------------------------------------------------|-----------------------------------------------------------|
-| EMA      | 只有一个参数表示是一根EMA | 数字                                              | AddIndicator("EMA", 9) 长度为9的EMA                       |
-| EMA      | 两个参数表示EMA交叉指标   | 两个数字：快线、慢线                              | AddIndicator("EMA", 9, 26) 长度为9的EMA和长度为26的EMA    |
-| MACD     | 标准的MACD                | 三个数字:快线、慢线、dea                          | AddIndicator("macd",12,26,9)                              |
-| SMAMACD  | 使用SMA代替EMA计算的MACD  | 三个数字:快线、慢线、dea                          | AddIndicator("macd",12,26,9)                              |
-| SMA      | 只有一个参数表示一根SMA   | 数字                                              | AddIndicator("SMA", 9) 长度为9的SMA                       |
-| SMA      | 两个参数表示SMA交叉指标   | 两个数字：快线、慢线                              | AddIndicator("SMA", 9, 26) 长度为9的SMA和长度为26的SMA    |
-| SSMA     | 只有一个参数表示一根SSMA  | 数字                                              | AddIndicator("SSMA", 9) 长度为9的SSMA                     |
-| SSMA     | 两个参数表示SSMA交叉指标  | 两个数字：快线、慢线                              | AddIndicator("SSMA", 9, 26) 长度为9的SSMA和长度为26的SSMA |
-| STOCHRSI | 随机相对强弱指数          | 4个参数：STOCH窗口长度、RSI窗口长度、平滑k、平滑d | AddIndicator("STOCHRSI", 14,14,3,3)                       |
-| RSI      | 只有一个参数表示一根RSI   | 数字                                              | AddIndicator("RSI", 9)表示一根长度是9的RSI                |
-| RSI      | 两个参数表示RSI交叉指标   | 两个数字:快线、慢线                               | AddIndicator("RSI", 9, 26)长度为9的RSI和长度为26的RSI     |
-| BOLL     | BOLL指标                  | 两个参数：长度、多元                              | AddIndicator("BOLL", 20,2）                               |
+| Name     | Description                      | Params                                  | Example                                                     |
+|----------|----------------------------------|-----------------------------------------|-------------------------------------------------------------|
+| EMA      | Single EMA line                  | one number                              | AddIndicator("EMA", 9)                                    |
+| EMA      | EMA cross                        | two numbers: fast, slow                 | AddIndicator("EMA", 9, 26)                                |
+| MACD     | Standard MACD                    | three numbers: fast, slow, dea          | AddIndicator("macd",12,26,9)                              |
+| SMAMACD  | MACD based on SMA                | three numbers: fast, slow, dea          | AddIndicator("macd",12,26,9)                              |
+| SMA      | Single SMA line                  | one number                              | AddIndicator("SMA", 9)                                    |
+| SMA      | SMA cross                        | two numbers: fast, slow                 | AddIndicator("SMA", 9, 26)                                |
+| SSMA     | Single SSMA line                 | one number                              | AddIndicator("SSMA", 9)                                   |
+| SSMA     | SSMA cross                       | two numbers: fast, slow                 | AddIndicator("SSMA", 9, 26)                               |
+| STOCHRSI | Stochastic RSI                   | four numbers: stoch window, rsi, k, d   | AddIndicator("STOCHRSI", 14,14,3,3)                       |
+| RSI      | Single RSI line                  | one number                              | AddIndicator("RSI", 9)                                    |
+| RSI      | RSI cross                        | two numbers: fast, slow                 | AddIndicator("RSI", 9, 26)                                |
+| BOLL     | Bollinger Bands                  | two numbers: length, multiplier         | AddIndicator("BOLL", 20,2)                                |
 
-### 返回值 CommonIndicator 说明
+### CommonIndicator return values
 
-1. 如果是单根指标线，Result()返回当前的值，如果是两个指标线，则返回的是快线的当前值
-2. Indicator() 返回一个map
-针对有两根线的 EMA/SMA/SSMA/RSI
-```
-result: 同Result()的值
-fast: 快线的值
-slow: 慢线的值
-crossUp: 1 表示金叉， 0表示没有金叉
-crossDown: 1 表示死叉， 0 表示没有死叉
-```
+1. For single-line indicators, `Result()` returns current value. For dual-line indicators, it returns current fast-line value.
+2. `Indicator()` returns a map.
 
-boll指标
+For EMA/SMA/SSMA/RSI with fast/slow lines:
 
 ```
-result: 同Result()的值,表示中间的均线的值
-top: 上边线的值
-bottom: 下边线的值
+result: same as Result()
+fast: fast line value
+slow: slow line value
+crossUp: 1 means golden cross, 0 means no golden cross
+crossDown: 1 means dead cross, 0 means no dead cross
 ```
 
+For BOLL:
 
-MACD/SMAMACD/STOCHRSI用这种方法只能获取到Result的值，建议直接使用 NewMACD/NewMACDWithSMA/NewSTOCHRSI方法
+```
+result: same as Result(), middle band value
+top: upper band value
+bottom: lower band value
+```
+
+For MACD/SMAMACD/STOCHRSI, this generic method typically gives only Result().
+Use dedicated constructors like `NewMACD` / `NewMACDWithSMA` / `NewSTOCHRSI` when needed.

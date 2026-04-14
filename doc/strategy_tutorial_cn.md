@@ -1,5 +1,8 @@
 # ztrade Strategy 教程（中文）
 
+- 中文: [strategy_tutorial_cn.md](strategy_tutorial_cn.md)
+- English: [strategy_tutorial.md](strategy_tutorial.md)
+
 本教程面向“想在 ztrade 里写、跑、回测策略”的开发者，基于仓库中的现有策略写法（例如 `ema_simple`、`boll` 一类），整理出一套**最小可运行**且更清晰的说明。
 
 > 核心理念：ztrade 的行情/成交/仓位等都通过事件驱动回调进入策略；K 线基础周期固定是 `1m`，更大周期用 `engine.Merge()` 在策略内部合成。
@@ -12,6 +15,7 @@ ztrade 的脚本引擎支持两条路线：
 
 ### A. 编译为 Go Plugin（推荐，默认就能用）
 
+- 默认编译出来的 ztrade 不带 ixgo 引擎。
 - 你的策略文件（例如 `demo.go`）会被 `ztrade build` 编译成 `.so`（Linux）、`.dylib`（macOS）、`.dll`（Windows）。
 - 运行/回测时把 `--script` 指向生成的插件文件。
 - 优点：性能最好、对 ztrade 的默认构建方式兼容。
@@ -241,6 +245,8 @@ ztrade 在回测/实盘都会先订阅 `1m` K 线。
 ```
 
 ### 7.2 直接运行 `.go`（需要 `ixgo` 版本的 ztrade）
+
+说明：ixgo 引擎本身有一些限制，使用前建议先阅读官方文档：<https://github.com/goplus/ixgo>。
 
 编译 ztrade（带 `-tags ixgo`）：
 

@@ -50,6 +50,11 @@ replace your key and secret in dist/configs/ztrade.yaml
 
 
 ## strategy
+docs:
+
+- English: [doc/strategy.md](doc/strategy.md)
+- 中文: [doc/strategy_cn.md](doc/strategy_cn.md)
+
 show examples:
 
 [strategy](https://github.com/ztrade/strategy)
