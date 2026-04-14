@@ -1,0 +1,47 @@
+# 回测报告
+
+## 基础统计
+
+| 指标 | 值 |
+|------|-----|
+| 总开单次数 | {{.TotalAction}} |
+| 胜率 | {{multiply .WinRate 100 | printf "%.2f"}}% |
+| 总收益 | {{.TotalProfit | printf "%.4f"}} |
+| 最大单次亏损 | {{.MaxLose | printf "%.2f"}}% |
+| 最大回撤 | {{multiply .MaxDrawdown 100 | printf "%.2f"}}% |
+| 盈亏比 | {{.ProfitFactor | printf "%.4f"}} |
+| 起始余额 | {{.StartBalance | printf "%.4f"}} |
+| 结束余额 | {{.EndBalance | printf "%.4f"}} |
+| 总收益率 | {{multiply .TotalReturn 100 | printf "%.2f"}}% |
+| 总手续费 | {{.TotalFee | printf "%.4f"}} |
+
+## 高级指标
+
+| 指标 | 值 |
+|------|-----|
+| 年化收益率 | {{multiply .AnnualReturn 100 | printf "%.2f"}}% |
+| 夏普比率 | {{.SharpeRatio | printf "%.4f"}} |
+| 索提诺比率 | {{.SortinoRatio | printf "%.4f"}} |
+| 年化波动率 | {{.Volatility | printf "%.4f"}} |
+| 卡玛比率 | {{.CalmarRatio | printf "%.4f"}} |
+| 一致性得分 | {{.ConsistencyScore | printf "%.4f"}} |
+| 平滑性得分 | {{.SmoothnessScore | printf "%.4f"}} |
+| 综合得分 | {{.OverallScore | printf "%.4f"}} |
+
+## 交易统计
+
+| 类型 | 数量 |
+|------|------|
+| 做多 | {{.LongTrades}} |
+| 做空 | {{.ShortTrades}} |
+
+## 交易记录
+
+{{if .Actions}}
+| 时间 | 操作 | 价格 | 数量 | 利润 | 总利润 | 利润率 | 手续费 |
+|------|------|------|------|------|--------|--------|--------|
+{{range .Actions}}| {{.Time.Format "2006-01-02 15:04:05"}} | {{.Action.String}} | {{.Price | printf "%.4f"}} | {{.Amount | printf "%.4f"}} | {{.Profit | printf "%.4f"}} | {{.TotalProfit | printf "%.4f"}} | {{.ProfitRate | printf "%.4f"}} | {{.Fee | printf "%.4f"}} |
+{{end}}
+{{else}}
+暂无交易记录
+{{end}}

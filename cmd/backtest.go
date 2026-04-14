@@ -17,6 +17,8 @@ import (
 var (
 	scriptFile   string
 	rptFile      string
+	rptMarkdown  string
+	lang         string
 	startStr     string
 	endStr       string
 	binSize      string
@@ -45,6 +47,8 @@ func init() {
 
 	backtestCmd.PersistentFlags().StringVar(&scriptFile, "script", "", "script file to backtest")
 	backtestCmd.PersistentFlags().StringVarP(&rptFile, "report", "o", "report.html", "output report html file path")
+	backtestCmd.PersistentFlags().StringVar(&rptMarkdown, "markdown", "", "output report markdown file path")
+	backtestCmd.PersistentFlags().StringVar(&lang, "lang", "en", "report language, en or zh (default: en)")
 	backtestCmd.PersistentFlags().Float64VarP(&balanceInit, "balance", "", 100000, "init total balance")
 	backtestCmd.PersistentFlags().StringVar(&param, "param", "", "param json string")
 	backtestCmd.PersistentFlags().IntVarP(&loadOnce, "load", "", 50000, "load db once limit")
@@ -72,6 +76,7 @@ func runBacktest(cmd *cobra.Command, args []string) {
 	}
 
 	r := report.NewReportSimple()
+	r.SetLang(lang)
 	back, err := ctl.NewBacktest(db, exchangeName, symbol, param, startTime, endTime)
 	if err != nil {
 		log.Fatal("init backtest failed:", err.Error())
@@ -104,9 +109,17 @@ func runBacktest(cmd *cobra.Command, args []string) {
 		fmt.Println(string(buf))
 		return
 	}
-	err = r.GenRPT(rptFile)
-	if err != nil {
-		return
+	if rptMarkdown != "" {
+		err = r.GenMarkdownReport(rptMarkdown)
+		if err != nil {
+			log.Fatal("save markdown report failed:", err.Error())
+			return
+		}
+	} else {
+		err = r.GenRPT(rptFile)
+		if err != nil {
+			return
+		}
 	}
 	if rptDB != "" {
 		err = r.ExportToDB(rptDB)

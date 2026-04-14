@@ -1,0 +1,47 @@
+# Backtest Report
+
+## Basic Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total Actions | {{.TotalAction}} |
+| Win Rate | {{multiply .WinRate 100 | printf "%.2f"}}% |
+| Total Profit | {{.TotalProfit | printf "%.4f"}} |
+| Max Single Loss | {{.MaxLose | printf "%.2f"}}% |
+| Max Drawdown | {{multiply .MaxDrawdown 100 | printf "%.2f"}}% |
+| Profit Factor | {{.ProfitFactor | printf "%.4f"}} |
+| Start Balance | {{.StartBalance | printf "%.4f"}} |
+| End Balance | {{.EndBalance | printf "%.4f"}} |
+| Total Return | {{multiply .TotalReturn 100 | printf "%.2f"}}% |
+| Total Fee | {{.TotalFee | printf "%.4f"}} |
+
+## Advanced Metrics
+
+| Metric | Value |
+|--------|-------|
+| Annual Return | {{multiply .AnnualReturn 100 | printf "%.2f"}}% |
+| Sharpe Ratio | {{.SharpeRatio | printf "%.4f"}} |
+| Sortino Ratio | {{.SortinoRatio | printf "%.4f"}} |
+| Annual Volatility | {{.Volatility | printf "%.4f"}} |
+| Calmar Ratio | {{.CalmarRatio | printf "%.4f"}} |
+| Consistency Score | {{.ConsistencyScore | printf "%.4f"}} |
+| Smoothness Score | {{.SmoothnessScore | printf "%.4f"}} |
+| Overall Score | {{.OverallScore | printf "%.4f"}} |
+
+## Trade Statistics
+
+| Type | Count |
+|------|-------|
+| Long Trades | {{.LongTrades}} |
+| Short Trades | {{.ShortTrades}} |
+
+## Trade History
+
+{{if .Actions}}
+| Time | Action | Price | Amount | Profit | Total Profit | Profit Rate | Fee |
+|------|--------|-------|--------|--------|--------------|-------------|-----|
+{{range .Actions}}| {{.Time.Format "2006-01-02 15:04:05"}} | {{.Action.String}} | {{.Price | printf "%.4f"}} | {{.Amount | printf "%.4f"}} | {{.Profit | printf "%.4f"}} | {{.TotalProfit | printf "%.4f"}} | {{.ProfitRate | printf "%.4f"}} | {{.Fee | printf "%.4f"}} |
+{{end}}
+{{else}}
+No trade history
+{{end}}

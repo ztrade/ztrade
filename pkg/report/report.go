@@ -4,12 +4,14 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"html/template"
 	"io"
 	"math"
 	"os"
 	"sort"
+	"text/template"
 	"time"
+
+	htmlTemplate "html/template"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/montanaflynn/stats"
@@ -20,10 +22,29 @@ import (
 	"xorm.io/xorm"
 )
 
-//go:embed report.tmpl
-var reportTmpl string
+//go:embed report_en.tmpl
+var reportEnTmpl string
+
+//go:embed report_zh.tmpl
+var reportZhTmpl string
+
+//go:embed markdown_en.tmpl
+var markdownEnTmpl string
+
+//go:embed markdown_zh.tmpl
+var markdownZhTmpl string
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+var htmlTemplates = map[string]string{
+	"en": reportEnTmpl,
+	"zh": reportZhTmpl,
+}
+
+var markdownTemplates = map[string]string{
+	"en": markdownEnTmpl,
+	"zh": markdownZhTmpl,
+}
 
 type ReportResult struct {
 	TotalAction      int     // 总开单次数
@@ -69,6 +90,7 @@ type Report struct {
 	riskFreeRate float64 // 无风险利率
 	startTime    time.Time
 	endTime      time.Time
+	lang         string // "en" or "zh"
 
 	result ReportResult
 }
@@ -86,6 +108,7 @@ type RptAct struct {
 func NewReportSimple() *Report {
 	rep := new(Report)
 	rep.riskFreeRate = 0.02
+	rep.lang = "en"
 	return rep
 }
 
@@ -94,6 +117,7 @@ func NewReport(trades []Trade, balanceInit float64) *Report {
 	rep.trades = trades
 	rep.balanceInit = balanceInit
 	rep.riskFreeRate = 0.02
+	rep.lang = "en"
 	return rep
 }
 
@@ -109,6 +133,14 @@ func (r *Report) SetFee(fee float64) {
 
 func (r *Report) SetLever(lever float64) {
 	r.lever = lever
+}
+
+func (r *Report) SetLang(lang string) {
+	if lang == "zh" {
+		r.lang = "zh"
+	} else {
+		r.lang = "en"
+	}
 }
 
 func (r *Report) Analyzer() (err error) {
@@ -627,11 +659,55 @@ func (r *Report) GenHTMLReport(fPath string) (err error) {
 }
 
 func (r *Report) GenHTML(w io.Writer) (err error) {
-	tmpl, err := template.New("report").Parse(reportTmpl)
+	tmplContent, ok := htmlTemplates[r.lang]
+	if !ok {
+		tmplContent = htmlTemplates["en"]
+	}
+
+	tmpl, err := htmlTemplate.New("report").Parse(tmplContent)
 	if err != nil {
 		log.Println("tmpl parse failed:", err.Error())
 		return
 	}
+	err = tmpl.Execute(w, r.result)
+	return
+}
+
+func (r *Report) GenMarkdownReport(fPath string) (err error) {
+	sort.Slice(r.trades, func(i int, j int) bool {
+		return r.trades[i].Time.Unix() < r.trades[j].Time.Unix()
+	})
+	err = r.Analyzer()
+	if err != nil {
+		return
+	}
+	f, err := os.OpenFile(fPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	err = r.GenMarkdown(f)
+	return
+}
+
+func (r *Report) GenMarkdown(w io.Writer) (err error) {
+	tmplContent, ok := markdownTemplates[r.lang]
+	if !ok {
+		tmplContent = markdownTemplates["en"]
+	}
+
+	funcMap := template.FuncMap{
+		"multiply": func(a, b float64) float64 {
+			return a * b
+		},
+	}
+
+	tmpl, err := template.New("markdown").Funcs(funcMap).Parse(tmplContent)
+	if err != nil {
+		log.Println("markdown tmpl parse failed:", err.Error())
+		return
+	}
+
 	err = tmpl.Execute(w, r.result)
 	return
 }

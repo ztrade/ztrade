@@ -1,0 +1,260 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>回测报告</title>
+    <meta name="author" content="https://coolplay.website"/>
+    <meta name="description"  content="ZTrade Backtest Report"/>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+    <script language="javascript">
+
+      function drawTotalProfit(domID, source) {
+    let datas = [];
+    let labels = []
+    let totalProfit = 0;
+    let i = 0;
+    for (d in source){
+        totalProfit = source[d].TotalProfit;
+        if (totalProfit === 0){
+            continue;
+        }
+        datas.push(totalProfit);
+        labels.push(source[d].Time);
+        i++;
+    }
+    var ctx = document.getElementById(domID).getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Profit',
+                data: datas,
+                backgroundColor: ['rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)']
+            }],
+
+        },
+        options: {
+        }
+    });
+}
+
+function drawChart(domID, source, attr, title) {
+    let datas = [];
+    let labels = []
+    let i = 0;
+    for (d in source){
+        let data = source[d];
+        if (!data.IsFinish){
+            continue
+        }
+        let value = data[attr];
+        datas.push(value);
+        labels.push(source[d].Time);
+        i++;
+    }
+    var ctx = document.getElementById(domID).getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: attr,
+                data: datas,
+                backgroundColor: ['rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)']
+            }],
+
+        },
+        options: {
+        }
+    });
+}
+    </script>
+</head>
+<body>
+    <div class="container">
+      <h1 class="text-center">ZTrade 回测报告</h1>
+      <div class="container">
+      <div class="form-group row">
+            <label for="totalAction" class="col-sm-6 col-form-label text-right">总开单次数:</label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="totalAction" value="{{.TotalAction}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="winRate" class="col-sm-6 col-form-label text-right">胜率:</label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="winRate" value="{{.WinRate}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="profit" class="col-sm-6 col-form-label text-right">总收益:</label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="profit" value="{{.TotalProfit}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="maxDrawdown" class="col-sm-6 col-form-label text-right">最大回撤百分比: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.MaxDrawdown}}%">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="maxLose" class="col-sm-6 col-form-label text-right">每轮最大亏损百分比: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.MaxLose}}%">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="profitLoseRatio" class="col-sm-6 col-form-label text-right">盈亏比: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="maxLose" value="{{.ProfitFactor}}">
+              </div>
+      </div>
+      <div class="form-group row">
+       <label for="startBalance" class="col-sm-6 col-form-label text-right">起始余额: </label>
+       <div class="col-sm-4">
+           <input type="text" readonly class="form-control-plaintext" id="startBalance" value="{{.StartBalance}}">
+         </div>
+      </div>
+      <div class="form-group row">
+            <label for="endBalance" class="col-sm-6 col-form-label text-right">结束余额: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="endBalance" value="{{.EndBalance}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="profitPercent" class="col-sm-6 col-form-label text-right">收益率: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="profitPercent" value="{{.TotalReturn}}%">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="profitVariance" class="col-sm-6 col-form-label text-right">盈利方差: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="profitVariance" value="{{.ProfitVariance}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="loseVariance" class="col-sm-6 col-form-label text-right">亏损方差: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="loseVariance" value="{{.LoseVariance}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="TotalReturn" class="col-sm-6 col-form-label text-right">总收益率: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="TotalReturn" value="{{.TotalReturn}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="AnnualReturn" class="col-sm-6 col-form-label text-right">年化收益率: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="AnnualReturn" value="{{.AnnualReturn}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="SharpeRatio" class="col-sm-6 col-form-label text-right">夏普比率: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="SharpeRatio" value="{{.SharpeRatio}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="SortinoRatio" class="col-sm-6 col-form-label text-right">索提诺比率: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="SortinoRatio" value="{{.SortinoRatio}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="Volatility" class="col-sm-6 col-form-label text-right">年化波动率: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="Volatility" value="{{.Volatility}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="ProfitFactor" class="col-sm-6 col-form-label text-right">盈亏比: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="ProfitFactor" value="{{.ProfitFactor}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="CalmarRatio" class="col-sm-6 col-form-label text-right">卡玛比率: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="CalmarRatio" value="{{.CalmarRatio}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="ConsistencyScore" class="col-sm-6 col-form-label text-right">一致性得分: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="ConsistencyScore" value="{{.ConsistencyScore}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="SmoothnessScore" class="col-sm-6 col-form-label text-right">平滑性得分: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="SmoothnessScore" value="{{.SmoothnessScore}}">
+              </div>
+      </div>
+      <div class="form-group row">
+            <label for="OverallScore" class="col-sm-6 col-form-label text-right">综合得分: </label>
+            <div class="col-sm-4">
+                <input type="text" readonly class="form-control-plaintext" id="OverallScore" value="{{.OverallScore}}">
+              </div>
+      </div>
+      </div>
+    <canvas id="profitChart" width="400" height="100"></canvas>
+    <canvas id="totalProfitChart" width="400" height="100"></canvas>
+    <canvas id="fundsChart" width="400" height="100"></canvas>
+
+    <h3 class="text-center">交易详情</h3>
+<table class="table">
+    <thead class="thead-dark">
+          <tr>
+            <th scope="col">时间</th>
+            <th scope="col">操作</th>
+            <th scope="col">价格</th>
+            <th scope="col">数量</th>
+            <th scope="col">Total</th>
+                        <th scope="col">总利润</th>
+
+            <th scope="col">利润</th>
+            <th scope="col">手续费</th>
+          </tr>
+    </thead>
+    <tbody>
+          {{range .Actions}}
+          <tr>
+            <td>{{.Time}}</td>
+            <td>{{.Action}}</td>
+            <td>{{.Price}}</td>
+            <td>{{.Amount}}</td>
+            <td>{{.Total}}</td>
+            <td>{{.TotalProfit}}</td>
+            <td>{{.Profit}}</td>
+            <td>{{.Fee}}</td>
+          </tr>
+          {{end}}
+      </table>
+    </div>
+  <script>
+  var actions = {{.Actions}};
+    // drawProfit("profitChat", actions);
+    drawChart("profitChart", actions, "Profit", "Profit");
+    drawChart("totalProfitChart", actions, "TotalProfit", "TotalProfit");
+    drawChart("fundsChart", actions, "Total", "Funds");
+    // drawTotalProfit("totalProfitChat", actions);
+    // drawTotalProfit("fundsChat", actions);
+  </script>
+</body>
+</html>
