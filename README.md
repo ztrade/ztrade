@@ -8,7 +8,7 @@ I hope ztrade is "The last trade app you need" !
 1. Develop/write strategy with only go language,no other script need
 2. Event base framework,easy to extend
 3. Support binance,okx,ctp
-4. use[goplus](https://goplus.org/)as script engine
+4. use [ixgo](https://github.com/goplus/ixgo) as script engine
 5. can build strategy to go golang plugin,best performance
 
 # build
@@ -36,16 +36,52 @@ replace your key and secret in dist/configs/ztrade.yaml
 ./ztrade download --symbol BTCUSDT -a --exchange binance
 ```
 
-## backtest
+## build strategy (default flow)
+
+Default `ztrade` builds do not include the `ixgo` engine, so compile your `.go` strategy into a plugin first and then use that plugin in backtest/live trade.
 
 ``` shell
-./ztrade backtest --script debug.go --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --symbol BTCUSDT --exchange binance
+./ztrade build --script /path/to/debug.go --output debug.so
+```
+
+## backtest
+
+Default mode (without `ixgo`):
+- build the strategy plugin first
+- use the plugin file in `--script`
+
+``` shell
+./ztrade backtest --script debug.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --symbol BTCUSDT --exchange binance
+```
+
+### backtest report output
+
+- `--report` / `-o`: output HTML report path, default `report.html`
+- `--markdown`: output Markdown report path; when set, the backtest writes Markdown instead of HTML
+- `--lang`: report language, `en` or `zh`
+- `--console`: print the JSON result to stdout instead of writing a report file
+
+``` shell
+./ztrade backtest --script debug.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --symbol BTCUSDT --exchange binance --markdown backtest.md --lang zh
 ```
 
 ## real trade
 
+`ixgo` mode (build ztrade with `-tags ixgo`):
+- can run `.go` strategy files directly for backtest/live trade
+- but `ixgo` has its own limitations; see the official docs: <https://github.com/goplus/ixgo>
+
+`ixgo` mode example:
+
 ``` shell
-./ztrade trade --symbol BTCUSDT --exchange binance --script debug.go
+./ztrade backtest --script /path/to/debug.go --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --symbol BTCUSDT --exchange binance
+./ztrade trade --symbol BTCUSDT --exchange binance --script /path/to/debug.go
+```
+
+Default mode (plugin) live example:
+
+``` shell
+./ztrade trade --symbol BTCUSDT --exchange binance --script debug.so
 ```
 
 
@@ -75,6 +111,6 @@ By default, `ztrade build` searches upward from the strategy source directory fo
 
 ## Thanks
 
-[goplus](https://goplus.org/)
+[ixgo](https://github.com/goplus/ixgo)
 
 [vnpy](https://github.com/vnpy/vnpy)

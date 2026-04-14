@@ -128,6 +128,8 @@ func runBacktest(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-	err = common.OpenURL(rptFile)
+	if rptMarkdown == "" {
+		err = common.OpenURL(rptFile)
+	}
 	return
 }

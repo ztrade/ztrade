@@ -165,6 +165,19 @@ func (d *Demo) OnCandle1h(candle *Candle) {
 ./ztrade trade --script demo.so --exchange binance --symbol BTCUSDT --param '{"intparam":12,"floatparam":1,"str":"15m"}'
 ```
 
+回测报告输出参数：
+
+- `--report` / `-o`：HTML 报告输出路径，默认 `report.html`
+- `--markdown`：Markdown 报告输出路径；设置后会输出 Markdown，而不是 HTML
+- `--lang`：报告语言，可选 `en` 或 `zh`
+- `--console`：直接把 JSON 结果打印到终端
+
+示例：
+
+```
+./ztrade backtest --script demo.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --exchange binance --symbol BTCUSDT --markdown backtest.md --lang zh
+```
+
 ### 2) 源码模式（.go/.gop，需要 ixgo 构建）
 
 如果你用 `-tags ixgo` 构建 `ztrade`，引擎会支持直接加载 `.go` / `.gop` 源码策略（通过 ixgo 解释执行）。

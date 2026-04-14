@@ -53,6 +53,17 @@ cd dist
 ./ztrade backtest --script debug.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --symbol BTCUSDT --exchange binance
 ```
 
+### 回测报告输出
+
+- `--report` / `-o`：HTML 报告输出路径，默认 `report.html`
+- `--markdown`：Markdown 报告输出路径；设置后本次回测会输出 Markdown，而不是 HTML
+- `--lang`：报告语言，可选 `en` 或 `zh`
+- `--console`：直接把 JSON 结果打印到终端，不写报告文件
+
+``` shell
+./ztrade backtest --script debug.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --symbol BTCUSDT --exchange binance --markdown backtest.md --lang zh
+```
+
 ## 实盘
 
 `ixgo` 模式（编译 ztrade 时带 `-tags ixgo`）：

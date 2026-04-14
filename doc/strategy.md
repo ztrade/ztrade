@@ -162,6 +162,19 @@ Examples:
 ./ztrade trade --script demo.so --exchange binance --symbol BTCUSDT --param '{"intparam":12,"floatparam":1,"str":"15m"}'
 ```
 
+Backtest report options:
+
+- `--report` / `-o`: output HTML report path, default `report.html`
+- `--markdown`: output Markdown report path; when set, Markdown is generated instead of HTML
+- `--lang`: report language, `en` or `zh`
+- `--console`: print the JSON result to stdout
+
+Example:
+
+```
+./ztrade backtest --script demo.so --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --exchange binance --symbol BTCUSDT --markdown backtest.md --lang zh
+```
+
 ### 2) Source mode (.go/.gop, requires ixgo build)
 
 If ztrade is built with `-tags ixgo`, engine can load `.go`/`.gop` source directly (interpreted by ixgo).

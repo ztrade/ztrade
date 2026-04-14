@@ -190,6 +190,19 @@ Backtest with plugin:
 ./ztrade backtest --script demo.so ...
 ```
 
+Backtest report options:
+
+- `--report` / `-o`: output HTML report path, default `report.html`
+- `--markdown`: output Markdown report path; when set, Markdown is generated instead of HTML
+- `--lang`: report language, `en` or `zh`
+- `--console`: print the JSON result to stdout
+
+Example:
+
+```bash
+./ztrade backtest --script demo.so --param '{"bin":15,"amount":1,"fast":7,"slow":30}' --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" --exchange binance --symbol BTCUSDT --markdown backtest.md --lang zh
+```
+
 Live trading:
 
 ```bash

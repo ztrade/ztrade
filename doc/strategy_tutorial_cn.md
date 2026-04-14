@@ -235,6 +235,24 @@ ztrade 在回测/实盘都会先订阅 `1m` K 线。
   --exchange binance --symbol BTCUSDT
 ```
 
+回测报告输出参数：
+
+- `--report` / `-o`：HTML 报告输出路径，默认 `report.html`
+- `--markdown`：Markdown 报告输出路径；设置后会输出 Markdown，而不是 HTML
+- `--lang`：报告语言，可选 `en` 或 `zh`
+- `--console`：直接把 JSON 结果打印到终端
+
+示例：
+
+```bash
+./ztrade backtest \
+  --script demo.so \
+  --param '{"bin":15,"amount":1,"fast":7,"slow":30}' \
+  --start "2020-01-01 08:00:00" --end "2021-01-01 08:00:00" \
+  --exchange binance --symbol BTCUSDT \
+  --markdown backtest.md --lang zh
+```
+
 实盘：
 
 ```bash
