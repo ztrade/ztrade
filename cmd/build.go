@@ -36,10 +36,10 @@ func runBuild(cmd *cobra.Command, args []string) {
 	b.SetKeepTemp(keepTemp)
 	b.SetModuleRoot(moduleRoot)
 	b.SetIgnoreSourceModuleRoot(ignoreSourceModuleRoot)
-	err := b.Build()
+	dstPath, err := b.Build()
 	if err != nil {
 		fmt.Println("build failed:", err.Error())
 		return
 	}
-	fmt.Printf("build success: %s\n", output)
+	fmt.Printf("build success: %s\n", dstPath)
 }

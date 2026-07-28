@@ -69,7 +69,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.configs/ztrade.yaml or ./configs/ztrade.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.config/ztrade.yaml or ./config/ztrade.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "P", false, "run debug mode")
 	rootCmd.PersistentFlags().BoolVarP(&runPprof, "pprof", "p", false, "run with pprof mode at :8088")
 	rootCmd.PersistentFlags().StringVarP(&logFile, "log", "l", "ztrade.log", "log file")
@@ -116,14 +116,15 @@ func initConfig() {
 		}
 
 		// Search config in home directory with name ".ztrade" (without extension).
-		viper.AddConfigPath(filepath.Join(home, ".configs"))
-		viper.AddConfigPath("./configs")
+		viper.AddConfigPath(filepath.Join(home, ".config"))
+		viper.AddConfigPath("./config")
 		ex, err := os.Executable()
 		if err != nil {
 			panic(err)
 		}
 		exPath := filepath.Dir(ex)
 		viper.AddConfigPath(filepath.Join(exPath, "configs"))
+		viper.AddConfigPath(filepath.Join(exPath, "config"))
 		viper.SetConfigName("ztrade")
 	}
 

@@ -60,7 +60,7 @@ func (b *Builder) SetIgnoreSourceModuleRoot(ignore bool) {
 	b.ignoreSourceModuleRoot = ignore
 }
 
-func (b *Builder) Build() (err error) {
+func (b *Builder) Build() (dst string, err error) {
 	if b.source == "" {
 		err = errors.New("strategy file can't be empty")
 		return
@@ -139,7 +139,7 @@ func (b *Builder) Build() (err error) {
 	if b.keepTemp {
 		fmt.Println("temp dir:", tempDir)
 	}
-	dst, _ := filepath.Abs(b.output)
+	dst, _ = filepath.Abs(b.output)
 	var output []byte
 	eBuild := exec.Command("go", "build", "--buildmode=plugin", "-o", dst)
 	eBuild.Dir = tempDir
