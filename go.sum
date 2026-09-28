@@ -146,6 +146,8 @@ github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHm
 github.com/juju/gnuflag v0.0.0-20171113085948-2ce1bb71843d/go.mod h1:2PavIy+JPciBPrBUjwbNvtwB6RQlve+hkpll6QSNmOE=
 github.com/kataras/blocks v0.1.0 h1:wwgkEPFq3tHtnuP3mhTMmzmL0YW6xuY4l1lXUPKw5sg=
 github.com/kataras/blocks v0.1.0/go.mod h1:MfwpYK8P/dWxCE0vxC8tA3PtUM5GJjvm/mUFrZ/TWZo=
+github.com/kataras/golog v0.1.13 h1:bGbPglTdCutekqwOUf8L1jq3tZ5ADG9gfPBd5p5SzKA=
+github.com/kataras/golog v0.1.13/go.mod h1:oQmzBTCv/35TetBosjJl/k+LPdlJEblaTupkNwJlwj8=
 github.com/kataras/golog v0.2.0 h1:8Y/VWjUijivCwlY09DGrLIKAfsEoXRqbrhvqyeCz1uw=
 github.com/kataras/golog v0.2.0/go.mod h1:ChIl77VUBE6SwvowRiPn7XHcW2iMmD4hDrArAnP6jDU=
 github.com/kataras/iris/v12 v12.2.11 h1:sGgo43rMPfzDft8rjVhPs6L3qDJy3TbBrMD/zGL1pzk=
